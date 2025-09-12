@@ -6,7 +6,7 @@ import (
     "fmt"
     "io/ioutil"
     "net/http"
-    //"log"
+    "log"
 )
 
 type Client struct {
@@ -82,3 +82,21 @@ func (c *Client) call(method string, params ...interface{}) (json.RawMessage, er
 
     return rpcResp.Result, nil
 }
+
+
+func (c *Client) PayTo(destination string, amount string) (string, error) {
+
+    res, err := c.call("payto", destination, amount)
+    if err != nil {
+        return "", fmt.Errorf("failed to create transaction: %v", err)
+    }
+    log.Print(string(res))
+    resBroadcast, err := c.call("broadcast", res)
+    if err != nil {
+        return "", fmt.Errorf("failed to broadcast transaction: %v", err)
+    }
+
+    return string(resBroadcast), nil
+}
+
+

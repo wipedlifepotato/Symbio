@@ -116,6 +116,26 @@ func RegisterElectrumLua(L *lua.LState, client *electrum.Client) {
         return 1
     }))
 
+    L.SetGlobal("electrum_pay_to", L.NewFunction(func(L *lua.LState) int {
+	    destination := L.ToString(1)
+	    amount := L.ToString(2)
+	    if destination == "" || amount == "" {
+		L.Push(lua.LNil)
+		L.Push(lua.LString("destination and amount required"))
+		return 2
+	    }
+
+	    txid, err := client.PayTo(destination, amount)
+	    if err != nil {
+		L.Push(lua.LNil)
+		L.Push(lua.LString(err.Error()))
+		return 2
+	    }
+
+	    L.Push(lua.LString(txid))
+	    return 1
+    }))
+
     L.SetGlobal("electrum_list_addresses", L.NewFunction(func(L *lua.LState) int {
         addrs, err := client.ListAddresses()
         if err != nil {
