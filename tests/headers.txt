@@ -1,6 +1,6 @@
 HTTP/1.1 200 OK
 Content-Type: image/png
-X-Captcha-Id: 1535943052752639160
-Date: Fri, 12 Sep 2025 06:02:46 GMT
+X-Captcha-Id: 2684790703076113613
+Date: Fri, 12 Sep 2025 08:05:10 GMT
 Transfer-Encoding: chunked
 

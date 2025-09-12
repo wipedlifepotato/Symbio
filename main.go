@@ -36,7 +36,7 @@ func main() {
     db.Migrate(db.Postgres)
     db.ConnectRedis()
 
-    L := lua.NewState(db.RedisClient, db.Postgres)
+    L := lua.NewState(db.RedisClient, db.Postgres, electrumClient)
     defer lua.L.Close()
 
     if err := L.DoString(`

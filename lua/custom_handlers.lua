@@ -36,3 +36,47 @@ end)
 -- local token = generate_jwt(restored.id, restored.username)
 -- print("JWT:", token)
 
+-- Проверка работы Electrum RPC из Lua
+
+-- local addrs, err = electrum_list_addresses()
+-- if not addrs then
+--    print("Failed to list addresses:", err)
+-- else
+--    print("Addresses in wallet:")
+--    for i = 1, #addrs do
+--        print(i, addrs[i])
+--    end
+-- end
+
+-- local newAddr, err = electrum_create_address()
+-- if not newAddr then
+--    print("Failed to create new address:", err)
+-- else
+--    print("New address created:", newAddr)
+-- end
+
+-- local balance, err = electrum_get_balance(newAddr)
+-- if not balance then
+--    print("Failed to get balance:", err)
+-- else
+--    print("Balance of new address:", balance)
+-- end
+-- local balance, err = electrum_get_balance("tb1q55rqf7um2636a7evrmzkqet34ww85wdjl02lg0")
+-- print(balance)
+
+register_handler("/mywallet", function(req)
+    local token = req.params["Authorization"]
+    if not token then
+        return '{"error":"missing token"}'
+    end
+
+    local user, err = get_user_from_jwt(token)
+    if not user then
+        return '{"error":"invalid token: '..err..'"}'
+    end
+
+    local user_id = user.user_id
+    local username = user.username
+
+    return '{"user_id":'..user_id..', "username":" '..username..'"}'
+end)

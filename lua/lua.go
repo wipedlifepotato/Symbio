@@ -12,6 +12,7 @@ import (
     "mFrelance/server"
     "mFrelance/db"
     "mFrelance/auth"
+    "mFrelance/electrum"
 )
 var L *lua.LState
 
@@ -69,6 +70,66 @@ func WatchLuaFile(L *lua.LState, path string) {
             }
         }
     }()
+}
+
+func RegisterJWTLua(L *lua.LState) {
+    L.SetGlobal("get_user_from_jwt", L.NewFunction(func(L *lua.LState) int {
+        token := L.ToString(1)
+        claims, err := auth.ParseJWT(token)
+        if err != nil {
+            L.Push(lua.LNil)
+            L.Push(lua.LString(err.Error()))
+            return 2
+        }
+        tbl := L.NewTable()
+        tbl.RawSetString("user_id", lua.LNumber(claims.UserID))
+        tbl.RawSetString("username", lua.LString(claims.Username))
+        L.Push(tbl)
+        return 1
+    }))
+}
+
+func RegisterElectrumLua(L *lua.LState, client *electrum.Client) {
+
+    L.SetGlobal("electrum_create_address", L.NewFunction(func(L *lua.LState) int {
+        addr, err := client.CreateAddress()
+        if err != nil {
+            L.Push(lua.LNil)
+            L.Push(lua.LString(err.Error()))
+            return 2
+        }
+        L.Push(lua.LString(addr))
+        return 1
+    }))
+
+
+    L.SetGlobal("electrum_get_balance", L.NewFunction(func(L *lua.LState) int {
+        addr := L.ToString(1)
+        bal, err := client.GetBalance(addr)
+        if err != nil {
+            L.Push(lua.LNil)
+            L.Push(lua.LString(err.Error()))
+            return 2
+        }
+        f, _ := bal.Float64()
+        L.Push(lua.LNumber(f))
+        return 1
+    }))
+
+    L.SetGlobal("electrum_list_addresses", L.NewFunction(func(L *lua.LState) int {
+        addrs, err := client.ListAddresses()
+        if err != nil {
+            L.Push(lua.LNil)
+            L.Push(lua.LString(err.Error()))
+            return 2
+        }
+        tbl := L.NewTable()
+        for _, a := range addrs {
+            tbl.Append(lua.LString(a))
+        }
+        L.Push(tbl)
+        return 1
+    }))
 }
 
 func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
@@ -196,19 +257,21 @@ func RegisterHttpHandler(L *lua.LState, mux *http.ServeMux) {
 }
 
 
-func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
+func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client) {
 	//l := lua.NewState()
 	l.SetGlobal("helloGo", L.NewFunction(HelloLua))
 	RegisterLuaRedis(l, rdb)
 	RegisterLuaPostgres(l, psql)
 	RegisterConfigGlobals(l)
 	RegisterLuaHelpers(l,rdb,psql)
+	RegisterElectrumLua(l, eClient)
+	RegisterJWTLua(l)
 	return
 }
 
-func NewVM(rdb *redis.Client, psql *sqlx.DB) *LuaVM {
+func NewVM(rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client) *LuaVM {
 	l := lua.NewState()
-	luaInit(l, rdb, psql)
+	luaInit(l, rdb, psql, eClient)
 	
 	return &LuaVM{L: l}
 }
@@ -224,8 +287,8 @@ func HelloLua(L *lua.LState) int {
     return 1
 }
 
-func NewState(rdb *redis.Client, psql *sqlx.DB) *lua.LState {
+func NewState(rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client) *lua.LState {
 	L = lua.NewState()
-	luaInit(L, rdb, psql)
+	luaInit(L, rdb, psql, eClient) 
 	return L
 }

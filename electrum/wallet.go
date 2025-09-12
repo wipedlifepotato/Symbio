@@ -83,3 +83,17 @@ func (c *Client) GetAllBalances(addresses []string) (map[string]*big.Float, erro
     return result, nil
 }
 
+func (c *Client) CreateAddress() (string, error) {
+    res, err := c.call("createnewaddress")
+    if err != nil {
+        return "", err
+    }
+
+    var addr string
+    if err := json.Unmarshal(res, &addr); err != nil {
+        return "", err
+    }
+
+    return addr, nil
+}
+
