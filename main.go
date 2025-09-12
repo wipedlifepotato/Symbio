@@ -7,11 +7,31 @@ import (
     "mFrelance/server"
     "mFrelance/lua"
     "net/http"
+    "mFrelance/electrum"
+    //"fmt"
 )
 
 func main() {
-    luaFile := "lua/custom_handlers.lua"
     config.Init()
+    electrumClient := electrum.NewClient(
+        config.AppConfig.ElectrumUser,
+        config.AppConfig.ElectrumPassword,
+        config.AppConfig.ElectrumHost,
+        config.MustAtoi(config.AppConfig.ElectrumPort),
+    )
+    if err := electrumClient.LoadWallet(); err != nil {
+	log.Fatal("Failed to load wallet:", err)
+    }
+    addresses, err := electrumClient.ListAddresses()
+    if err != nil {
+    	log.Fatal("Failed to list addresses:", err)
+    }
+    if len(addresses) == 0 {
+        panic("electrum does not works")
+    }
+    
+    luaFile := "lua/custom_handlers.lua"
+    
     db.Connect()
     db.Migrate(db.Postgres)
     db.ConnectRedis()

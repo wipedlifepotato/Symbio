@@ -1,0 +1,8 @@
+>>> setconfig("rpcport", 7777)
+true
+>>> getconfig("rpcuser")
+"Electrum"
+>>> getconfig("rpcpassword")
+"Electrum"
+>>> load_wallet()
+true

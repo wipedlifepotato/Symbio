@@ -3,7 +3,7 @@ package config
 import (
     "log"
     "os"
-
+    "strconv"
     "github.com/joho/godotenv"
 )
 
@@ -19,9 +19,22 @@ type Config struct {
     Port             string
     JWTToken	     string
     ListenAddr	     string
+
+    ElectrumHost     string
+    ElectrumPort     string
+    ElectrumUser     string
+    ElectrumPassword string
 }
 
 var AppConfig Config
+
+func MustAtoi(s string) int {
+    i, err := strconv.Atoi(s)
+    if err != nil {
+        log.Fatalf("Invalid port: %v", err)
+    }
+    return i
+}
 
 func Init() {
     err := godotenv.Load()
@@ -41,5 +54,10 @@ func Init() {
         Port:             os.Getenv("PORT"),
         JWTToken:	  os.Getenv("JWT_TOKEN"),
         ListenAddr:	  os.Getenv("LISTEN_ADDR"),
+
+        ElectrumHost:     os.Getenv("ELECTRUM_HOST"),
+        ElectrumPort:     os.Getenv("ELECTRUM_PORT"),
+        ElectrumUser:     os.Getenv("ELECTRUM_USER"),
+        ElectrumPassword: os.Getenv("ELECTRUM_PASSWORD"),
     }
 }
