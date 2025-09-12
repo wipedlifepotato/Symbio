@@ -36,8 +36,6 @@ end)
 -- local token = generate_jwt(restored.id, restored.username)
 -- print("JWT:", token)
 
--- Проверка работы Electrum RPC из Lua
-
 -- local addrs, err = electrum_list_addresses()
 -- if not addrs then
 --    print("Failed to list addresses:", err)
@@ -63,6 +61,13 @@ end)
 -- end
 -- local balance, err = electrum_get_balance("tb1q55rqf7um2636a7evrmzkqet34ww85wdjl02lg0")
 -- print(balance)
+-- local txid, err = electrum_pay_to("tb1q4fd0atukx96557ql07av5enl2u73ltdp06hqys", "0.00005502")
+-- if not txid then
+--     print("Ошибка:", err)
+-- else
+--    print("Отправлено, txid:", txid)
+-- end
+
 
 register_handler("/mywallet", function(req)
     local token = req.params["Authorization"]

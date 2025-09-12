@@ -1,14 +1,16 @@
 package main
 
 import (
+    "io/ioutil"
     "log"
+    "path/filepath"
+    "strings"
     "mFrelance/config"
     "mFrelance/db"
     "mFrelance/server"
     "mFrelance/lua"
     "net/http"
     "mFrelance/electrum"
-    //"fmt"
 )
 
 func main() {
@@ -20,18 +22,16 @@ func main() {
         config.MustAtoi(config.AppConfig.ElectrumPort),
     )
     if err := electrumClient.LoadWallet(); err != nil {
-	log.Fatal("Failed to load wallet:", err)
+        log.Fatal("Failed to load wallet:", err)
     }
     addresses, err := electrumClient.ListAddresses()
     if err != nil {
-    	log.Fatal("Failed to list addresses:", err)
+        log.Fatal("Failed to list addresses:", err)
     }
     if len(addresses) == 0 {
-        panic("electrum does not works")
+        panic("electrum does not work")
     }
-    
-    luaFile := "lua/custom_handlers.lua"
-    
+
     db.Connect()
     db.Migrate(db.Postgres)
     db.ConnectRedis()
@@ -50,11 +50,21 @@ func main() {
     s := server.New()
     lua.RegisterHttpHandler(lua.L, s.GetMux())
 
-    if err := lua.L.DoFile(luaFile); err != nil {
-        panic(err)
+    files, err := ioutil.ReadDir("mods")
+    if err != nil {
+        log.Fatal("Failed to read mods directory:", err)
     }
-    lua.WatchLuaFile(lua.L, luaFile)
 
+    for _, f := range files {
+        if !f.IsDir() && strings.HasSuffix(f.Name(), ".lua") {
+            path := filepath.Join("mods", f.Name())
+            log.Println("Loading Lua module:", path)
+            if err := lua.L.DoFile(path); err != nil {
+                log.Fatalf("Error loading %s: %v", path, err)
+            }
+            lua.WatchLuaFile(lua.L, path)
+        }
+    }
 
     s.Handle("/hello", server.HelloHandler)
     s.Handle("/register", func(w http.ResponseWriter, r *http.Request) {
@@ -73,15 +83,14 @@ func main() {
         server.RestoreHandler(w, r, db.RedisClient)
     })
 
-
     apiMux := http.NewServeMux()
     apiMux.Handle("/test", server.AuthMiddleware(http.HandlerFunc(server.TestHandler)))
 
-
     s.HandleHandler("/api/", http.StripPrefix("/api", apiMux))
 
-    log.Println("Starting server on "+config.AppConfig.ListenAddr+":"+config.AppConfig.Port)
+    log.Println("Starting server on " + config.AppConfig.ListenAddr + ":" + config.AppConfig.Port)
     if err := s.Start(config.AppConfig.ListenAddr, config.AppConfig.Port); err != nil {
         log.Fatal(err)
     }
 }
+
