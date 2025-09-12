@@ -14,12 +14,11 @@ import (
     "strconv"
     "context"
     "time"
-   //"fmt"
-   // "github.com/ProtonMail/go-crypto/openpgp"
-    //"strings"
-    
-   // "crypto/rand"
-   // bip39 "github.com/tyler-smith/go-bip39"
+    "mFrelance/electrum"
+    "gitlab.com/moneropay/go-monero/walletrpc"
+    "mFrelance/config"
+    "fmt"
+    "math/big"
 )
 import "mFrelance/auth"
 
@@ -78,7 +77,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     }
 
     if answer == stored {
-        rdb.Del(ctx, "captcha:"+id) // удалить после проверки
+        rdb.Del(ctx, "captcha:"+id)
         w.Write([]byte(`{"ok":true}`))
         return
     }
@@ -241,4 +240,172 @@ func TestHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+/////// WALLET
+func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Client, eClient *electrum.Client) {
+	claims := GetUserFromContext(r)
+	if claims == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID 
+	currency := r.URL.Query().Get("currency") 
+
+	var address string
+	err := db.Postgres.QueryRow(`SELECT address FROM wallets WHERE user_id=$1 AND currency=$2`, userID, currency).Scan(&address)
+	if err == nil && address != "" {
+		// Уже есть адрес
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"address":"` + address + `"}`))
+		return
+	}
+
+	switch currency {
+	case "XMR":
+		resp, err := mClient.CreateAddress(context.Background(), &walletrpc.CreateAddressRequest{
+			AccountIndex: 0,
+			Label:        "user_" + strconv.Itoa(int(userID)),
+		})
+		if err != nil {
+			http.Error(w, "Monero RPC error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		address = resp.Address
+	case "BTC":
+		addr, err := eClient.CreateAddress()
+		if err != nil {
+			http.Error(w, "Electrum error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		address = addr
+	default:
+		http.Error(w, "Unsupported currency", http.StatusBadRequest)
+		return
+	}
+
+	_, err = db.Postgres.Exec(`INSERT INTO wallets(user_id,currency,address) VALUES($1,$2,$3)`, userID, currency, address)
+	if err != nil {
+		http.Error(w, "DB insert error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"address":"` + address + `"}`))
+}
+
+// Not Tested
+func SendMoneroHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Client) {
+	// TODO:
+}
+func StartWalletSync(ctx context.Context, eClient *electrum.Client, mClient *walletrpc.Client, interval time.Duration) {
+    go func() {
+        ticker := time.NewTicker(interval)
+        defer ticker.Stop()
+
+        for {
+            select {
+            case <-ctx.Done():
+                log.Println("Wallet sync stopped")
+                return
+            case <-ticker.C:
+                syncAllWallets(eClient, mClient)
+            }
+        }
+    }()
+}
+
+func syncAllWallets(eClient *electrum.Client, mClient *walletrpc.Client) {
+    // TODO:
+}
+
+// TODO:
+// Create a pool with transactions and send every N minutes the transaction with func (c *Client) PayToMany(outputs [][2]string) (string, error) {
+func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electrum.Client) {
+	claims := GetUserFromContext(r)
+	if claims == nil {
+		http.Error(w, "user not found", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
+
+	destAddress := r.URL.Query().Get("to")
+	amountStr := r.URL.Query().Get("amount")
+
+	if destAddress == "" || amountStr == "" {
+		http.Error(w, "destination and amount required", http.StatusBadRequest)
+		return
+	}
+
+	amount, ok := new(big.Float).SetString(amountStr)
+	if !ok {
+		http.Error(w, "invalid amount", http.StatusBadRequest)
+		return
+	}
+
+	minBTC := big.NewFloat(0.0001)
+	if amount.Cmp(minBTC) < 0 {
+		http.Error(w, "amount below minimum", http.StatusBadRequest)
+		return
+	}
+
+	var userBalanceStr string
+	var userAddress string
+	err := db.Postgres.QueryRow(`
+		SELECT balance::text, address FROM wallets
+		WHERE user_id=$1 AND currency='BTC' LIMIT 1`, userID).Scan(&userBalanceStr, &userAddress)
+	if err != nil {
+		http.Error(w, "failed to get wallet: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	userBalance, _ := new(big.Float).SetString(userBalanceStr)
+	if userBalance.Cmp(amount) < 0 {
+		http.Error(w, "insufficient balance", http.StatusBadRequest)
+		return
+	}
+
+	commissionPerc := big.NewFloat(config.AppConfig.BitcoinCommission)
+	commission := new(big.Float).Quo(new(big.Float).Mul(amount, commissionPerc), big.NewFloat(100))
+	remaining := new(big.Float).Sub(amount, commission)
+
+	zero := big.NewFloat(0)
+	if remaining.Cmp(zero) <= 0 {
+		http.Error(w, "amount too small for commission", http.StatusBadRequest)
+		return
+	}
+
+	log.Print("Comission: ")
+	log.Print(commission)
+	commissionStr := commission.Text('f', 8)
+	//commissionTx, err := client.PayTo(config.AppConfig.BitcoinAddress, commissionStr)
+	if err != nil {
+		http.Error(w, "failed to send commission: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	//log.Println("Send to addr "+ commissionStr);
+	//log.Println("ComissionTX: " + commissionTx)
+
+	remainingStr := remaining.Text('f', 8)
+	//userTx, err := client.PayTo(destAddress, remainingStr)
+	if err != nil {
+		http.Error(w, "failed to send to user: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Println("Send to user "+ remainingStr);
+
+	newBalance := new(big.Float).Sub(userBalance, amount)
+	newBalanceStr := fmt.Sprintf("%.8f", newBalance)
+	//_, _ = db.Postgres.Exec(`UPDATE wallets SET balance=$1 WHERE user_id=$2 AND currency='BTC'`, newBalanceStr, userID)
+	log.Println("new balance:" + newBalanceStr)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		//"commission_tx": commissionTx,
+		//"user_tx":       userTx,
+		"amount_sent":   amountStr,
+		"commission":    commissionStr,
+		"remaining":     remainingStr,
+		"from":          userAddress,
+		"to":            destAddress,
+	})
+}
+
 

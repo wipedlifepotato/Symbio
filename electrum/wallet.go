@@ -68,7 +68,7 @@ func (c *Client) GetBalance(address string) (*big.Float, error) {
     if err := json.Unmarshal(res, &balance); err != nil {
         return nil, err
     }
-    return SatoshiToBTC(balance)
+    return OnlyConfirmedSatoshiToBTC(balance)
 }
 
 func (c *Client) GetAllBalances(addresses []string) (map[string]*big.Float, error) {
@@ -81,6 +81,20 @@ func (c *Client) GetAllBalances(addresses []string) (map[string]*big.Float, erro
         result[addr] = bal
     }
     return result, nil
+}
+
+func (c *Client) GetTransaction(tx string) (string, error) {
+	txHexRaw, err := c.call("gettransaction", tx)
+	if err != nil {
+		return "", err
+	}
+
+	var txHex string
+	if err := json.Unmarshal(txHexRaw, &txHex); err != nil {
+		return "", fmt.Errorf("unexpected type from gettransaction: %w", err)
+	}
+
+	return txHex, nil
 }
 
 func (c *Client) CreateAddress() (string, error) {

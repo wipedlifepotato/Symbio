@@ -14,30 +14,27 @@ import (
     //"mFrelance/monero"
     "github.com/gabstv/httpdigest"
     "gitlab.com/moneropay/go-monero/walletrpc"
-    "fmt"
+    //"fmt"
     "context"
+    "time"
 )
 
 func main() {
     config.Init()
+
     electrumClient := electrum.NewClient(
         config.AppConfig.ElectrumUser,
         config.AppConfig.ElectrumPassword,
         config.AppConfig.ElectrumHost,
         config.MustAtoi(config.AppConfig.ElectrumPort),
     )
+    log.Print(electrumClient.GetAllBalances([]string{"tb1qljppje9qdhtp39nk2lkgm53vmslmyd4cw3g4sr"}))
     moneroClient := walletrpc.New(walletrpc.Config{
 		Address: "http://"+config.AppConfig.MoneroHost+":"+config.AppConfig.MoneroPort+"/json_rpc",
 		Client: &http.Client{
 			Transport: httpdigest.New(config.AppConfig.MoneroUser, config.AppConfig.MoneroPassword), // Remove if no auth.
 		},
     })
-    resp, err := moneroClient.GetBalance(context.Background(), &walletrpc.GetBalanceRequest{})
-    if err != nil {
-		log.Fatal(err)
-    }
-    fmt.Println("Total balance:", walletrpc.XMRToDecimal(resp.Balance))
-    fmt.Println("Unlocked balance:", walletrpc.XMRToDecimal(resp.UnlockedBalance))
 
     if err := electrumClient.LoadWallet(); err != nil {
         log.Fatal("Failed to load wallet:", err)
@@ -103,12 +100,27 @@ func main() {
 
     apiMux := http.NewServeMux()
     apiMux.Handle("/test", server.AuthMiddleware(http.HandlerFunc(server.TestHandler)))
+    apiMux.Handle("/wallet", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server.WalletHandler(w, r, moneroClient, electrumClient)
+    })))
 
+	//apiMux.Handle("/wallet/update", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//		server.UpdateBalanceHandler(w, r, moneroClient, electrumClient)
+//    })))
+    apiMux.Handle("/wallet/moneroSend", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    	server.SendMoneroHandler(w, r, moneroClient)
+    })))
+    apiMux.Handle("/wallet/bitcoinSend", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    	server.SendElectrumHandler(w, r, electrumClient)
+    })))
     s.HandleHandler("/api/", http.StripPrefix("/api", apiMux))
 
     log.Println("Starting server on " + config.AppConfig.ListenAddr + ":" + config.AppConfig.Port)
     if err := s.Start(config.AppConfig.ListenAddr, config.AppConfig.Port); err != nil {
         log.Fatal(err)
     }
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+    go server.StartWalletSync(ctx, electrumClient, moneroClient, 30*time.Second)
 }
 

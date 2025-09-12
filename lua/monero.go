@@ -75,7 +75,7 @@ func RegisterMoneroLua(L *lua.LState, mClient *walletrpc.Client) {
 
 		balResp, err := mClient.GetBalance(context.Background(), &walletrpc.GetBalanceRequest{
 			AccountIndex:   account,
-			AddressIndices: []uint64{sub}, // uint64 вместо uint32
+			AddressIndices: []uint64{sub},
 		})
 		if err != nil {
 			L.RaiseError("Monero GetBalance error: %v", err)

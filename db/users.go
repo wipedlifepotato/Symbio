@@ -85,7 +85,7 @@ func GetUserByUsername(db *sqlx.DB, username string) (int64, string, error) {
     `, username).Scan(&userID, &passwordHash)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, "", nil // пользователь не найден
+			return 0, "", nil
 		}
 		return 0, "", err
 	}

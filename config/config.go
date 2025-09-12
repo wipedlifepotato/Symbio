@@ -29,6 +29,11 @@ type Config struct {
     MoneroPort       string
     MoneroUser       string
     MoneroPassword   string
+    
+    MoneroAddress string
+    MoneroCommission float64
+    BitcoinAddress string
+    BitcoinCommission float64
 }
 
 var AppConfig Config
@@ -45,6 +50,21 @@ func Init() {
     err := godotenv.Load()
     if err != nil {
         log.Println("No .env file found, using system environment")
+    }
+
+    moneroCommStr := os.Getenv("MONERO_COMMISSION")
+    bitcoinCommStr := os.Getenv("BITCOIN_COMMISSION")
+
+    moneroComm, err := strconv.ParseFloat(moneroCommStr, 64)
+    if err != nil {
+        log.Printf("Invalid MONERO_COMMISSION, using 5: %v", err)
+        moneroComm = 5
+    }
+
+    bitcoinComm, err := strconv.ParseFloat(bitcoinCommStr, 64)
+    if err != nil {
+        log.Printf("Invalid BITCOIN_COMMISSION, using 5: %v", err)
+        bitcoinComm = 5
     }
 
     AppConfig = Config{
@@ -69,6 +89,13 @@ func Init() {
         MoneroPort:       os.Getenv("MONERO_PORT"),
         MoneroUser:       os.Getenv("MONERO_USER"),
         MoneroPassword:   os.Getenv("MONERO_PASSWORD"),
+
+        MoneroAddress:    os.Getenv("MONERO_ADDR"),
+        MoneroCommission: moneroComm,
+        BitcoinAddress:   os.Getenv("BITCOIN_ADDR"),
+        BitcoinCommission: bitcoinComm,
     }
+
+    log.Println("Loaded commissions:", "BTC:", AppConfig.BitcoinCommission, "XMR:", AppConfig.MoneroCommission)
 }
 

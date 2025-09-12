@@ -11,5 +11,14 @@ CREATE TABLE IF NOT EXISTS wallets (
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     currency VARCHAR(10) NOT NULL, 
     address TEXT NOT NULL UNIQUE,
-    balance NUMERIC(20,8) DEFAULT 0
+    balance NUMERIC(30,12) DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS wallet_transactions (
+    txid TEXT PRIMARY KEY,
+    wallet_id INT,
+    amount NUMERIC(20,8),
+    currency TEXT,
+    confirmed BOOL,
+    created_at TIMESTAMP DEFAULT NOW()
 );

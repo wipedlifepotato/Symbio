@@ -99,4 +99,43 @@ func (c *Client) PayTo(destination string, amount string) (string, error) {
     return string(resBroadcast), nil
 }
 
+func (c *Client) PayToMany(outputs [][2]string) (string, error) {
+
+    var args []interface{}
+    for _, out := range outputs {
+        addr := out[0]
+        amt := out[1]
+        args = append(args, []interface{}{addr, amt})
+    }
+
+    res, err := c.call("paytomany", args)
+    if err != nil {
+        return "", fmt.Errorf("failed to create transaction: %v", err)
+    }
+    log.Printf("Created raw TX: %s", string(res))
+
+    resBroadcast, err := c.call("broadcast", res)
+    if err != nil {
+        return "", fmt.Errorf("failed to broadcast transaction: %v", err)
+    }
+
+    return string(resBroadcast), nil
+}
+type Transaction struct {
+    Txid   string  `json:"tx_hash"`
+    Amount float64 `json:"amount"`
+    Confirmations int `json:"confirmations"`
+}
+
+func (c *Client) ListTransactions(address string) ([]Transaction, error) {
+    res, err := c.call("listtransactions", address)
+    if err != nil {
+        return nil, err
+    }
+    var txs []Transaction
+    if err := json.Unmarshal(res, &txs); err != nil {
+        return nil, err
+    }
+    return txs, nil
+}
 
