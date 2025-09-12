@@ -104,7 +104,32 @@ func RegisterElectrumLua(L *lua.LState, client *electrum.Client) {
         return 1
     }))
 
+    L.SetGlobal("electrum_pay_to_many", L.NewFunction(func(L *lua.LState) int {
 
+		tbl := L.CheckTable(1)
+		var outputs [][2]string
+
+		tbl.ForEach(func(_ lua.LValue, value lua.LValue) {
+			subTbl, ok := value.(*lua.LTable)
+			if !ok {
+				return
+			}
+			addr := subTbl.RawGetInt(1).String()
+			amt := subTbl.RawGetInt(2).String()
+			outputs = append(outputs, [2]string{addr, amt})
+		})
+
+		txID, err := client.PayToMany(outputs)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+
+		L.Push(lua.LString(txID))
+		return 1
+    }))
+    
     L.SetGlobal("electrum_get_balance", L.NewFunction(func(L *lua.LState) int {
         addr := L.ToString(1)
         bal, err := client.GetBalance(addr)
