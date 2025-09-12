@@ -68,6 +68,23 @@ end)
 --    print("Отправлено, txid:", txid)
 -- end
 
+local total, unlocked = monero_get_balance()
+print("Total XMR:", total)
+print("Unlocked XMR:", unlocked)
+
+local addr = monero_create_address("mylabel")
+print("New address:", addr)
+
+-- local tx = monero_transfer("44xyz...", 0.1)
+-- print("Sent TX:", tx)
+
+local total, unlocked, addr = monero_get_subaddress_info(0, 1)
+print("Subaddress index 1:", addr)
+print("Balance:", total, "XMR")
+print("Unlocked:", unlocked, "XMR")
+local total, unlocked = monero_get_subaddress_balance(0, 1) 
+print("Subaddress balance:", total, "XMR")
+print("Unlocked:", unlocked, "XMR")
 
 register_handler("/mywallet", function(req)
     local token = req.params["Authorization"]

@@ -17,8 +17,11 @@ require (
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/gabstv/httpdigest v0.0.0-20230306144402-1057ac3638b3 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
+	github.com/xinsnake/go-http-digest-auth-client v0.6.0 // indirect
+	gitlab.com/moneropay/go-monero v1.1.1 // indirect
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
 	golang.org/x/sys v0.36.0 // indirect
 )

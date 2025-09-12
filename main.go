@@ -11,6 +11,11 @@ import (
     "mFrelance/lua"
     "net/http"
     "mFrelance/electrum"
+    //"mFrelance/monero"
+    "github.com/gabstv/httpdigest"
+    "gitlab.com/moneropay/go-monero/walletrpc"
+    "fmt"
+    "context"
 )
 
 func main() {
@@ -21,6 +26,19 @@ func main() {
         config.AppConfig.ElectrumHost,
         config.MustAtoi(config.AppConfig.ElectrumPort),
     )
+    moneroClient := walletrpc.New(walletrpc.Config{
+		Address: "http://"+config.AppConfig.MoneroHost+":"+config.AppConfig.MoneroPort+"/json_rpc",
+		Client: &http.Client{
+			Transport: httpdigest.New(config.AppConfig.MoneroUser, config.AppConfig.MoneroPassword), // Remove if no auth.
+		},
+    })
+    resp, err := moneroClient.GetBalance(context.Background(), &walletrpc.GetBalanceRequest{})
+    if err != nil {
+		log.Fatal(err)
+    }
+    fmt.Println("Total balance:", walletrpc.XMRToDecimal(resp.Balance))
+    fmt.Println("Unlocked balance:", walletrpc.XMRToDecimal(resp.UnlockedBalance))
+
     if err := electrumClient.LoadWallet(); err != nil {
         log.Fatal("Failed to load wallet:", err)
     }
@@ -36,7 +54,7 @@ func main() {
     db.Migrate(db.Postgres)
     db.ConnectRedis()
 
-    L := lua.NewState(db.RedisClient, db.Postgres, electrumClient)
+    L := lua.NewState(db.RedisClient, db.Postgres, electrumClient, moneroClient)
     defer lua.L.Close()
 
     if err := L.DoString(`

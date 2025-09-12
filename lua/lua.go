@@ -13,6 +13,8 @@ import (
     "mFrelance/db"
     "mFrelance/auth"
     "mFrelance/electrum"
+    "gitlab.com/moneropay/go-monero/walletrpc"
+
 )
 var L *lua.LState
 
@@ -277,7 +279,7 @@ func RegisterHttpHandler(L *lua.LState, mux *http.ServeMux) {
 }
 
 
-func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client) {
+func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client, mClient *walletrpc.Client) {
 	//l := lua.NewState()
 	l.SetGlobal("helloGo", L.NewFunction(HelloLua))
 	RegisterLuaRedis(l, rdb)
@@ -286,12 +288,13 @@ func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.
 	RegisterLuaHelpers(l,rdb,psql)
 	RegisterElectrumLua(l, eClient)
 	RegisterJWTLua(l)
+	RegisterMoneroLua(l, mClient)
 	return
 }
 
-func NewVM(rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client) *LuaVM {
+func NewVM(rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client, mClient *walletrpc.Client) *LuaVM {
 	l := lua.NewState()
-	luaInit(l, rdb, psql, eClient)
+	luaInit(l, rdb, psql, eClient, mClient)
 	
 	return &LuaVM{L: l}
 }
@@ -307,8 +310,8 @@ func HelloLua(L *lua.LState) int {
     return 1
 }
 
-func NewState(rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client) *lua.LState {
+func NewState(rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client, mClient *walletrpc.Client) *lua.LState {
 	L = lua.NewState()
-	luaInit(L, rdb, psql, eClient) 
+	luaInit(L, rdb, psql, eClient, mClient) 
 	return L
 }

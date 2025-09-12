@@ -6,4 +6,13 @@ wallet_file="$monero_path/MFrelance"
 wallet_password="123"
 rpcLogin="monero:rpcPassword"
 moneroNode="http://testnet.xmr-tw.org:28081"
-$monero_rpc --rpc-bind-port $bind_port --wallet-file "$wallet_file" --daemon-address "$moneroNode" $params --password "$wallet_password" --rpc-login "$rpcLogin"
+rpcUser="monero"
+rpcPass="rpcPassword"
+
+$monero_rpc \
+  --rpc-bind-port $bind_port \
+  --wallet-file "$wallet_file" \
+  --daemon-address "$moneroNode" \
+  $params \
+  --password "$wallet_password" \
+  --rpc-login $rpcUser:$rpcPass
