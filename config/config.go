@@ -17,6 +17,8 @@ type Config struct {
     RedisPort        string
     RedisPassword    string
     Port             string
+    JWTToken	     string
+    ListenAddr	     string
 }
 
 var AppConfig Config
@@ -37,5 +39,7 @@ func Init() {
         RedisPort:        os.Getenv("REDIS_PORT"),
         RedisPassword:    os.Getenv("REDIS_PASSWORD"),
         Port:             os.Getenv("PORT"),
+        JWTToken:	  os.Getenv("JWT_TOKEN"),
+        ListenAddr:	  os.Getenv("LISTEN_ADDR"),
     }
 }

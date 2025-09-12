@@ -9,7 +9,9 @@ import (
     "github.com/fsnotify/fsnotify"
     "log"
     "time"
-        
+    "mFrelance/server"
+    "mFrelance/db"
+    "mFrelance/auth"
 )
 var L *lua.LState
 
@@ -69,6 +71,88 @@ func WatchLuaFile(L *lua.LState, path string) {
     }()
 }
 
+func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
+
+	L.SetGlobal("generate_mnemonic", L.NewFunction(func(L *lua.LState) int {
+		mnemonic := server.GenerateMnemonic()
+		L.Push(lua.LString(mnemonic))
+		return 1
+	}))
+
+
+	L.SetGlobal("get_user", L.NewFunction(func(L *lua.LState) int {
+		username := L.ToString(1)
+		userID, passwordHash, err := db.GetUserByUsername(psql, username)
+		if err != nil || userID == 0 {
+			L.Push(lua.LNil)
+			return 1
+		}
+		tbl := L.NewTable()
+		tbl.RawSetString("id", lua.LNumber(userID))
+		tbl.RawSetString("password_hash", lua.LString(passwordHash))
+		L.Push(tbl)
+		return 1
+	}))
+	
+	L.SetGlobal("verify_password", L.NewFunction(func(L *lua.LState) int {
+	    password := L.ToString(1)
+	    hashed := L.ToString(2)
+
+	    res := server.VerifyPassword(password,hashed)
+	    L.Push(lua.LBool(res))
+	    return 1
+	}))
+	
+	L.SetGlobal("change_password", L.NewFunction(func(L *lua.LState) int {
+	    username := L.ToString(1)
+	    newPassword := L.ToString(2)
+
+
+	    hashed := server.HashPassword(newPassword)
+
+	    err := db.ChangeUserPassword(psql, username, string(hashed))
+	    if err != nil {
+		L.Push(lua.LNil)
+		L.Push(lua.LString(err.Error()))
+		return 2
+	    }
+
+	    tbl := L.NewTable()
+	    tbl.RawSetString("username", lua.LString(username))
+	    L.Push(tbl)
+	    return 1
+	}))
+	
+	L.SetGlobal("restore_user", L.NewFunction(func(L *lua.LState) int {
+		username := L.ToString(1)
+		mnemonic := L.ToString(2)
+		userID, usernameOut, err := db.RestoreUser(psql, username, mnemonic)
+		
+		if err != nil || userID == 0 {
+			L.Push(lua.LNil)
+			return 1
+		}
+		tbl := L.NewTable()
+		tbl.RawSetString("id", lua.LNumber(userID))
+		tbl.RawSetString("username", lua.LString(usernameOut))
+		L.Push(tbl)
+		return 1
+	}))
+
+
+	L.SetGlobal("generate_jwt", L.NewFunction(func(L *lua.LState) int {
+		userID := int64(L.ToInt(1))
+		username := L.ToString(2)
+		token, err := auth.GenerateJWT(userID, username)
+		if err != nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LString(token))
+		return 1
+	}))
+}
+
 var registeredPaths = make(map[string]bool)
 
 func RegisterHttpHandler(L *lua.LState, mux *http.ServeMux) {
@@ -117,6 +201,8 @@ func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 	l.SetGlobal("helloGo", L.NewFunction(HelloLua))
 	RegisterLuaRedis(l, rdb)
 	RegisterLuaPostgres(l, psql)
+	RegisterConfigGlobals(l)
+	RegisterLuaHelpers(l,rdb,psql)
 	return
 }
 

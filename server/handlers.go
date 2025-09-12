@@ -17,28 +17,11 @@ import (
    //"fmt"
    // "github.com/ProtonMail/go-crypto/openpgp"
     //"strings"
-    "golang.org/x/crypto/bcrypt"
+    
    // "crypto/rand"
-   bip39 "github.com/tyler-smith/go-bip39"
-
-
+   // bip39 "github.com/tyler-smith/go-bip39"
 )
-func GenerateMnemonic() string {
-
-    entropy, err := bip39.NewEntropy(128)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-
-    mnemonic, err := bip39.NewMnemonic(entropy)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    return mnemonic
-}
-
+import "mFrelance/auth"
 
 type RegisterRequest struct {
     Username      string `json:"username"`
@@ -55,19 +38,7 @@ type Response struct {
 }
 
 
-func hashPassword(password string) string {
-    hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-    if err != nil {
-        log.Fatal("Failed to hash password:", err)
-    }
-    return string(hashed)
-}
 
-
-func verifyPassword(password, hashed string) bool {
-    err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
-    return err == nil
-}
 
 func HelloHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
@@ -102,7 +73,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     stored, err := rdb.Get(ctx, "captcha:"+id).Result()
     //log.Print("[DEBUG, Handlers] Captcha: "+id+"="+stored)
     if err != nil {
-        http.Error(w, "Captcha expired", http.StatusBadRequest)
+        writeErrorJSON(w, "Captcha expired", http.StatusBadRequest)
         return
     }
 
@@ -120,13 +91,13 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     var req RegisterRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        http.Error(w, "invalid json", http.StatusBadRequest)
+        writeErrorJSON(w, "invalid json", http.StatusBadRequest)
         return
     }
 
     storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
     if err != nil || storedCaptcha != req.CaptchaAnswer {
-        http.Error(w, "invalid captcha", http.StatusBadRequest)
+        writeErrorJSON(w, "invalid captcha", http.StatusBadRequest)
         return
     }
     rdb.Del(ctx, "captcha:"+req.CaptchaID)
@@ -134,15 +105,14 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
 
     mnemonic := GenerateMnemonic()
 
-    passwordHash := hashPassword(req.Password)
+    passwordHash := HashPassword(req.Password)
 
 // func CreateUser(db *sqlx.DB, username, passwordHash, gpgKey string) error {
     err = db.CreateUser(db.Postgres, req.Username, passwordHash, mnemonic)
     if err != nil {
-        http.Error(w, "failed to create user", http.StatusInternalServerError)
+        writeErrorJSON(w, "failed to create user", http.StatusInternalServerError)
         return
     }
-
 
     resp := Response{
         Message:   "Account created successfully. Save your recovery phrase!",
@@ -151,6 +121,124 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(resp)
 }
+type RestoreRequest struct {
+	Username      string `json:"username"`
+	Mnemonic      string `json:"mnemonic"`
+	NewPassword   string `json:"new_password"`
+        CaptchaID     string `json:"captcha_id"`
+        CaptchaAnswer string `json:"captcha_answer"`
+}
+// POST /restoreuser
+func RestoreHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
+  var req RestoreRequest
+  if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        writeErrorJSON(w, "invalid json", http.StatusBadRequest)
+        return
+  }  
+  storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
+  if err != nil || storedCaptcha != req.CaptchaAnswer {
+        writeErrorJSON(w, "invalid captcha", http.StatusBadRequest)
+        return
+  }
+  rdb.Del(ctx, "captcha:"+req.CaptchaID)
+  // func RestoreUser(db *sqlx.DB, wantusername, mnemonic string) (int64, string, error) {
+  userID, username, err := db.RestoreUser(db.Postgres, req.Username, req.Mnemonic)
+    if err != nil || userID == 0 || username == "" {
+        writeErrorJSON(w, "failed to found user", http.StatusInternalServerError)
+        return
+  }
+  passwordHash := HashPassword(req.NewPassword)
+  // func ChangeUserPassword(db *sqlx.DB, username, passwordHash string) error {
+  err = db.ChangeUserPassword(db.Postgres, req.Username, passwordHash)
+  if err != nil {
+  	writeErrorJSON(w, "Failed to change user password", http.StatusInternalServerError)
+  	return
+  }
+  token, err := auth.GenerateJWT(userID, username)
+  if err != nil {
+		writeErrorJSON(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+  }
+  resp := Response{
+        Message:   "Account restored successfully.",
+        Encrypted: token,
+  }
+  w.Header().Set("Content-Type", "application/json")
+  json.NewEncoder(w).Encode(resp)  
+}
 
+///
 
+type AuthRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	CaptchaID string `json:"captcha_id"`
+	CaptchaAnswer string `json:"captcha_answer"`
+}
+
+type AuthResponse struct {
+	Message string `json:"message"`
+	Token   string `json:"token,omitempty"`
+}
+
+func AuthHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
+
+	var req AuthRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErrorJSON(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	log.Print("[AuthHandler] Test captcha")
+	storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
+	if err != nil || storedCaptcha != req.CaptchaAnswer {
+		writeErrorJSON(w, "invalid captcha", http.StatusBadRequest)
+		return
+	}
+	rdb.Del(ctx, "captcha:"+req.CaptchaID)
+
+	log.Print("[AuthHandler] Get User by Username")
+	userID, passwordHash, err := db.GetUserByUsername(db.Postgres, req.Username)
+	if err != nil {
+		writeErrorJSON(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	if userID == 0 {
+		writeErrorJSON(w, "invalid username or password", http.StatusUnauthorized)
+		return
+	}
+	log.Print("[AuthHandler] Check Password")
+	if !VerifyPassword(req.Password, passwordHash) {
+		writeErrorJSON(w, "invalid username or password", http.StatusUnauthorized)
+		return
+	}
+	log.Print("[AuthHandler] Generate JWT")
+	token, err := auth.GenerateJWT(userID, req.Username)
+	if err != nil {
+		writeErrorJSON(w, "failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
+	resp := AuthResponse{
+		Message: "Authenticated successfully",
+		Token: token,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func TestHandler(w http.ResponseWriter, r *http.Request) {
+	claims := GetUserFromContext(r)
+	if claims == nil {
+		writeErrorJSON(w, "user not found in context", http.StatusUnauthorized)
+		return
+	}
+
+	resp := map[string]any{
+		"user_id": claims.UserID,
+		"username": claims.Username,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
 

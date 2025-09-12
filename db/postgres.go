@@ -8,7 +8,7 @@ import (
     _ "github.com/lib/pq"
 
     "mFrelance/config"
-    "time"
+    //"time"
 
 )
 
@@ -33,10 +33,4 @@ func Connect() {
     log.Println("Postgres connected")
 }
 
-func CreateUser(db *sqlx.DB, username, passwordHash, mnemonic string) error {
-    _, err := db.Exec(`
-        INSERT INTO users (username, password_hash, mnemonic, created_at)
-        VALUES ($1, $2, $3, $4)
-    `, username, passwordHash, mnemonic, time.Now())
-    return err
-}
+
