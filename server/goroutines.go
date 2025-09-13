@@ -181,49 +181,8 @@ func SaveTransaction(txid string, walletID int, amount *big.Float, currency stri
     `, txid, walletID, amountStr, currency, confirmed)
     return err
 }
-/*
-// TODO: use it instead save to file
-func StartTxPoolFlusher(client *electrum.Client, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	go func() {
-		for range ticker.C {
-			txPool.Lock()
-			if len(txPool.outputs) == 0 {
-				txPool.Unlock()
-				continue
-			}
 
 
-			var outs [][2]string
-			for addr, amt := range txPool.outputs {
-				outs = append(outs, [2]string{addr, amt.Text('f', 8)})
-			}
-
-
-			txPool.outputs = make(map[string]*big.Float)
-			txPool.Unlock()
-
-
-			txid, err := client.PayToMany(outs)
-			if err != nil {
-				log.Println("Ошибка PayToMany:", err)
-
-				txPool.Lock()
-				for _, o := range outs {
-					val, _ := new(big.Float).SetString(o[1])
-					if existing, ok := txPool.outputs[o[0]]; ok {
-						txPool.outputs[o[0]] = new(big.Float).Add(existing, val)
-					} else {
-						txPool.outputs[o[0]] = val
-					}
-				}
-				txPool.Unlock()
-			} else {
-				log.Println("PayToMany успешно, txid:", txid)
-			}
-		}
-	}()
-}*/
 func savePendingPayment(record PaymentRecord) error {
 	paymentMu.Lock()
 	defer paymentMu.Unlock()
@@ -257,7 +216,8 @@ func clearPendingPayments() error {
 	defer paymentMu.Unlock()
 	return os.WriteFile(paymentFile, []byte("[]"), 0644)
 }
-func StartTxPoolFlusher(interval time.Duration) {
+
+func StartTxPoolFlusher(client *electrum.Client, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	go func() {
 		for range ticker.C {
@@ -275,17 +235,31 @@ func StartTxPoolFlusher(interval time.Duration) {
 			txPool.outputs = make(map[string]*big.Float)
 			txPool.Unlock()
 
-			record := PaymentRecord{
-				Time:    time.Now().Format(time.RFC3339),
-				Outputs: outs,
-				FeeBTC:  0,
-				Error:   "pending", 
-			}
+			txid, err := client.PayToMany(outs)
+			if err != nil {
+				log.Println("Ошибка PayToMany:", err)
 
-			if err := savePendingPayment(record); err != nil {
-				log.Println("Error to save pending payment:", err)
+				txPool.Lock()
+				for _, o := range outs {
+					val, _ := new(big.Float).SetString(o[1])
+					if existing, ok := txPool.outputs[o[0]]; ok {
+						txPool.outputs[o[0]] = new(big.Float).Add(existing, val)
+					} else {
+						txPool.outputs[o[0]] = val
+					}
+				}
+				txPool.Unlock()
+
+				f, _ := os.OpenFile("FailedPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				defer f.Close()
+				fmt.Fprintf(f, "%s - PayToMany failed: %v\nOutputs: %+v\n", time.Now().Format(time.RFC3339), err, outs)
 			} else {
-				log.Printf("create pending payment: %+v\n", record)
+				log.Println("PayToMany успешно, txid:", txid)
+
+				// Можно логировать успешную транзакцию
+				f, _ := os.OpenFile("SuccessfulPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				defer f.Close()
+				fmt.Fprintf(f, "%s - txid: %s\nOutputs: %+v\n", time.Now().Format(time.RFC3339), txid, outs)
 			}
 		}
 	}()

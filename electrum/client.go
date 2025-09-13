@@ -152,14 +152,14 @@ func (c *Client) PayTo(destination string, amount string) (string, error) {
 // Comission sometimes is 0?
 func (c *Client) PayToMany(outputs [][2]string) (string, error) {
 	const (
-		minFeeRateSats = 1.0
-		maxFeeRateSats = 4.2
+		minFeeRateSats = 1.5
+		maxFeeRateSats = 11.2
 		txBaseSize     = 200
 		txOutSize      = 34
 	)
 
 	feeRate := minFeeRateSats
-	maxAttempts := 10
+	maxAttempts := 24
 
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 
@@ -211,7 +211,7 @@ func (c *Client) PayToMany(outputs [][2]string) (string, error) {
 			savePaymentRecord(record)
 
 			if strings.Contains(record.Error, "fee") {
-				feeRate *= 1.2
+				feeRate *= 2.4
 				if feeRate > maxFeeRateSats {
 					return "", fmt.Errorf("fee_rate exceeded %.2f sat/byte", maxFeeRateSats)
 				}

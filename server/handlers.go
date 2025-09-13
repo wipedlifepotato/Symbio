@@ -344,7 +344,7 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
 		return
 	}
 
-	minBTC := big.NewFloat(0.0001000)
+	minBTC := big.NewFloat(0.001000)
 	if amount.Cmp(minBTC) < 0 {
 		http.Error(w, "amount below minimum", http.StatusBadRequest)
 		return

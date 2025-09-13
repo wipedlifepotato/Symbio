@@ -16,7 +16,7 @@ func CheckUser(db *sqlx.DB, username, passwordHash string) (int64, error) {
     `, username, passwordHash).Scan(&userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, nil // пользователь не найден
+			return 0, nil
 		}
 		return 0, err
 	}
