@@ -120,6 +120,9 @@ func main() {
     apiMux.Handle("/admin/block", server.AuthMiddleware(server.RequireAdmin(server.BlockUserHandler)))
     apiMux.Handle("/admin/unblock", server.AuthMiddleware(server.RequireAdmin(server.UnblockUserHandler)))
     s.HandleHandler("/api/", http.StripPrefix("/api", apiMux))
+    s.Handle("/profile", func(w http.ResponseWriter, r *http.Request) {
+	    server.AuthMiddleware(server.ProfileHandler()).ServeHTTP(w, r)
+    })
 
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()

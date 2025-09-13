@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     full_name VARCHAR(100),
     bio TEXT,
-    skills TEXT[],       -- массив навыков
-    avatar TEXT,         -- URL или base64
+    skills JSONB,
+    avatar TEXT,
     rating NUMERIC(3,2) DEFAULT 0,
     completed_tasks INT DEFAULT 0
 );

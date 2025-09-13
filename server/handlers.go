@@ -21,6 +21,7 @@ import (
     "sync"
     "math/big"
     "os"
+    "mFrelance/models"
 )
 import "mFrelance/auth"
 
@@ -581,4 +582,42 @@ func UnblockUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("user unblocked"))
+}
+
+/// PROfiles handlers
+func ProfileHandler() http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        claims := GetUserFromContext(r)
+        if claims == nil {
+            http.Error(w, "unauthorized", http.StatusUnauthorized)
+            return
+        }
+
+        switch r.Method {
+        case "GET":
+            profile, err := models.GetProfile(db.Postgres, claims.UserID)
+            if err != nil {
+                http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+                return
+            }
+            json.NewEncoder(w).Encode(profile)
+
+        case "POST":
+            var p models.Profile
+            if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+                http.Error(w, "invalid payload", http.StatusBadRequest)
+                return
+            }
+            p.UserID = claims.UserID
+            if err := models.UpsertProfile(db.Postgres, &p); err != nil {
+                http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+                return
+            }
+            w.WriteHeader(http.StatusOK)
+            json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+
+        default:
+            http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+        }
+    }
 }
