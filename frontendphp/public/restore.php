@@ -1,61 +1,45 @@
 <?php
 session_start();
+require_once __DIR__ . '/../src/mfrelance.php';
+
 $message = '';
+$jwt = $_SESSION['jwt'] ?? '';
 
-$captchaId = '';
-$captchaImage = '';
-$ch = curl_init('http://localhost:9999/captcha');
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HEADER, true);
-$response = curl_exec($ch);
-$headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-$headers = substr($response, 0, $headerSize);
-$body = substr($response, $headerSize);
-curl_close($ch);
+$mf = new MFrelance('localhost', 9999);
 
-if (preg_match('/X-Captcha-ID:\s*(\S+)/i', $headers, $matches)) {
-    $captchaId = trim($matches[1]);
-}
-$captchaImage = 'data:image/png;base64,' . base64_encode($body);
+$captchaData = $mf->getCaptcha();
+$captchaId = $captchaData['captchaID'] ?? '';
+$captchaImage = $captchaData['captchaImg'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $mnemonic = $_POST['mnemonic'] ?? '';
     $newPassword = $_POST['new_password'] ?? '';
     $captchaAnswer = $_POST['captcha_answer'] ?? '';
+    $captchaIdPost = $_POST['captcha_id'] ?? '';
 
-    $data = json_encode([
-        'username'      => $username,
-        'mnemonic'      => $mnemonic,
-        'new_password'  => $newPassword,
-        'captcha_id'    => $_POST['captcha_id'],
-        'captcha_answer'=> $captchaAnswer,
+    $payload = json_encode([
+        'username'       => $username,
+        'mnemonic'       => $mnemonic,
+        'new_password'   => $newPassword,
+        'captcha_id'     => $captchaIdPost,
+        'captcha_answer' => $captchaAnswer
     ]);
 
-    $ch = curl_init('http://localhost:9999/restoreuser');
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    $response = $mf->doRequest('restoreuser', false, $payload, true); // POST запрос
 
-    if ($httpCode === 200) {
-        $json = json_decode($response, true);
+    if ($response['httpCode'] === 200) {
+        $json = json_decode($response['response'], true);
         $message = $json['message'] ?? 'Аккаунт восстановлен';
         $encoded = $json['encrypted'] ?? '';
         if ($encoded) {
             $message .= "<br>Ваша JWT: " . htmlspecialchars($encoded);
-	    $jwt = $encoded;
-	    if ($jwt) {
-		$_SESSION['jwt'] = $jwt;
-		header('Location: dashboard.php');
-		exit;
-	    }
+            $_SESSION['jwt'] = $encoded;
+            header('Location: dashboard.php');
+            exit;
         }
     } else {
-        $message = "Ошибка восстановления: $response";
+        $message = "Ошибка восстановления: " . $response['response'];
     }
 }
 ?>
@@ -74,4 +58,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </form>
 
 <p><a href="index.php">Назад</a></p>
-

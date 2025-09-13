@@ -1,49 +1,35 @@
 <?php
 session_start();
+require_once __DIR__ . '/../src/mfrelance.php';
 
 $message = '';
 $walletInfo = null;
 $sendResult = null;
+
+$mf = new MFrelance('localhost', 9999);
 
 $jwt = $_SESSION['jwt'] ?? '';
 
 if (!$jwt) {
     $message = "JWT отсутствует. Пожалуйста, войдите в систему.";
 } else {
-
-    $ch = curl_init("http://localhost:9999/api/wallet?currency=BTC");
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "Authorization: Bearer $jwt",
-        "Content-Type: application/json"
-    ]);
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($httpCode === 200) {
-        $walletInfo = json_decode($response, true);
+    $walletResponse = $mf->doRequest("api/wallet?currency=BTC", $jwt);
+    if ($walletResponse['httpCode'] === 200) {
+    	//echo "httpCode 200".$walletResponse['response'];
+        $walletInfo = json_decode($walletResponse['response'], true);
     } else {
-        $message = "Ошибка при получении кошелька: $response";
+        $message = "Ошибка при получении кошелька: " . $walletResponse['response'];
         unset($_SESSION['jwt']);
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['to'], $_POST['amount'])) {
         $to = $_POST['to'];
         $amount = $_POST['amount'];
+        $sendResponse = $mf->doRequest("api/wallet/bitcoinSend?to=$to&amount=$amount", $jwt);
+        $sendResult = $sendResponse['response'];
 
-        $ch = curl_init("http://localhost:9999/api/wallet/bitcoinSend?to=$to&amount=$amount");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "Authorization: Bearer $jwt",
-            "Content-Type: application/json"
-        ]);
-        $sendResult = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpCode !== 200) {
-            $message = "Ошибка отправки BTC: $sendResult";
+        if ($sendResponse['httpCode'] !== 200) {
+            $message = "Ошибка отправки BTC: " . $sendResult;
         }
     }
 }
