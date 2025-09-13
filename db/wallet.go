@@ -24,3 +24,13 @@ func GetWalletBalance(db *sqlx.DB, userID int64, currency string) (*WalletBalanc
 	}
 	return &wallet, nil
 }
+
+func IsOurAddr(db *sqlx.DB, addr string) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM wallets WHERE address=$1)`
+	err := db.Get(&exists, query, addr)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}

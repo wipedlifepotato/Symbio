@@ -20,6 +20,7 @@ import (
     "fmt"
     "sync"
     "math/big"
+    "os"
 )
 import "mFrelance/auth"
 
@@ -321,106 +322,163 @@ func IsTxPoolBlocked() bool {
 	return txPoolBlocked.Blocked
 }
 
+type PendingRequest struct {
+	UserID      int64   `json:"user_id"`
+	To          string  `json:"to"`
+	Amount      string  `json:"amount"`
+	Commission  string  `json:"commission"`
+	Remaining   string  `json:"remaining"`
+	Timestamp   int64   `json:"timestamp"`
+}
+
+func savePendingRequest(req PendingRequest) error {
+	const filePath = "pendingRequests.json"
+
+	var pending []PendingRequest
+
+	data, err := os.ReadFile(filePath)
+	if err == nil {
+		_ = json.Unmarshal(data, &pending) // если ошибка — пустой список
+	}
+
+	pending = append(pending, req)
+
+	newData, _ := json.MarshalIndent(pending, "", "  ")
+	return os.WriteFile(filePath, newData, 0644)
+}
 
 // TODO:
 // Create a pool with transactions and send every N minutes the transaction with func (c *Client) PayToMany(outputs [][2]string) (string, error) {
 // TODO: Tests
 func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electrum.Client) {
+    if IsTxPoolBlocked() {
+        http.Error(w, "withdrawals temporarily blocked", http.StatusForbidden)
+        return
+    }
 
-	if IsTxPoolBlocked() {
-		http.Error(w, "withdrawals temporarily blocked", http.StatusForbidden)
-		return
-	}
-	claims := GetUserFromContext(r)
-	if claims == nil {
-		http.Error(w, "user not found", http.StatusUnauthorized)
-		return
-	}
-	userID := claims.UserID
-	if blocked, err := db.IsUserBlocked(db.Postgres, userID); err != nil {
-		http.Error(w, "db error", http.StatusInternalServerError)
-		return
-	} else if blocked {
-		http.Error(w, "user is blocked", http.StatusForbidden)
-		return
-	}
-	destAddress := r.URL.Query().Get("to")
-	amountStr := r.URL.Query().Get("amount")
+    claims := GetUserFromContext(r)
+    if claims == nil {
+        http.Error(w, "user not found", http.StatusUnauthorized)
+        return
+    }
+    userID := claims.UserID
 
-	if destAddress == "" || amountStr == "" {
-		http.Error(w, "destination and amount required", http.StatusBadRequest)
-		return
-	}
+    blocked, err := db.IsUserBlocked(db.Postgres, userID)
+    if err != nil {
+        http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    if blocked {
+        http.Error(w, "user is blocked", http.StatusForbidden)
+        return
+    }
 
-	amount, ok := new(big.Float).SetString(amountStr)
-	if !ok {
-		http.Error(w, "invalid amount", http.StatusBadRequest)
-		return
-	}
-	if !IsValidBTCAddress(destAddress) {
-		http.Error(w, "invalid Bitcoin address format", http.StatusBadRequest)
-		return
-	}
-	minBTC := big.NewFloat(0.0001)
-	if amount.Cmp(minBTC) < 0 {
-		http.Error(w, "amount below minimum", http.StatusBadRequest)
-		return
-	}
+    destAddress := r.URL.Query().Get("to")
+    amountStr := r.URL.Query().Get("amount")
+    if destAddress == "" || amountStr == "" {
+        http.Error(w, "destination and amount required", http.StatusBadRequest)
+        return
+    }
 
-	var userBalanceStr, userAddress string
-	err := db.Postgres.QueryRow(`
-		SELECT balance::text, address FROM wallets
-		WHERE user_id=$1 AND currency='BTC' LIMIT 1`, userID).Scan(&userBalanceStr, &userAddress)
-	if err != nil {
-		http.Error(w, "failed to get wallet: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+    amount, ok := new(big.Float).SetString(amountStr)
+    if !ok {
+        http.Error(w, "invalid amount", http.StatusBadRequest)
+        return
+    }
 
-	userBalance, _ := new(big.Float).SetString(userBalanceStr)
-	if userBalance.Cmp(amount) < 0 {
-		http.Error(w, "insufficient balance", http.StatusBadRequest)
-		return
-	}
+    if !IsValidBTCAddress(destAddress) {
+        http.Error(w, "invalid Bitcoin address format", http.StatusBadRequest)
+        return
+    }
 
-	commissionPerc := big.NewFloat(config.AppConfig.BitcoinCommission)
-	commission := new(big.Float).Quo(new(big.Float).Mul(amount, commissionPerc), big.NewFloat(100))
-	remaining := new(big.Float).Sub(amount, commission)
+    minBTC := big.NewFloat(0.0001)
+    if amount.Cmp(minBTC) < 0 {
+        http.Error(w, "amount below minimum", http.StatusBadRequest)
+        return
+    }
 
-	if remaining.Cmp(big.NewFloat(0)) <= 0 {
-		http.Error(w, "amount too small for commission", http.StatusBadRequest)
-		return
-	}
+    var userBalanceStr, userAddress string
+    err = db.Postgres.QueryRow(`SELECT balance::text, address FROM wallets WHERE user_id=$1 AND currency='BTC' LIMIT 1`,
+        userID).Scan(&userBalanceStr, &userAddress)
+    if err != nil {
+        http.Error(w, "failed to get wallet: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
 
-	newBalance := new(big.Float).Sub(userBalance, amount)
-	newBalanceStr := fmt.Sprintf("%.8f", newBalance)
-	_, _ = db.Postgres.Exec(`UPDATE wallets SET balance=$1 WHERE user_id=$2 AND currency='BTC'`, newBalanceStr, userID)
+    userBalance, _ := new(big.Float).SetString(userBalanceStr)
+    if userBalance.Cmp(amount) < 0 {
+        http.Error(w, "insufficient balance", http.StatusBadRequest)
+        return
+    }
 
-	txPool.Lock()
+    commissionPerc := big.NewFloat(config.AppConfig.BitcoinCommission)
+    commission := new(big.Float).Quo(new(big.Float).Mul(amount, commissionPerc), big.NewFloat(100))
+    remaining := new(big.Float).Sub(amount, commission)
+    if remaining.Cmp(big.NewFloat(0)) <= 0 {
+        http.Error(w, "amount too small for commission", http.StatusBadRequest)
+        return
+    }
+    req := PendingRequest{
+		UserID:     userID,
+		To:         destAddress,
+		Amount:     amountStr,
+		Commission: commission.Text('f', 8),
+		Remaining:  remaining.Text('f', 8),
+		Timestamp:  time.Now().Unix(),
+    }
 
-	if existing, ok := txPool.outputs[config.AppConfig.BitcoinAddress]; ok {
+    if err := savePendingRequest(req); err != nil {
+		log.Printf("Failed to save pending request: %v", err)
+    }
+    newBalance := new(big.Float).Sub(userBalance, amount)
+    newBalanceStr := fmt.Sprintf("%.8f", newBalance)
+    _, err = db.Postgres.Exec(`UPDATE wallets SET balance=$1 WHERE user_id=$2 AND currency='BTC'`, newBalanceStr, userID)
+    if err != nil {
+        http.Error(w, "failed to update balance: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    isOur, err := db.IsOurAddr(db.Postgres, destAddress)
+    if err != nil {
+        http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+	if !isOur {
+	    txPool.Lock()
+	    if existing, ok := txPool.outputs[config.AppConfig.BitcoinAddress]; ok {
 		txPool.outputs[config.AppConfig.BitcoinAddress] = new(big.Float).Add(existing, commission)
-	} else {
+	    } else {
 		txPool.outputs[config.AppConfig.BitcoinAddress] = new(big.Float).Set(commission)
-	}
-
-	if existing, ok := txPool.outputs[destAddress]; ok {
+	    }
+	    if existing, ok := txPool.outputs[destAddress]; ok {
 		txPool.outputs[destAddress] = new(big.Float).Add(existing, remaining)
-	} else {
+	    } else {
 		txPool.outputs[destAddress] = new(big.Float).Set(remaining)
+	    }
+	    txPool.Unlock()
+
+	    log.Printf("Added to pool: to=%s amount=%s commission=%s", destAddress, remaining.Text('f', 8), commission.Text('f', 8))
+	} else {
+	    _, err := db.Postgres.Exec(`
+		UPDATE wallets 
+		SET balance = balance + $1 
+		WHERE address = $2 AND currency='BTC'`, remaining.Text('f', 8), destAddress)
+	    if err != nil {
+		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		return
+	    }
 	}
 
-	txPool.Unlock()
-
-	log.Printf("Added to pool: to=%s amount=%s commission=%s", destAddress, remaining.Text('f', 8), commission.Text('f', 8))
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
-		"queued_amount": amountStr,
-		"commission":    commission.Text('f', 8),
-		"remaining":     remaining.Text('f', 8),
-		"from":          userAddress,
-		"to":            destAddress,
-	})
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]any{
+        "status":        "ok",
+        "queued_amount": amountStr,
+        "commission":    commission.Text('f', 8),
+        "remaining":     remaining.Text('f', 8),
+        "from":          userAddress,
+        "to":            destAddress,
+    })
 }
 ///// Admin Handlers
 
