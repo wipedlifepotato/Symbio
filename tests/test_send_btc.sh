@@ -3,10 +3,11 @@
 USERNAME="testuser"
 PASSWORD="12345678"
 DEST="tb1q9tutjha6055xy3akk55djruhcxusxvzmsrxpk3"
-AMOUNT="0.00011"
+AMOUNT="0.0009"
 
 curl -s -o captcha.png -D headers.txt http://localhost:9999/captcha
 echo "Print captchaID: "
+cat headers.txt
 read CaptchaID
 echo "Print captcha answer: "
 read CaptchaAnswer
@@ -38,6 +39,5 @@ echo "$SEND_RESPONSE"
 
 if echo "$SEND_RESPONSE" | jq empty 2>/dev/null; then
     echo "$SEND_RESPONSE" | jq
-else
 fi
 

@@ -13,6 +13,7 @@ import (
     "mFrelance/db"
     "mFrelance/auth"
     "mFrelance/electrum"
+    //"mFrelance/server"
     "gitlab.com/moneropay/go-monero/walletrpc"
 
 )
@@ -104,6 +105,21 @@ func RegisterElectrumLua(L *lua.LState, client *electrum.Client) {
         return 1
     }))
 
+    L.SetGlobal("electrum_set_withdraw_blocked", L.NewFunction(func(L *lua.LState) int {
+        blocked := L.CheckBool(1) 
+        server.SetTxPoolBlocked(blocked)
+        return 0 
+    }))
+
+
+    L.SetGlobal("electrum_is_withdraw_blocked", L.NewFunction(func(L *lua.LState) int {
+        if server.IsTxPoolBlocked() {
+            L.Push(lua.LTrue)
+        } else {
+            L.Push(lua.LFalse)
+        }
+        return 1
+    }))
     L.SetGlobal("electrum_pay_to_many", L.NewFunction(func(L *lua.LState) int {
 
 		tbl := L.CheckTable(1)

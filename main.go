@@ -114,13 +114,15 @@ func main() {
     	server.SendElectrumHandler(w, r, electrumClient)
     })))
     s.HandleHandler("/api/", http.StripPrefix("/api", apiMux))
-
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+    go server.StartWalletSync(ctx, electrumClient, moneroClient, 30*time.Second)
+    server.StartTxPoolFlusher(30*time.Minute)
+    server.SetTxPoolBlocked(false)
     log.Println("Starting server on " + config.AppConfig.ListenAddr + ":" + config.AppConfig.Port)
     if err := s.Start(config.AppConfig.ListenAddr, config.AppConfig.Port); err != nil {
         log.Fatal(err)
     }
-    ctx, cancel := context.WithCancel(context.Background())
-    defer cancel()
-    go server.StartWalletSync(ctx, electrumClient, moneroClient, 30*time.Second)
+
 }
 

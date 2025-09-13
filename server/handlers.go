@@ -18,6 +18,7 @@ import (
     "gitlab.com/moneropay/go-monero/walletrpc"
     "mFrelance/config"
     "fmt"
+    "sync"
     "math/big"
 )
 import "mFrelance/auth"
@@ -253,12 +254,10 @@ func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Cl
 	var address string
 	err := db.Postgres.QueryRow(`SELECT address FROM wallets WHERE user_id=$1 AND currency=$2`, userID, currency).Scan(&address)
 	if err == nil && address != "" {
-		// Уже есть адрес
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"address":"` + address + `"}`))
 		return
 	}
-
 	switch currency {
 	case "XMR":
 		resp, err := mClient.CreateAddress(context.Background(), &walletrpc.CreateAddressRequest{
@@ -296,30 +295,34 @@ func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Cl
 func SendMoneroHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Client) {
 	// TODO:
 }
-func StartWalletSync(ctx context.Context, eClient *electrum.Client, mClient *walletrpc.Client, interval time.Duration) {
-    go func() {
-        ticker := time.NewTicker(interval)
-        defer ticker.Stop()
 
-        for {
-            select {
-            case <-ctx.Done():
-                log.Println("Wallet sync stopped")
-                return
-            case <-ticker.C:
-                syncAllWallets(eClient, mClient)
-            }
-        }
-    }()
+
+var txPoolBlocked struct {
+	sync.RWMutex
+	Blocked bool
 }
 
-func syncAllWallets(eClient *electrum.Client, mClient *walletrpc.Client) {
-    // TODO:
+func SetTxPoolBlocked(block bool) {
+	txPoolBlocked.Lock()
+	defer txPoolBlocked.Unlock()
+	txPoolBlocked.Blocked = block
 }
+
+func IsTxPoolBlocked() bool {
+	txPoolBlocked.RLock()
+	defer txPoolBlocked.RUnlock()
+	return txPoolBlocked.Blocked
+}
+
 
 // TODO:
 // Create a pool with transactions and send every N minutes the transaction with func (c *Client) PayToMany(outputs [][2]string) (string, error) {
+// TODO: Tests
 func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electrum.Client) {
+	if IsTxPoolBlocked() {
+		http.Error(w, "withdrawals temporarily blocked", http.StatusForbidden)
+		return
+	}
 	claims := GetUserFromContext(r)
 	if claims == nil {
 		http.Error(w, "user not found", http.StatusUnauthorized)
@@ -341,14 +344,13 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
 		return
 	}
 
-	minBTC := big.NewFloat(0.0001)
+	minBTC := big.NewFloat(0.0001000)
 	if amount.Cmp(minBTC) < 0 {
 		http.Error(w, "amount below minimum", http.StatusBadRequest)
 		return
 	}
 
-	var userBalanceStr string
-	var userAddress string
+	var userBalanceStr, userAddress string
 	err := db.Postgres.QueryRow(`
 		SELECT balance::text, address FROM wallets
 		WHERE user_id=$1 AND currency='BTC' LIMIT 1`, userID).Scan(&userBalanceStr, &userAddress)
@@ -367,45 +369,40 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
 	commission := new(big.Float).Quo(new(big.Float).Mul(amount, commissionPerc), big.NewFloat(100))
 	remaining := new(big.Float).Sub(amount, commission)
 
-	zero := big.NewFloat(0)
-	if remaining.Cmp(zero) <= 0 {
+	if remaining.Cmp(big.NewFloat(0)) <= 0 {
 		http.Error(w, "amount too small for commission", http.StatusBadRequest)
 		return
 	}
 
-	log.Print("Comission: ")
-	log.Print(commission)
-	commissionStr := commission.Text('f', 8)
-	//commissionTx, err := client.PayTo(config.AppConfig.BitcoinAddress, commissionStr)
-	if err != nil {
-		http.Error(w, "failed to send commission: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	//log.Println("Send to addr "+ commissionStr);
-	//log.Println("ComissionTX: " + commissionTx)
-
-	remainingStr := remaining.Text('f', 8)
-	//userTx, err := client.PayTo(destAddress, remainingStr)
-	if err != nil {
-		http.Error(w, "failed to send to user: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	log.Println("Send to user "+ remainingStr);
-
 	newBalance := new(big.Float).Sub(userBalance, amount)
 	newBalanceStr := fmt.Sprintf("%.8f", newBalance)
-	//_, _ = db.Postgres.Exec(`UPDATE wallets SET balance=$1 WHERE user_id=$2 AND currency='BTC'`, newBalanceStr, userID)
-	log.Println("new balance:" + newBalanceStr)
+	_, _ = db.Postgres.Exec(`UPDATE wallets SET balance=$1 WHERE user_id=$2 AND currency='BTC'`, newBalanceStr, userID)
+
+	txPool.Lock()
+
+	if existing, ok := txPool.outputs[config.AppConfig.BitcoinAddress]; ok {
+		txPool.outputs[config.AppConfig.BitcoinAddress] = new(big.Float).Add(existing, commission)
+	} else {
+		txPool.outputs[config.AppConfig.BitcoinAddress] = new(big.Float).Set(commission)
+	}
+
+	if existing, ok := txPool.outputs[destAddress]; ok {
+		txPool.outputs[destAddress] = new(big.Float).Add(existing, remaining)
+	} else {
+		txPool.outputs[destAddress] = new(big.Float).Set(remaining)
+	}
+
+	txPool.Unlock()
+
+	log.Printf("Added to pool: to=%s amount=%s commission=%s", destAddress, remaining.Text('f', 8), commission.Text('f', 8))
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
-		//"commission_tx": commissionTx,
-		//"user_tx":       userTx,
-		"amount_sent":   amountStr,
-		"commission":    commissionStr,
-		"remaining":     remainingStr,
+		"queued_amount": amountStr,
+		"commission":    commission.Text('f', 8),
+		"remaining":     remaining.Text('f', 8),
 		"from":          userAddress,
 		"to":            destAddress,
 	})
 }
-
 
