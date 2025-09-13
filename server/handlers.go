@@ -248,47 +248,54 @@ func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Cl
 		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
 	}
-	userID := claims.UserID 
-	currency := r.URL.Query().Get("currency") 
+	userID := claims.UserID
+	currency := r.URL.Query().Get("currency")
 
-	var address string
-	err := db.Postgres.QueryRow(`SELECT address FROM wallets WHERE user_id=$1 AND currency=$2`, userID, currency).Scan(&address)
-	if err == nil && address != "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"address":"` + address + `"}`))
-		return
-	}
-	switch currency {
-	case "XMR":
-		resp, err := mClient.CreateAddress(context.Background(), &walletrpc.CreateAddressRequest{
-			AccountIndex: 0,
-			Label:        "user_" + strconv.Itoa(int(userID)),
-		})
-		if err != nil {
-			http.Error(w, "Monero RPC error: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		address = resp.Address
-	case "BTC":
-		addr, err := eClient.CreateAddress()
-		if err != nil {
-			http.Error(w, "Electrum error: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		address = addr
-	default:
-		http.Error(w, "Unsupported currency", http.StatusBadRequest)
-		return
-	}
-
-	_, err = db.Postgres.Exec(`INSERT INTO wallets(user_id,currency,address) VALUES($1,$2,$3)`, userID, currency, address)
+	wallet, err := db.GetWalletBalance(db.Postgres, userID, currency)
 	if err != nil {
-		http.Error(w, "DB insert error: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if wallet == nil {
+		var address string
+		switch currency {
+		case "XMR":
+			resp, err := mClient.CreateAddress(context.Background(), &walletrpc.CreateAddressRequest{
+				AccountIndex: 0,
+				Label:        "user_" + strconv.Itoa(int(userID)),
+			})
+			if err != nil {
+				http.Error(w, "Monero RPC error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			address = resp.Address
+		case "BTC":
+			addr, err := eClient.CreateAddress()
+			if err != nil {
+				http.Error(w, "Electrum error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			address = addr
+		default:
+			http.Error(w, "Unsupported currency", http.StatusBadRequest)
+			return
+		}
+
+		_, err = db.Postgres.Exec(`INSERT INTO wallets(user_id,currency,address) VALUES($1,$2,$3)`, userID, currency, address)
+		if err != nil {
+			http.Error(w, "DB insert error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		wallet = &db.WalletBalance{
+			Address: address,
+			Balance: 0,
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"address":"` + address + `"}`))
+	json.NewEncoder(w).Encode(wallet)
 }
 
 // Not Tested

@@ -1,0 +1,16 @@
+{
+    "name": "mfrelance/frontend",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Mfrelance\\Frontend\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "wipedlifepotato",
+            "email": "wipedlifepotato@users.noreply.github.com"
+        }
+    ],
+    "require": {}
+}
