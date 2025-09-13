@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) NOT NULL UNIQUE,
     mnemonic TEXT NOT NULL UNIQUE, 
     password_hash TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT now()
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    blocked BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS wallets (
@@ -22,3 +23,5 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
     confirmed BOOL,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+

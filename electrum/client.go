@@ -150,6 +150,7 @@ func (c *Client) PayTo(destination string, amount string) (string, error) {
     return string(resBroadcast), nil
 }
 // Comission sometimes is 0?
+// TODO: fee
 func (c *Client) PayToMany(outputs [][2]string) (string, error) {
 	const (
 		minFeeRateSats = 1.5
@@ -159,7 +160,7 @@ func (c *Client) PayToMany(outputs [][2]string) (string, error) {
 	)
 
 	feeRate := minFeeRateSats
-	maxAttempts := 24
+	maxAttempts := 10
 
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 

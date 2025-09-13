@@ -3,7 +3,7 @@
 USERNAME="testuser"
 PASSWORD="12345678"
 DEST="tb1q9tutjha6055xy3akk55djruhcxusxvzmsrxpk3"
-AMOUNT="0.0011"
+AMOUNT="0.00011"
 
 curl -s -o captcha.png -D headers.txt http://localhost:9999/captcha
 echo "Print captchaID: "

@@ -7,6 +7,62 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+func BlockUser(db *sqlx.DB, userID int64) error {
+	res, err := db.Exec(`
+        UPDATE users
+        SET blocked = TRUE
+        WHERE id = $1
+    `, userID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return errors.New("user not found")
+	}
+
+	return nil
+}
+
+func UnblockUser(db *sqlx.DB, userID int64) error {
+	res, err := db.Exec(`
+        UPDATE users
+        SET blocked = FALSE
+        WHERE id = $1
+    `, userID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return errors.New("user not found")
+	}
+
+	return nil
+}
+
+func IsUserBlocked(db *sqlx.DB, userID int64) (bool, error) {
+	var blocked bool
+	err := db.QueryRow(`
+        SELECT blocked FROM users WHERE id = $1
+    `, userID).Scan(&blocked)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, errors.New("user not found")
+		}
+		return false, err
+	}
+	return blocked, nil
+}
+
 
 func CheckUser(db *sqlx.DB, username, passwordHash string) (int64, error) {
 	var userID int64

@@ -217,6 +217,46 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		L.Push(tbl)
 		return 1
 	}))
+	// block_user(userID)
+	L.SetGlobal("block_user", L.NewFunction(func(L *lua.LState) int {
+		userID := L.ToInt64(1)
+		err := db.BlockUser(psql, userID)
+		if err != nil {
+			L.Push(lua.LString(err.Error()))
+			return 1
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	// unblock_user(userID)
+	L.SetGlobal("unblock_user", L.NewFunction(func(L *lua.LState) int {
+		userID := L.ToInt64(1)
+		err := db.UnblockUser(psql, userID)
+		if err != nil {
+			L.Push(lua.LString(err.Error()))
+			return 1
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	// is_user_blocked(username)
+	L.SetGlobal("is_user_blocked", L.NewFunction(func(L *lua.LState) int {
+		username := L.ToString(1)
+		userID, _, err := db.GetUserByUsername(psql, username)
+		if err != nil || userID == 0 {
+			L.Push(lua.LNil)
+			return 1
+		}
+		blocked, err := db.IsUserBlocked(psql, userID)
+		if err != nil {
+			L.Push(lua.LNil)
+			return 1
+		}
+		L.Push(lua.LBool(blocked))
+		return 1
+	}))
 	
 	L.SetGlobal("verify_password", L.NewFunction(func(L *lua.LState) int {
 	    password := L.ToString(1)

@@ -319,6 +319,7 @@ func IsTxPoolBlocked() bool {
 // Create a pool with transactions and send every N minutes the transaction with func (c *Client) PayToMany(outputs [][2]string) (string, error) {
 // TODO: Tests
 func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electrum.Client) {
+
 	if IsTxPoolBlocked() {
 		http.Error(w, "withdrawals temporarily blocked", http.StatusForbidden)
 		return
@@ -329,7 +330,13 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
 		return
 	}
 	userID := claims.UserID
-
+	if blocked, err := db.IsUserBlocked(db.Postgres, userID); err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	} else if blocked {
+		http.Error(w, "user is blocked", http.StatusForbidden)
+		return
+	}
 	destAddress := r.URL.Query().Get("to")
 	amountStr := r.URL.Query().Get("amount")
 
@@ -344,7 +351,7 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
 		return
 	}
 
-	minBTC := big.NewFloat(0.001000)
+	minBTC := big.NewFloat(0.0001)
 	if amount.Cmp(minBTC) < 0 {
 		http.Error(w, "amount below minimum", http.StatusBadRequest)
 		return

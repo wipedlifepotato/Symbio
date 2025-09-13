@@ -1,0 +1,32 @@
+[
+  {
+    "time": "2025-09-13T21:09:43+07:00",
+    "outputs": [
+      [
+        "tb1q4zue4uyep4dgx96erac2ey3efdw2q6537wh3j7",
+        "0.00002750"
+      ],
+      [
+        "tb1q9tutjha6055xy3akk55djruhcxusxvzmsrxpk3",
+        "0.00008250"
+      ]
+    ],
+    "fee_btc": 0.00000402,
+    "broadcasted": false
+  },
+  {
+    "time": "2025-09-13T21:13:13+07:00",
+    "outputs": [
+      [
+        "tb1q4zue4uyep4dgx96erac2ey3efdw2q6537wh3j7",
+        "0.00002750"
+      ],
+      [
+        "tb1q9tutjha6055xy3akk55djruhcxusxvzmsrxpk3",
+        "0.00008250"
+      ]
+    ],
+    "fee_btc": 0.00000402,
+    "broadcasted": false
+  }
+]

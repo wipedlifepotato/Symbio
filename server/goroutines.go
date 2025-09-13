@@ -1,6 +1,7 @@
 package server
 import (
     	"mFrelance/electrum"
+    	"mFrelance/config"
     	"gitlab.com/moneropay/go-monero/walletrpc"
     	"time"
     	"context"
@@ -17,12 +18,15 @@ import (
 	"os"
 	"encoding/json"
 	"errors"
+	"strings"
+
 )
 
 var txPool = struct {
 	sync.Mutex
 	outputs map[string]*big.Float
 }{outputs: make(map[string]*big.Float)}
+var lastTx string
 
 
 func ProcessTxElectrum(client *electrum.Client, address string, txHash string) (*big.Float, error) {
@@ -216,7 +220,33 @@ func clearPendingPayments() error {
 	defer paymentMu.Unlock()
 	return os.WriteFile(paymentFile, []byte("[]"), 0644)
 }
+func StartTxBlockTransactions(ctx context.Context, client *electrum.Client, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	go func() {
+		defer ticker.Stop()
 
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if lastTx == "" {
+					continue
+				}
+
+				_, err := ProcessTxElectrum(client, config.AppConfig.BitcoinAddress, lastTx)
+				if err != nil {
+					log.Println("Tx check failed, blocking:", err)
+					SetTxPoolBlocked(true)
+				} else {
+					log.Println("Tx check OK, unblocking. Resetting lastTx")
+					SetTxPoolBlocked(false)
+					lastTx = ""
+				}
+			}
+		}
+	}()
+}
 func StartTxPoolFlusher(client *electrum.Client, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	go func() {
@@ -256,10 +286,10 @@ func StartTxPoolFlusher(client *electrum.Client, interval time.Duration) {
 			} else {
 				log.Println("PayToMany успешно, txid:", txid)
 
-				// Можно логировать успешную транзакцию
 				f, _ := os.OpenFile("SuccessfulPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				defer f.Close()
 				fmt.Fprintf(f, "%s - txid: %s\nOutputs: %+v\n", time.Now().Format(time.RFC3339), txid, outs)
+				lastTx = strings.Trim(txid, `"'`)
 			}
 		}
 	}()
