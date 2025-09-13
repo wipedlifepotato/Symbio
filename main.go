@@ -119,7 +119,7 @@ func main() {
     go server.StartWalletSync(ctx, electrumClient, moneroClient, 30*time.Second)
     go server.StartTxBlockTransactions(ctx, electrumClient, 15*time.Second)
     
-    server.StartTxPoolFlusher(electrumClient,1*time.Second)
+    server.StartTxPoolFlusher(electrumClient,1*time.Hour)
     server.SetTxPoolBlocked(false)
     log.Println("Starting server on " + config.AppConfig.ListenAddr + ":" + config.AppConfig.Port)
     if err := s.Start(config.AppConfig.ListenAddr, config.AppConfig.Port); err != nil {
