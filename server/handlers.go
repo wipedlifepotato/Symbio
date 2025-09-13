@@ -782,7 +782,7 @@ func ProfileHandler() http.HandlerFunc {
             http.Error(w, "unauthorized", http.StatusUnauthorized)
             return
         }
-	const MaxAvatarSize = 1 * 1024 * 1024 // 1 MB
+	maxAvatarSize := int(config.AppConfig.MaxAvatarSize) * 1024 * 1024 // MBs
         switch r.Method {
         case "GET":
             profile, err := models.GetProfile(db.Postgres, claims.UserID)
@@ -790,21 +790,22 @@ func ProfileHandler() http.HandlerFunc {
                 http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
                 return
             }
+            SanitizeProfile(profile)
             json.NewEncoder(w).Encode(profile)
 	case "POST":
-	    var p models.Profile
-	    if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		http.Error(w, "invalid payload", http.StatusBadRequest)
-		return
-	    }
+		var p models.Profile
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		    log.Println("Decode error:", err)
+		    http.Error(w, "invalid payload: "+err.Error(), http.StatusBadRequest)
+		    return
+		}
 	    p.UserID = claims.UserID
 
-	    // Проверяем длину Base64 аватара
-	    if len(p.Avatar) > MaxAvatarSize {
+	    if len(p.Avatar) > maxAvatarSize {
 		http.Error(w, "avatar too large", http.StatusBadRequest)
 		return
 	    }
-
+	    SanitizeProfile(&p)
 	    if err := models.UpsertProfile(db.Postgres, &p); err != nil {
 		http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
 		return

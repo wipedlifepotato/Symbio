@@ -29,6 +29,7 @@ func (j JSONStrings) Value() (driver.Value, error) {
     return json.Marshal(j)
 }
 
+
 type Profile struct {
     UserID         int64      `db:"user_id" json:"user_id"`
     FullName       string     `db:"full_name" json:"full_name"`
@@ -37,6 +38,15 @@ type Profile struct {
     Avatar         string     `db:"avatar" json:"avatar"`
     Rating         float64    `db:"rating" json:"rating"`
     CompletedTasks int        `db:"completed_tasks" json:"completed_tasks"`
+}
+
+func (j *JSONStrings) UnmarshalJSON(data []byte) error {
+    var arr []string
+    if err := json.Unmarshal(data, &arr); err != nil {
+        return err
+    }
+    *j = arr
+    return nil
 }
 
 func GetProfile(db *sqlx.DB, userID int64) (*Profile, error) {

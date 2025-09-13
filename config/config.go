@@ -36,6 +36,7 @@ type Config struct {
     BitcoinCommission float64
     
     MaxProfiles	int64
+    MaxAvatarSize int64
 }
 
 var AppConfig Config
@@ -57,6 +58,7 @@ func Init() {
     moneroCommStr := os.Getenv("MONERO_COMMISSION")
     bitcoinCommStr := os.Getenv("BITCOIN_COMMISSION")
     maxProfilesStr := os.Getenv("MAX_PROFILES")
+    maxAvatarSizeStr := os.Getenv("MAX_AVATAR_SIZE_MB")
 
     moneroComm, err := strconv.ParseFloat(moneroCommStr, 64)
     if err != nil {
@@ -71,8 +73,13 @@ func Init() {
     }
     maxProfiles, err := strconv.ParseInt(maxProfilesStr, 10, 64)
     if err != nil {
-        log.Printf("Invalid maxProfilesStr, using 5: %v", err)
-        maxProfiles = 5
+        log.Printf("Invalid maxProfilesStr, using 25: %v", err)
+        maxProfiles = 25
+    }
+    maxAvatarSize, err := strconv.ParseInt(maxAvatarSizeStr, 10, 64)
+    if err != nil {
+        log.Printf("Invalid maxAvatarSizeStr, using 2: %v", err)
+        maxProfiles = 2
     }
     AppConfig = Config{
         PostgresHost:     os.Getenv("POSTGRES_HOST"),
@@ -102,6 +109,7 @@ func Init() {
         BitcoinAddress:   os.Getenv("BITCOIN_ADDR"),
         BitcoinCommission: bitcoinComm,
         MaxProfiles:	maxProfiles,
+        MaxAvatarSize:	maxAvatarSize,
     }
 
     log.Println("Loaded commissions:", "BTC:", AppConfig.BitcoinCommission, "XMR:", AppConfig.MoneroCommission)

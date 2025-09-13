@@ -26,25 +26,25 @@ if (!$jwt) {
         $skills = isset($_POST['skills']) ? explode(',', $_POST['skills']) : [];
         $avatarBase64 = '';
 
-        // Если загружен файл
+
         if (!empty($_FILES['avatar']['tmp_name'])) {
             $avatarData = file_get_contents($_FILES['avatar']['tmp_name']);
             $avatarBase64 = 'data:' . $_FILES['avatar']['type'] . ';base64,' . base64_encode($avatarData);
         } else {
-            // Если не загружен файл, используем старый Base64
+
             $avatarBase64 = $_POST['avatar_base64'] ?? '';
         }
 
         $updateResponse = $mf->doRequest(
             "profile",
             $jwt,
-            json_encode([
+            [
                 "full_name" => $full_name,
                 "bio" => $bio,
                 "skills" => $skills,
                 "avatar" => $avatarBase64
-            ]),
-            "POST"
+            ],
+            true
         );
 
         if ($updateResponse['httpCode'] === 200) {
