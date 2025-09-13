@@ -357,7 +357,10 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
 		http.Error(w, "invalid amount", http.StatusBadRequest)
 		return
 	}
-
+	if !IsValidBTCAddress(destAddress) {
+		http.Error(w, "invalid Bitcoin address format", http.StatusBadRequest)
+		return
+	}
 	minBTC := big.NewFloat(0.0001)
 	if amount.Cmp(minBTC) < 0 {
 		http.Error(w, "amount below minimum", http.StatusBadRequest)

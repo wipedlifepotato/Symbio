@@ -6,6 +6,8 @@ import (
 	   "encoding/json"
 	   "log"
 	   "golang.org/x/crypto/bcrypt"
+	   "regexp"
+	       
 )
 func writeErrorJSON(w http.ResponseWriter, msg string, code int) {
     w.Header().Set("Content-Type", "application/json")
@@ -41,4 +43,9 @@ func HashPassword(password string) string {
 func VerifyPassword(password, hashed string) bool {
     err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
     return err == nil
+}
+
+func IsValidBTCAddress(address string) bool {
+    re := regexp.MustCompile(`\b((bc|tb)(0([ac-hj-np-z02-9]{39}|[ac-hj-np-z02-9]{59})|1[ac-hj-np-z02-9]{8,87})|([13]|[mn2])[a-km-zA-HJ-NP-Z1-9]{25,39})\b`)
+    return re.MatchString(address)
 }
