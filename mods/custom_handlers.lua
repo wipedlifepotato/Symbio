@@ -102,3 +102,26 @@ register_handler("/mywallet", function(req)
 
     return '{"user_id":'..user_id..', "username":" '..username..'"}'
 end)
+
+--local test_user_id = 5
+--local currency = "BTC"
+--local bal, err = get_balance(test_user_id, currency)
+--if bal then
+--    print("Current balance:", bal)
+--else
+--    print("Failed to get balance:", err)
+--end
+--local ok, err = add_balance(test_user_id, currency, "0.01")
+--if ok then
+--    print("Balance increased by 0.01")
+--    print("New balance:", get_balance(test_user_id, currency))
+--else
+--    print("Failed to add balance:", err)
+--end
+--local ok, err = sub_balance(test_user_id, currency, "0.05")
+---if ok then
+--    print("Balance decreased by 0.05")
+--    print("New balance:", get_balance(test_user_id, currency))
+--else
+--    print("Failed to subtract balance:", err)
+--end
