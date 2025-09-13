@@ -123,6 +123,10 @@ func main() {
     s.Handle("/profile", func(w http.ResponseWriter, r *http.Request) {
 	    server.AuthMiddleware(server.ProfileHandler()).ServeHTTP(w, r)
     })
+    s.Handle("/profiles", func(w http.ResponseWriter, r *http.Request) {
+    	    server.AuthMiddleware(server.ProfilesHandler()).ServeHTTP(w,r)
+    })
+
 
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()

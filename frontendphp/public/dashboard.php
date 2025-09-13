@@ -58,5 +58,6 @@ if (!$jwt) {
         <pre><?= htmlspecialchars($sendResult) ?></pre>
     <?php endif; ?>
 <?php endif; ?>
-
+<p><a href="profiles.php">Профили</a></p>
+<p><a href="profile.php">Профиль</a></p>
 <p><a href="index.php">Назад</a></p>

@@ -592,7 +592,7 @@ func ProfileHandler() http.HandlerFunc {
             http.Error(w, "unauthorized", http.StatusUnauthorized)
             return
         }
-
+	const MaxAvatarSize = 1 * 1024 * 1024 // 1 MB
         switch r.Method {
         case "GET":
             profile, err := models.GetProfile(db.Postgres, claims.UserID)
@@ -601,23 +601,40 @@ func ProfileHandler() http.HandlerFunc {
                 return
             }
             json.NewEncoder(w).Encode(profile)
+	case "POST":
+	    var p models.Profile
+	    if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		http.Error(w, "invalid payload", http.StatusBadRequest)
+		return
+	    }
+	    p.UserID = claims.UserID
 
-        case "POST":
-            var p models.Profile
-            if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-                http.Error(w, "invalid payload", http.StatusBadRequest)
-                return
-            }
-            p.UserID = claims.UserID
-            if err := models.UpsertProfile(db.Postgres, &p); err != nil {
-                http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
-                return
-            }
-            w.WriteHeader(http.StatusOK)
-            json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	    // Проверяем длину Base64 аватара
+	    if len(p.Avatar) > MaxAvatarSize {
+		http.Error(w, "avatar too large", http.StatusBadRequest)
+		return
+	    }
+
+	    if err := models.UpsertProfile(db.Postgres, &p); err != nil {
+		http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+		return
+	    }
+	    w.WriteHeader(http.StatusOK)
+	    json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 
         default:
             http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
         }
+    }
+}
+
+func ProfilesHandler() http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        profiles, err := models.GetAllProfiles(db.Postgres)
+        if err != nil {
+            http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+            return
+        }
+        json.NewEncoder(w).Encode(profiles)
     }
 }
