@@ -42,7 +42,9 @@ func RegisterConfigGlobals(L *lua.LState) {
 	// Bitcoin
 	L.SetField(cfg, "BitcoinAddress", lua.LString(config.AppConfig.BitcoinAddress))
 	L.SetField(cfg, "BitcoinCommission", lua.LNumber(config.AppConfig.BitcoinCommission))
-
+	// Constants
+	L.SetField(cfg, "MaxProfiles", lua.LNumber(config.AppConfig.MaxProfiles))
+	
 	L.SetGlobal("config", cfg)
 }
 

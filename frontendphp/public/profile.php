@@ -17,7 +17,7 @@ if (!$jwt) {
         $profile = json_decode($profileResponse['response'], true);
     } else {
         $message = "Ошибка при получении профиля: " . $profileResponse['response'];
-        unset($_SESSION['jwt']);
+        //unset($_SESSION['jwt']);
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

@@ -1,0 +1,439 @@
+basePath: /
+definitions:
+  db.WalletBalance:
+    properties:
+      address:
+        type: string
+      balance:
+        type: number
+    type: object
+  models.Profile:
+    properties:
+      avatar:
+        type: string
+      bio:
+        type: string
+      completed_tasks:
+        type: integer
+      full_name:
+        type: string
+      rating:
+        type: number
+      skills:
+        items:
+          type: string
+        type: array
+      user_id:
+        type: integer
+    type: object
+  server.AdminRequest:
+    properties:
+      user_id:
+        type: integer
+    type: object
+  server.AuthRequest:
+    properties:
+      captcha_answer:
+        type: string
+      captcha_id:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  server.RegisterRequest:
+    properties:
+      captcha_answer:
+        type: string
+      captcha_id:
+        description: GPGKey        string `json:"gpg_key"`
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for user registration, authentication, wallet operations and admin
+    management
+  title: mFrelance API
+  version: "1.0"
+paths:
+  /api/admin/block:
+    post:
+      consumes:
+      - application/json
+      description: Blocks a user by userID
+      parameters:
+      - description: UserID payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.AdminRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user blocked
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Block user
+      tags:
+      - admin
+  /api/admin/check:
+    get:
+      description: Returns true/false if current user has admin privileges
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Check if user is admin
+      tags:
+      - admin
+  /api/admin/make:
+    post:
+      consumes:
+      - application/json
+      description: Makes a user admin by userID
+      parameters:
+      - description: UserID payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.AdminRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user is now admin
+          schema:
+            type: string
+        "400":
+          description: invalid request body
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "403":
+          description: admin rights required
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Grant admin rights
+      tags:
+      - admin
+  /api/admin/remove:
+    post:
+      consumes:
+      - application/json
+      description: Removes admin status from a user
+      parameters:
+      - description: UserID payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.AdminRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user admin removed
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Revoke admin rights
+      tags:
+      - admin
+  /api/admin/unblock:
+    post:
+      consumes:
+      - application/json
+      description: Unblocks a user by userID
+      parameters:
+      - description: UserID payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.AdminRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user unblocked
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Unblock user
+      tags:
+      - admin
+  /api/wallet:
+    get:
+      description: Returns user’s balances in BTC and XMR
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.WalletBalance'
+      security:
+      - BearerAuth: []
+      summary: Get wallet balances
+      tags:
+      - wallet
+  /api/wallet/bitcoinSend:
+    post:
+      consumes:
+      - application/json
+      description: Sends Bitcoin transaction using Electrum
+      parameters:
+      - description: Destination address
+        in: query
+        name: to
+        required: true
+        type: string
+      - description: Amount
+        in: query
+        name: amount
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Send Bitcoin
+      tags:
+      - wallet
+  /api/wallet/moneroSend:
+    post:
+      consumes:
+      - application/json
+      description: Sends Monero transaction (not implemented)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Send Monero
+      tags:
+      - wallet
+  /auth:
+    post:
+      consumes:
+      - application/json
+      description: Logs in user and returns JWT token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Authenticate user
+      tags:
+      - auth
+  /profile:
+    get:
+      consumes:
+      - application/json
+      description: Get current user profile (GET) or update profile (POST)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Profile'
+        "400":
+          description: invalid payload
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: db error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get or update profile
+      tags:
+      - profile
+    post:
+      consumes:
+      - application/json
+      description: Get current user profile (GET) or update profile (POST)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Profile'
+        "400":
+          description: invalid payload
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "500":
+          description: db error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get or update profile
+      tags:
+      - profile
+  /profiles:
+    get:
+      description: Returns paginated list of profiles
+      parameters:
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Profile'
+            type: array
+        "500":
+          description: db error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: List profiles
+      tags:
+      - profile
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user with login, password and captcha
+      parameters:
+      - description: User credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register new user
+      tags:
+      - auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -17,8 +17,17 @@ import (
     //"fmt"
     "context"
     "time"
+    _ "mFrelance/docs" 
+    httpSwagger "github.com/swaggo/http-swagger"
 )
 
+// @title mFrelance API
+// @version 1.0
+// @description API for user registration, authentication, wallet operations and admin management
+// @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
     config.Init()
 
@@ -126,7 +135,8 @@ func main() {
     s.Handle("/profiles", func(w http.ResponseWriter, r *http.Request) {
     	    server.AuthMiddleware(server.ProfilesHandler()).ServeHTTP(w,r)
     })
-
+    
+    s.Handle("/swagger/", httpSwagger.WrapHandler)
 
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()

@@ -13,6 +13,7 @@ import (
     "mFrelance/db"
     "mFrelance/auth"
     "mFrelance/electrum"
+    "mFrelance/models"
     //"mFrelance/server"
     "gitlab.com/moneropay/go-monero/walletrpc"
 
@@ -253,7 +254,7 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		L.Push(tbl)
 		return 1
 	}))
-	// block_user(userID)
+
 	L.SetGlobal("block_user", L.NewFunction(func(L *lua.LState) int {
 		userID := L.ToInt64(1)
 		err := db.BlockUser(psql, userID)
@@ -264,7 +265,98 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		L.Push(lua.LBool(true))
 		return 1
 	}))
+	
+	L.SetGlobal("get_profile", L.NewFunction(func(L *lua.LState) int {
+		userID := L.CheckInt64(1)
+		profile, err := models.GetProfile(psql, userID)
+		if err != nil {
+		    L.RaiseError("GetProfile error: %v", err)
+		    return 0
+		}
+		tbl := L.NewTable()
+		tbl.RawSetString("user_id", lua.LNumber(profile.UserID))
+		tbl.RawSetString("full_name", lua.LString(profile.FullName))
+		tbl.RawSetString("bio", lua.LString(profile.Bio))
+		
+		skillsTbl := L.NewTable()
+		for _, s := range profile.Skills {
+		    skillsTbl.Append(lua.LString(s))
+		}
+		tbl.RawSetString("skills", skillsTbl)
+		
+		tbl.RawSetString("avatar", lua.LString(profile.Avatar))
+		tbl.RawSetString("rating", lua.LNumber(profile.Rating))
+		tbl.RawSetString("completed_tasks", lua.LNumber(profile.CompletedTasks))
+		
+		L.Push(tbl)
+		return 1
+	    }))
 
+
+	L.SetGlobal("upsert_profile", L.NewFunction(func(L *lua.LState) int {
+		userID := L.CheckInt64(1)
+		fullName := L.CheckString(2)
+		bio := L.CheckString(3)
+		skillsTbl := L.CheckTable(4)
+		avatar := L.CheckString(5)
+
+		skills := make(models.JSONStrings, 0)
+		skillsTbl.ForEach(func(_, value lua.LValue) {
+		    if s, ok := value.(lua.LString); ok {
+		        skills = append(skills, string(s))
+		    }
+		})
+
+		profile := &models.Profile{
+		    UserID: userID,
+		    FullName: fullName,
+		    Bio: bio,
+		    Skills: skills,
+		    Avatar: avatar,
+		}
+
+		if err := models.UpsertProfile(psql, profile); err != nil {
+		    L.RaiseError("UpsertProfile error: %v", err)
+		    return 0
+		}
+
+		L.Push(lua.LBool(true))
+		return 1
+	    }))
+
+	L.SetGlobal("get_profiles", L.NewFunction(func(L *lua.LState) int {
+		limit := L.CheckInt(1)
+		offset := L.CheckInt(2)
+
+		profiles, err := models.GetProfilesWithLimitOffset(psql, limit, offset)
+		if err != nil {
+		    L.RaiseError("GetProfilesWithLimitOffset error: %v", err)
+		    return 0
+		}
+
+		tbl := L.NewTable()
+		for _, p := range profiles {
+		    pTbl := L.NewTable()
+		    pTbl.RawSetString("user_id", lua.LNumber(p.UserID))
+		    pTbl.RawSetString("full_name", lua.LString(p.FullName))
+		    pTbl.RawSetString("bio", lua.LString(p.Bio))
+
+		    skillsTbl := L.NewTable()
+		    for _, s := range p.Skills {
+		        skillsTbl.Append(lua.LString(s))
+		    }
+		    pTbl.RawSetString("skills", skillsTbl)
+
+		    pTbl.RawSetString("avatar", lua.LString(p.Avatar))
+		    pTbl.RawSetString("rating", lua.LNumber(p.Rating))
+		    pTbl.RawSetString("completed_tasks", lua.LNumber(p.CompletedTasks))
+
+		    tbl.Append(pTbl)
+		}
+
+		L.Push(tbl)
+		return 1
+	    }))
 	// unblock_user(userID)
 	L.SetGlobal("unblock_user", L.NewFunction(func(L *lua.LState) int {
 		userID := L.ToInt64(1)
@@ -277,7 +369,7 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		return 1
 	}))
 
-	// is_user_blocked(username)
+
 	L.SetGlobal("is_user_blocked", L.NewFunction(func(L *lua.LState) int {
 		username := L.ToString(1)
 		userID, _, err := db.GetUserByUsername(psql, username)

@@ -88,8 +88,16 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     w.Write([]byte(`{"ok":false}`))
 }
 
-//
-// POST /register
+// RegisterHandler godoc
+// @Summary Register new user
+// @Description Creates a new user with login, password and captcha
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "User credentials"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Router /register [post]
 func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     var req RegisterRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -183,6 +191,16 @@ type AuthResponse struct {
 	Token   string `json:"token,omitempty"`
 }
 
+// AuthHandler godoc
+// @Summary Authenticate user
+// @Description Logs in user and returns JWT token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body AuthRequest true "Login credentials"
+// @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /auth [post]
 func AuthHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 
 	var req AuthRequest
@@ -243,7 +261,15 @@ func TestHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
-/////// WALLET
+
+// WalletHandler godoc
+// @Summary Get wallet balances
+// @Description Returns user’s balances in BTC and XMR
+// @Tags wallet
+// @Produce json
+// @Success 200 {object} db.WalletBalance
+// @Security BearerAuth
+// @Router /api/wallet [get]
 func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Client, eClient *electrum.Client) {
 	claims := GetUserFromContext(r)
 	if claims == nil {
@@ -300,7 +326,16 @@ func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Cl
 	json.NewEncoder(w).Encode(wallet)
 }
 
-// Not Tested
+// SendMoneroHandler godoc
+// @Summary Send Monero
+// @Description Sends Monero transaction (not implemented)
+// @Tags wallet
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Security BearerAuth
+// @Router /api/wallet/moneroSend [post]
 func SendMoneroHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Client) {
 	// TODO:
 }
@@ -348,9 +383,18 @@ func savePendingRequest(req PendingRequest) error {
 	return os.WriteFile(filePath, newData, 0644)
 }
 
-// TODO:
-// Create a pool with transactions and send every N minutes the transaction with func (c *Client) PayToMany(outputs [][2]string) (string, error) {
-// TODO: Tests
+// SendElectrumHandler godoc
+// @Summary Send Bitcoin
+// @Description Sends Bitcoin transaction using Electrum
+// @Tags wallet
+// @Accept json
+// @Produce json
+// @Param to query string true "Destination address"
+// @Param amount query string true "Amount"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Security BearerAuth
+// @Router /api/wallet/bitcoinSend [post]
 func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electrum.Client) {
     if IsTxPoolBlocked() {
         http.Error(w, "withdrawals temporarily blocked", http.StatusForbidden)
@@ -504,7 +548,20 @@ func RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-
+// MakeAdminHandler godoc
+// @Summary Grant admin rights
+// @Description Makes a user admin by userID
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminRequest true "UserID payload"
+// @Success 200 {string} string "user is now admin"
+// @Failure 400 {string} string "invalid request body"
+// @Failure 401 {string} string "unauthorized"
+// @Failure 403 {string} string "admin rights required"
+// @Failure 500 {string} string "internal server error"
+// @Security BearerAuth
+// @Router /api/admin/make [post]
 func MakeAdminHandler(w http.ResponseWriter, r *http.Request) {
 	var req AdminRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -518,8 +575,18 @@ func MakeAdminHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("user is now admin"))
 }
-
-
+// RemoveAdminHandler godoc
+// @Summary Revoke admin rights
+// @Description Removes admin status from a user
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminRequest true "UserID payload"
+// @Success 200 {string} string "user admin removed"
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/remove [post]
 func RemoveAdminHandler(w http.ResponseWriter, r *http.Request) {
 	var req AdminRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -534,7 +601,13 @@ func RemoveAdminHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("user admin removed"))
 }
 
-
+// IsAdminHandler godoc
+// @Summary Check if user is admin
+// @Description Returns true/false if current user has admin privileges
+// @Tags admin
+// @Produce json
+// @Security BearerAuth
+// @Router /api/admin/check [get]
 func IsAdminHandler(w http.ResponseWriter, r *http.Request) {
 	var req AdminRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -554,7 +627,18 @@ func IsAdminHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-
+// BlockUserHandler godoc
+// @Summary Block user
+// @Description Blocks a user by userID
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminRequest true "UserID payload"
+// @Success 200 {string} string "user blocked"
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/block [post]
 func BlockUserHandler(w http.ResponseWriter, r *http.Request) {
 	var req AdminRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -569,7 +653,18 @@ func BlockUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("user blocked"))
 }
 
-
+// UnblockUserHandler godoc
+// @Summary Unblock user
+// @Description Unblocks a user by userID
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminRequest true "UserID payload"
+// @Success 200 {string} string "user unblocked"
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/unblock [post]
 func UnblockUserHandler(w http.ResponseWriter, r *http.Request) {
 	var req AdminRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -584,7 +679,19 @@ func UnblockUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("user unblocked"))
 }
 
-/// PROfiles handlers
+// ProfileHandler godoc
+// @Summary Get or update profile
+// @Description Get current user profile (GET) or update profile (POST)
+// @Tags profile
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.Profile
+// @Failure 400 {string} string "invalid payload"
+// @Failure 401 {string} string "unauthorized"
+// @Failure 500 {string} string "db error"
+// @Security BearerAuth
+// @Router /profile [get]
+// @Router /profile [post]
 func ProfileHandler() http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         claims := GetUserFromContext(r)
@@ -628,13 +735,49 @@ func ProfileHandler() http.HandlerFunc {
     }
 }
 
+// ProfilesHandler godoc
+// @Summary List profiles
+// @Description Returns paginated list of profiles
+// @Tags profile
+// @Produce json
+// @Param limit query int false "Limit"
+// @Param offset query int false "Offset"
+// @Success 200 {array} models.Profile
+// @Failure 500 {string} string "db error"
+// @Security BearerAuth
+// @Router /profiles [get]
 func ProfilesHandler() http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
-        profiles, err := models.GetAllProfiles(db.Postgres)
+
+        limit := 50
+        offset := 0
+
+        if l := r.URL.Query().Get("limit"); l != "" {
+            if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 500 {
+                limit = v
+            } else if err != nil {
+            	//log.Println(err)
+            }
+        } else {
+        	//log.Println("LIMIT IS ''")
+        }
+        if limit > int(config.AppConfig.MaxProfiles) {
+   		     limit = int(config.AppConfig.MaxProfiles);
+        }
+        if o := r.URL.Query().Get("offset"); o != "" {
+            if v, err := strconv.Atoi(o); err == nil && v >= 0 {
+                offset = v
+            }
+        }
+	//log.Println("Get profiles: ")
+	//log.Println(limit)
+	//log.Println(offset)
+        profiles, err := models.GetProfilesWithLimitOffset(db.Postgres, limit, offset)
         if err != nil {
             http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
             return
         }
+
         json.NewEncoder(w).Encode(profiles)
     }
 }

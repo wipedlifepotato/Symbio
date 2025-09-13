@@ -11,12 +11,22 @@ $jwt = $_SESSION['jwt'] ?? '';
 if (!$jwt) {
     $message = "JWT отсутствует. Пожалуйста, войдите в систему.";
 } else {
-    $response = $mf->doRequest("profiles", $jwt);
+    $offset = 0;
+    $limit = 50;
+    if(isset($_GET['offset']))
+    {
+    	$offset = $_GET['offset'];
+    }
+    if(isset($_GET['limit']))
+    {
+    	$limit = $_GET['limit'];
+    }
+    $response = $mf->doRequest("profiles?limit=".$limit."&"."offset=".$offset, $jwt);
     if ($response['httpCode'] === 200) {
         $profiles = json_decode($response['response'], true);
     } else {
         $message = "Ошибка при получении профилей: " . $response['response'];
-        unset($_SESSION['jwt']);
+        //unset($_SESSION['jwt']);
     }
 }
 ?>

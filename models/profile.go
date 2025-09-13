@@ -61,12 +61,14 @@ func UpsertProfile(db *sqlx.DB, p *Profile) error {
     return err
 }
 
-func GetAllProfiles(db *sqlx.DB) ([]Profile, error) {
+
+func GetProfilesWithLimitOffset(db *sqlx.DB, limit, offset int) ([]Profile, error) {
     var profiles []Profile
-    err := db.Select(&profiles, `SELECT * FROM profiles`)
+    err := db.Select(&profiles, `SELECT * FROM profiles ORDER BY user_id LIMIT $1 OFFSET $2`, limit, offset)
     if err != nil {
         return nil, err
     }
     return profiles, nil
 }
+
 
