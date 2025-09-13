@@ -26,8 +26,37 @@ definitions:
       user_id:
         type: integer
     type: object
+  models.Wallet:
+    properties:
+      address:
+        type: string
+      balance:
+        type: string
+      currency:
+        type: string
+      id:
+        type: integer
+      userID:
+        type: integer
+    type: object
   server.AdminRequest:
     properties:
+      user_id:
+        type: integer
+    type: object
+  server.AdminTransactionsRequest:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      wallet_id:
+        type: integer
+    type: object
+  server.AdminUpdateBalanceRequest:
+    properties:
+      balance:
+        type: string
       user_id:
         type: integer
     type: object
@@ -176,6 +205,42 @@ paths:
       summary: Revoke admin rights
       tags:
       - admin
+  /api/admin/transactions:
+    post:
+      consumes:
+      - application/json
+      description: Allows admin to view transactions by wallet or all transactions
+        with pagination
+      parameters:
+      - description: Request payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.AdminTransactionsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: id:int, from_wallet_id:int, to_wallet_id:int, to_address:string,
+            task_id:int, amount:string, currency:string, confirmed:bool, created_at:string
+          schema:
+            items:
+              type: object
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: 'Admin: View transactions'
+      tags:
+      - admin
   /api/admin/unblock:
     post:
       consumes:
@@ -206,6 +271,71 @@ paths:
       security:
       - BearerAuth: []
       summary: Unblock user
+      tags:
+      - admin
+  /api/admin/update_balance:
+    post:
+      consumes:
+      - application/json
+      description: Allows admin to set a new balance for a wallet
+      parameters:
+      - description: Wallet balance payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.AdminUpdateBalanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: balance updated
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Update wallet balance
+      tags:
+      - admin
+  /api/admin/wallets:
+    get:
+      consumes:
+      - application/json
+      description: Returns all wallets for a given user
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Wallet'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get user wallets
       tags:
       - admin
   /api/wallet:

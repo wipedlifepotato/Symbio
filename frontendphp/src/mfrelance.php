@@ -41,7 +41,7 @@ class MFrelance {
 
         if ($isPost && $postData !== null) {
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
         }
 
         $response = curl_exec($ch);

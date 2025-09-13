@@ -22,9 +22,10 @@ import (
     "math/big"
     "os"
     "mFrelance/models"
+    "database/sql"
 )
 import "mFrelance/auth"
-
+//import "io"
 type RegisterRequest struct {
     Username      string `json:"username"`
     Password      string `json:"password"`
@@ -488,8 +489,34 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
         http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
         return
     }
+    var fromWalletID int
+    err = db.Postgres.QueryRow(`SELECT id FROM wallets WHERE user_id=$1 AND currency='BTC'`, userID).Scan(&fromWalletID)
+    if err != nil {
+	    http.Error(w, "failed to get wallet id: "+err.Error(), http.StatusInternalServerError)
+	    return
+    }
 
-	if !isOur {
+    tx := models.Transaction{
+	    FromWalletID: sql.NullInt64{Int64: int64(fromWalletID), Valid: true},
+	    ToWalletID:   sql.NullInt64{Valid: false},
+	    ToAddress:    sql.NullString{String: destAddress, Valid: true},
+	    Amount:       remaining.Text('f', 8),
+	    Currency:     "BTC",
+	    Confirmed:    false,
+    }
+
+    if isOur {
+    	var toWalletID int
+    	err := db.Postgres.QueryRow(`SELECT id FROM wallets WHERE address=$1 AND currency='BTC'`, destAddress).Scan(&toWalletID)
+    	if err == nil {
+    	    tx.ToWalletID = sql.NullInt64{Int64: int64(toWalletID), Valid: true}
+    	}
+    }
+
+    if err := models.SaveTransaction(&tx); err != nil {
+    	log.Printf("Failed to save transaction: %v", err)
+    }
+    if !isOur {
 	    txPool.Lock()
 	    if existing, ok := txPool.outputs[config.AppConfig.BitcoinAddress]; ok {
 		txPool.outputs[config.AppConfig.BitcoinAddress] = new(big.Float).Add(existing, commission)
@@ -513,7 +540,7 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
 		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
 		return
 	    }
-	}
+    }
 
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(map[string]any{
@@ -652,6 +679,62 @@ func BlockUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("user blocked"))
 }
+// AdminTransactionsHandler godoc
+// @Summary Admin: View transactions
+// @Description Allows admin to view transactions by wallet or all transactions with pagination
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminTransactionsRequest true "Request payload"
+// @Success 200 {array} object
+// @Success 200 {array} object "id:int, from_wallet_id:int, to_wallet_id:int, to_address:string, task_id:int, amount:string, currency:string, confirmed:bool, created_at:string"
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/transactions [post]
+func AdminTransactionsHandler(w http.ResponseWriter, r *http.Request) {
+	var req AdminTransactionsRequest
+	//log.Println(r.Body)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	limit := req.Limit
+	offset := req.Offset
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var txs []*models.Transaction
+	var err error
+
+	if req.WalletID > 0 {
+		txs, err = models.GetTransactionsByWallet(int64(req.WalletID), limit, offset)
+		if err != nil {
+			http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		txs, err = models.GetTransactions(limit, offset)
+		if err != nil {
+			http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(txs)
+}
+
+type AdminTransactionsRequest struct {
+	WalletID int `json:"wallet_id,omitempty"`
+	Limit    int `json:"limit,omitempty"`
+	Offset   int `json:"offset,omitempty"`
+}
 
 // UnblockUserHandler godoc
 // @Summary Unblock user
@@ -780,4 +863,84 @@ func ProfilesHandler() http.HandlerFunc {
 
         json.NewEncoder(w).Encode(profiles)
     }
+}
+
+
+// AdminWalletsHandler godoc
+// @Summary Get user wallets
+// @Description Returns all wallets for a given user
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {array} models.Wallet
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/wallets [get]
+func AdminWalletsHandler(w http.ResponseWriter, r *http.Request) {
+    userIDStr := r.URL.Query().Get("user_id")
+    if userIDStr == "" {
+        http.Error(w, "user_id required", http.StatusBadRequest)
+        return
+    }
+    userID, err := strconv.ParseInt(userIDStr, 10, 64)
+    if err != nil {
+        http.Error(w, "invalid user_id", http.StatusBadRequest)
+        return
+    }
+
+    wallets, err := models.GetWalletsByUser(userID)
+    if err != nil {
+        http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(wallets)
+}
+
+type AdminUpdateBalanceRequest struct {
+    UserID int64  `json:"user_id"`
+    Balance  string `json:"balance"` 
+}
+
+// AdminUpdateBalanceHandler godoc
+// @Summary Update wallet balance
+// @Description Allows admin to set a new balance for a wallet
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminUpdateBalanceRequest true "Wallet balance payload"
+// @Success 200 {string} string "balance updated"
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/update_balance [post]
+func AdminUpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
+    var req AdminUpdateBalanceRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    newBalance, ok := new(big.Float).SetString(req.Balance)
+    if !ok {
+        http.Error(w, "invalid balance format", http.StatusBadRequest)
+        return
+    }
+    //log.Println("Req wallet ID")
+    //log.Println(req.WalletID)
+    _, err := db.Postgres.Exec(
+        `UPDATE wallets SET balance=$1 WHERE user_id=$2`,
+        newBalance.Text('f', 12),
+        req.UserID,
+    )
+    if err != nil {
+        http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte("balance updated"))
 }

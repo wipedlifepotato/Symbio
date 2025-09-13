@@ -204,7 +204,89 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		L.Push(lua.LString(mnemonic))
 		return 1
 	}))
+	L.SetGlobal("get_transactions", L.NewFunction(func(L *lua.LState) int {
+	    walletID := L.ToInt64(1)
+	    limit := L.ToInt(2)
+	    offset := L.ToInt(3)
 
+	    txs, err := models.GetTransactionsByWallet(walletID, limit, offset)
+	    if err != nil {
+		L.Push(lua.LNil)
+		L.Push(lua.LString(err.Error()))
+		return 2
+	    }
+
+	    tbl := L.NewTable()
+	    for _, tx := range txs {
+		txTbl := L.NewTable()
+		txTbl.RawSetString("id", lua.LNumber(tx.ID))
+		txTbl.RawSetString("from_wallet_id", lua.LNumber(tx.FromWalletID.Int64))
+		txTbl.RawSetString("to_wallet_id", lua.LNumber(tx.ToWalletID.Int64))
+		txTbl.RawSetString("to_address", lua.LString(tx.ToAddress.String))
+		txTbl.RawSetString("task_id", lua.LNumber(tx.TaskID.Int64))
+		txTbl.RawSetString("amount", lua.LString(tx.Amount))
+		txTbl.RawSetString("currency", lua.LString(tx.Currency))
+		txTbl.RawSetString("confirmed", lua.LBool(tx.Confirmed))
+		txTbl.RawSetString("created_at", lua.LString(tx.CreatedAt.Format(time.RFC3339)))
+		tbl.Append(txTbl)
+	    }
+
+	    L.Push(tbl)
+	    return 1
+	}))
+	L.SetGlobal("get_wallet", L.NewFunction(func(L *lua.LState) int {
+		userID := L.ToString(1)
+		currency := L.ToString(2)
+
+		var id int64
+		var balanceStr, address string
+		err := psql.QueryRow(`SELECT id, balance::text, address FROM wallets WHERE user_id=$1 AND currency=$2 LIMIT 1`, userID, currency).
+			Scan(&id, &balanceStr, &address)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+
+		tbl := L.NewTable()
+		tbl.RawSetString("id", lua.LNumber(id))
+		tbl.RawSetString("balance", lua.LString(balanceStr))
+		tbl.RawSetString("address", lua.LString(address))
+
+		L.Push(tbl)
+		return 1
+	}))
+
+	L.SetGlobal("get_balance", L.NewFunction(func(L *lua.LState) int {
+		userID := L.ToString(1)
+		currency := L.ToString(2)
+
+		var balanceStr string
+		err := psql.QueryRow(`SELECT balance::text FROM wallets WHERE user_id=$1 AND currency=$2 LIMIT 1`, userID, currency).Scan(&balanceStr)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LString(balanceStr))
+		return 1
+	}))
+
+	L.SetGlobal("set_balance", L.NewFunction(func(L *lua.LState) int {
+		userID := L.ToString(1)
+		currency := L.ToString(2)
+		newBalance := L.ToString(3)
+
+		_, err := psql.Exec(`UPDATE wallets SET balance=$1 WHERE user_id=$2 AND currency=$3`, newBalance, userID, currency)
+		if err != nil {
+			L.Push(lua.LFalse)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+
+		L.Push(lua.LTrue)
+		return 1
+	}))
 	L.SetGlobal("get_balance", L.NewFunction(func(L *lua.LState) int {
 		userID := L.ToString(1)
 		currency := L.ToString(2)

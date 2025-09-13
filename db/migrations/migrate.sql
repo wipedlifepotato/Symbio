@@ -52,10 +52,9 @@ CREATE TABLE IF NOT EXISTS transactions (
     id SERIAL PRIMARY KEY,
     from_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
     to_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
-    task_id INT REFERENCES tasks(id) ON DELETE SET NULL,
+    to_address VARCHAR(255),
     amount NUMERIC(30,12) NOT NULL,
     currency VARCHAR(10) NOT NULL,
-    confirmed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW()
 );
 

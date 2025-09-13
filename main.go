@@ -128,6 +128,9 @@ func main() {
     apiMux.Handle("/admin/check", server.AuthMiddleware(server.RequireAdmin(server.IsAdminHandler)))
     apiMux.Handle("/admin/block", server.AuthMiddleware(server.RequireAdmin(server.BlockUserHandler)))
     apiMux.Handle("/admin/unblock", server.AuthMiddleware(server.RequireAdmin(server.UnblockUserHandler)))
+    apiMux.Handle("/admin/transactions", server.AuthMiddleware(server.RequireAdmin(server.AdminTransactionsHandler)))
+    apiMux.Handle("/admin/wallets", server.AuthMiddleware(server.RequireAdmin(server.AdminWalletsHandler)))
+    apiMux.Handle("/admin/update_balance", server.AuthMiddleware(server.RequireAdmin(server.AdminUpdateBalanceHandler)))
     s.HandleHandler("/api/", http.StripPrefix("/api", apiMux))
     s.Handle("/profile", func(w http.ResponseWriter, r *http.Request) {
 	    server.AuthMiddleware(server.ProfileHandler()).ServeHTTP(w, r)
