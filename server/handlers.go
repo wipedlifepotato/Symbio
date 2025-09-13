@@ -412,4 +412,105 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
 		"to":            destAddress,
 	})
 }
+///// Admin Handlers
 
+type AdminRequest struct {
+	UserID int64 `json:"user_id"`
+}
+
+
+func RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims := GetUserFromContext(r)
+		if claims == nil {
+			http.Error(w, "user not found (RequireAdmin)", http.StatusUnauthorized)
+			return
+		}
+		isAdmin, err := db.IsAdmin(db.Postgres, claims.UserID)
+		if err != nil || !isAdmin {
+			http.Error(w, "admin rights required", http.StatusForbidden)
+			return
+		}
+		next(w, r)
+	}
+}
+
+
+func MakeAdminHandler(w http.ResponseWriter, r *http.Request) {
+	var req AdminRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := db.MakeAdmin(db.Postgres, req.UserID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("user is now admin"))
+}
+
+
+func RemoveAdminHandler(w http.ResponseWriter, r *http.Request) {
+	var req AdminRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := db.RemoveAdmin(db.Postgres, req.UserID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("user admin removed"))
+}
+
+
+func IsAdminHandler(w http.ResponseWriter, r *http.Request) {
+	var req AdminRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	isAdmin, err := db.IsAdmin(db.Postgres, req.UserID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{
+		"user_id":  req.UserID,
+		"is_admin": isAdmin,
+	})
+}
+
+
+func BlockUserHandler(w http.ResponseWriter, r *http.Request) {
+	var req AdminRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := db.BlockUser(db.Postgres, req.UserID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("user blocked"))
+}
+
+
+func UnblockUserHandler(w http.ResponseWriter, r *http.Request) {
+	var req AdminRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := db.UnblockUser(db.Postgres, req.UserID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("user unblocked"))
+}

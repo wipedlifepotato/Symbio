@@ -203,7 +203,43 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		return 1
 	}))
 
+	L.SetGlobal("is_admin", L.NewFunction(func(L *lua.LState) int {
+		userID := int64(L.ToInt(1))
+		admin, err := db.IsAdmin(psql, userID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(admin))
+		return 1
+	}))
 
+
+	L.SetGlobal("make_admin", L.NewFunction(func(L *lua.LState) int {
+		userID := int64(L.ToInt(1))
+		err := db.MakeAdmin(psql, userID)
+		if err != nil {
+			L.Push(lua.LBool(false))
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	L.SetGlobal("remove_admin", L.NewFunction(func(L *lua.LState) int {
+		userID := int64(L.ToInt(1))
+		err := db.RemoveAdmin(psql, userID)
+		if err != nil {
+			L.Push(lua.LBool(false))
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+	
 	L.SetGlobal("get_user", L.NewFunction(func(L *lua.LState) int {
 		username := L.ToString(1)
 		userID, passwordHash, err := db.GetUserByUsername(psql, username)

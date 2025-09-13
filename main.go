@@ -113,7 +113,14 @@ func main() {
     apiMux.Handle("/wallet/bitcoinSend", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     	server.SendElectrumHandler(w, r, electrumClient)
     })))
+    
+    apiMux.Handle("/admin/make", server.AuthMiddleware(server.RequireAdmin(server.MakeAdminHandler)))
+    apiMux.Handle("/admin/remove", server.AuthMiddleware(server.RequireAdmin(server.RemoveAdminHandler)))
+    apiMux.Handle("/admin/check", server.AuthMiddleware(server.RequireAdmin(server.IsAdminHandler)))
+    apiMux.Handle("/admin/block", server.AuthMiddleware(server.RequireAdmin(server.BlockUserHandler)))
+    apiMux.Handle("/admin/unblock", server.AuthMiddleware(server.RequireAdmin(server.UnblockUserHandler)))
     s.HandleHandler("/api/", http.StripPrefix("/api", apiMux))
+
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()
     go server.StartWalletSync(ctx, electrumClient, moneroClient, 30*time.Second)

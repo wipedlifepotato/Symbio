@@ -5,6 +5,7 @@ import (
 	"time"
 	"errors"
 	"github.com/jmoiron/sqlx"
+	"log"
 )
 
 func BlockUser(db *sqlx.DB, userID int64) error {
@@ -148,3 +149,53 @@ func GetUserByUsername(db *sqlx.DB, username string) (int64, string, error) {
 	return userID, passwordHash, nil
 }
 
+func IsAdmin(db *sqlx.DB, userID int64) (bool, error) {
+	var isAdmin bool
+	query := `SELECT is_admin FROM users WHERE id = $1`
+	log.Printf("Executing SQL: %s with userID=%d", query, userID)
+	err := db.QueryRow(query, userID).Scan(&isAdmin)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("No user found with id=%d", userID)
+			return false, nil
+		}
+		return false, err
+	}
+	log.Printf("User %d is_admin=%v", userID, isAdmin)
+	return isAdmin, nil
+}
+
+
+func MakeAdmin(db *sqlx.DB, userID int64) error {
+	res, err := db.Exec(`
+        UPDATE users SET is_admin = TRUE WHERE id = $1
+    `, userID)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return errors.New("user not found")
+	}
+	return nil
+}
+
+func RemoveAdmin(db *sqlx.DB, userID int64) error {
+	res, err := db.Exec(`
+        UPDATE users SET is_admin = FALSE WHERE id = $1
+    `, userID)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return errors.New("user not found")
+	}
+	return nil
+}

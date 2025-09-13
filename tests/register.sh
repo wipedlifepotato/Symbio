@@ -7,7 +7,7 @@ printf "Print answer: "
 read CaptchaAnswer
 
 JSON=$(jq -n \
-    --arg username "testuser" \
+    --arg username "testuser1" \
     --arg password "123456" \
     --arg gpg_key "$GPG_KEY" \
     --arg captcha_id "$CaptchaID" \
