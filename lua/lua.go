@@ -204,6 +204,81 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		return 1
 	}))
 
+	L.SetGlobal("get_balance", L.NewFunction(func(L *lua.LState) int {
+		userID := L.ToString(1)
+		currency := L.ToString(2)
+
+		var balanceStr string
+		err := psql.QueryRow(`SELECT balance::text FROM wallets WHERE user_id=$1 AND currency=$2 LIMIT 1`, userID, currency).Scan(&balanceStr)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LString(balanceStr))
+		return 1
+	}))
+
+	L.SetGlobal("add_balance", L.NewFunction(func(L *lua.LState) int {
+		userID := L.ToString(1)
+		currency := L.ToString(2)
+		amountStr := L.ToString(3)
+
+		amount, ok := new(big.Float).SetString(amountStr)
+		if !ok {
+			L.Push(lua.LNil)
+			L.Push(lua.LString("invalid amount"))
+			return 2
+		}
+
+		_, err := psql.Exec(`UPDATE wallets SET balance = balance + $1 WHERE user_id=$2 AND currency=$3`, amount.Text('f', 8), userID, currency)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	L.SetGlobal("sub_balance", L.NewFunction(func(L *lua.LState) int {
+		userID := L.ToString(1)
+		currency := L.ToString(2)
+		amountStr := L.ToString(3)
+
+		amount, ok := new(big.Float).SetString(amountStr)
+		if !ok {
+			L.Push(lua.LNil)
+			L.Push(lua.LString("invalid amount"))
+			return 2
+		}
+
+		var balanceStr string
+		err := psql.QueryRow(`SELECT balance::text FROM wallets WHERE user_id=$1 AND currency=$2 LIMIT 1`, userID, currency).Scan(&balanceStr)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		balance, _ := new(big.Float).SetString(balanceStr)
+		if balance.Cmp(amount) < 0 {
+			L.Push(lua.LNil)
+			L.Push(lua.LString("insufficient balance"))
+			return 2
+		}
+
+		newBalance := new(big.Float).Sub(balance, amount)
+		_, err = psql.Exec(`UPDATE wallets SET balance=$1 WHERE user_id=$2 AND currency=$3`, newBalance.Text('f', 8), userID, currency)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+
+		L.Push(lua.LBool(true))
+		return 1
+	}))
 	L.SetGlobal("is_admin", L.NewFunction(func(L *lua.LState) int {
 		userID := int64(L.ToInt(1))
 		admin, err := db.IsAdmin(psql, userID)

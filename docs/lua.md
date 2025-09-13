@@ -350,6 +350,104 @@ GET /mywallet?Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 {"user_id":42, "username":"alice"}
 ```
 
+````markdown
+---
+
+## 11. Wallet / Balance Helpers
+
+These functions allow Lua scripts to **read and modify user balances** in the database.  
+They support any currency (BTC, XMR, etc.) and ensure safe updates.
+
+### Get balance
+
+```lua
+local bal = get_balance(user_id, "BTC")
+if bal then
+    print("User BTC balance:", bal)
+else
+    print("Failed to fetch balance")
+end
+````
+
+**Parameters**
+
+* `user_id` → string or number, the user’s ID.
+* `currency` → string, e.g. `"BTC"` or `"XMR"`.
+
+**Returns**
+
+* balance as a string (decimal) if success.
+* `nil, error_message` on failure.
+
+---
+
+### Add balance
+
+```lua
+local ok, err = add_balance(user_id, "BTC", "0.005")
+if ok then
+    print("Balance increased")
+else
+    print("Failed to increase balance:", err)
+end
+```
+
+**Parameters**
+
+* `user_id` → string/number, the user ID.
+* `currency` → string.
+* `amount` → string decimal, e.g. `"0.005"`.
+
+**Returns**
+
+* `true` on success.
+* `nil, error_message` on failure.
+
+---
+
+### Subtract balance
+
+```lua
+local ok, err = sub_balance(user_id, "BTC", "0.002")
+if ok then
+    print("Balance decreased")
+else
+    print("Failed to subtract balance:", err)
+end
+```
+
+**Parameters**
+
+* `user_id` → string/number, the user ID.
+* `currency` → string.
+* `amount` → string decimal.
+
+**Returns**
+
+* `true` on success.
+* `nil, "insufficient balance"` if user does not have enough funds.
+* `nil, error_message` on other errors.
+
+---
+
+### Example: Transfer between users
+
+```lua
+local from_id = 42
+local to_id = 43
+local amount = "0.01"
+
+local ok, err = sub_balance(from_id, "BTC", amount)
+if not ok then
+    print("Failed to debit sender:", err)
+else
+    add_balance(to_id, "BTC", amount)
+    print("Transfer completed")
+end
+```
+
+This pattern ensures **atomic checks** and safe updates via Go/DB.
+
 ---
 
 # Summary
@@ -362,9 +460,5 @@ GET /mywallet?Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 * Profile methods manage user profiles.
 * The `/mywallet` endpoint demonstrates JWT-protected API access.
 
-```
 
----
-
-```
 
