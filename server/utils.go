@@ -9,12 +9,69 @@ import (
 	   "golang.org/x/crypto/bcrypt"
 	   "regexp"
 	   "mFrelance/models"
-	       
+       "encoding/base64"
+	   "strings"
+       "image"
+       _ "image/gif"
+       _ "image/jpeg"
+       _ "image/png"
+       "errors"
 )
+const MAX_MESSAGE_SIZE = 256;
+
 func writeErrorJSON(w http.ResponseWriter, msg string, code int) {
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(code)
     json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
+
+func ValidateMessage(message string) error {
+    if message == "" {
+        return errors.New("Message is null")
+    }
+    if len(message) > MAX_MESSAGE_SIZE && !IsBase64(message) {
+        return errors.New("Very big message")
+    }
+    if IsBase64(message) && !IsBase64Image(message) {
+        return errors.New("Message is base64 but not image")
+    }
+    return nil
+}
+
+func ValidateTicketField(subject, message string) error {
+    subject = strings.TrimSpace(subject)
+    message = strings.TrimSpace(message)
+    err := ValidateMessage(message)
+    if err != nil {
+        log.Println("Uncorrect message")
+        return err
+    }
+    if subject == "" {
+        return errors.New("Subject is null")
+    }
+
+    if IsBase64(subject) {
+        return errors.New("Subject can't be base64")
+    }
+    matched, err := regexp.MatchString(`^[\p{L}\p{N}\s\-\_]+$`, subject)
+    if err != nil {
+        return err
+    }
+    if !matched {
+        return errors.New("Subject incorrect")
+    }
+
+    return nil
+}
+
+func IsBase64Image(s string) bool {
+    s = strings.TrimSpace(s)
+    decoded, err := base64.StdEncoding.DecodeString(s)
+    if err != nil {
+        return false
+    }
+    _, _, err = image.DecodeConfig(strings.NewReader(string(decoded)))
+    return err == nil
 }
 
 func GenerateMnemonic() string {
@@ -64,4 +121,10 @@ func SanitizeProfile(p *models.Profile) {
         p.Skills[i] = SanitizeString(skill)
     }
     p.Avatar = SanitizeString(p.Avatar)
+}
+
+func IsBase64(s string) bool {
+	s = strings.TrimSpace(s)
+	_, err := base64.StdEncoding.DecodeString(s)
+	return err == nil
 }

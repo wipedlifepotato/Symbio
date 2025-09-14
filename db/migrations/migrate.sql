@@ -24,6 +24,36 @@ CREATE TABLE IF NOT EXISTS wallets (
     address TEXT NOT NULL UNIQUE,
     balance NUMERIC(30,12) DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS tickets (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    admin_id INT REFERENCES users(id) ON DELETE SET NULL,
+    status VARCHAR(20) DEFAULT 'open',
+    subject TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    additional_users_have_access INT[] DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS ticket_messages (
+    id SERIAL PRIMARY KEY,
+    ticket_id INT REFERENCES tickets(id) ON DELETE CASCADE,
+    sender_id INT REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS transactions (
+    id SERIAL PRIMARY KEY,
+    from_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
+    to_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
+    to_address VARCHAR(255),
+    amount NUMERIC(30,12) NOT NULL,
+    currency VARCHAR(10) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+/*
 
 CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
@@ -48,15 +78,7 @@ CREATE TABLE IF NOT EXISTS task_offers (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS transactions (
-    id SERIAL PRIMARY KEY,
-    from_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
-    to_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
-    to_address VARCHAR(255),
-    amount NUMERIC(30,12) NOT NULL,
-    currency VARCHAR(10) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
+
 
 CREATE TABLE IF NOT EXISTS messages (
     id SERIAL PRIMARY KEY,
@@ -67,3 +89,6 @@ CREATE TABLE IF NOT EXISTS messages (
     read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+
+*/

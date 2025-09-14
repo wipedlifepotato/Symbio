@@ -26,6 +26,42 @@ definitions:
       user_id:
         type: integer
     type: object
+  models.TicketDoc:
+    properties:
+      additional_users_have_access:
+        items:
+          type: integer
+        type: array
+      admin_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      subject:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.TicketMessage:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: integer
+      message:
+        type: string
+      read:
+        type: boolean
+      senderID:
+        type: integer
+      ticketID:
+        type: integer
+    type: object
   models.Wallet:
     properties:
       address:
@@ -83,6 +119,30 @@ definitions:
       username:
         type: string
     type: object
+  server.TicketCreateAnswer:
+    properties:
+      ticket_id:
+        type: integer
+    type: object
+  server.TicketCreateRequest:
+    properties:
+      message:
+        type: string
+      subject:
+        type: string
+    type: object
+  server.TicketIDRequest:
+    properties:
+      ticket_id:
+        type: integer
+    type: object
+  server.WriteTicketRequest:
+    properties:
+      message:
+        type: string
+      ticket_id:
+        type: integer
+    type: object
 info:
   contact: {}
   description: API for user registration, authentication, wallet operations and admin
@@ -131,6 +191,33 @@ paths:
       security:
       - BearerAuth: []
       summary: Check if user is admin
+      tags:
+      - admin
+  /api/admin/getRandomTicket:
+    get:
+      description: Set ticket to admin (random)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TicketDoc'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Get random opened ticket (admin)
       tags:
       - admin
   /api/admin/make:
@@ -338,6 +425,200 @@ paths:
       summary: Get user wallets
       tags:
       - admin
+  /api/ticket/createTicket:
+    post:
+      consumes:
+      - application/json
+      description: Create new ticket
+      parameters:
+      - description: Ticket info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.TicketCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.TicketCreateAnswer'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Create new ticket
+      tags:
+      - ticket
+  /api/ticket/exit:
+    post:
+      consumes:
+      - application/json
+      description: Removes the user from the ticket's participants
+      parameters:
+      - description: Ticket ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.TicketIDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'status: ok'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid payload or ticket_id
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: User not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Exit from a ticket
+      tags:
+      - ticket
+  /api/ticket/messages:
+    get:
+      description: Returns all messages for a given ticket if the user has access
+      parameters:
+      - description: Ticket ID
+        in: query
+        name: ticket_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of messages
+          schema:
+            items:
+              $ref: '#/definitions/models.TicketMessage'
+            type: array
+        "400":
+          description: Invalid ticket_id
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: User not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: User does not have access
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Get messages for a ticket
+      tags:
+      - ticket
+  /api/ticket/my:
+    get:
+      description: Get all tickets of user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.TicketDoc'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Get own tickets
+      tags:
+      - ticket
+  /api/ticket/write:
+    post:
+      consumes:
+      - application/json
+      description: Add message to ticket
+      parameters:
+      - description: Message info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.WriteTicketRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Write to ticket
+      tags:
+      - ticket
   /api/wallet:
     get:
       description: Returns user’s balances in BTC and XMR

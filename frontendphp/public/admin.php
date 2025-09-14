@@ -124,3 +124,47 @@ if (!$jwt) {
 </table>
 <?php endif; ?>
 
+<h3>Get Random Ticket</h3>
+<form method="GET">
+    <button type="submit" name="get_ticket" value="1">Получить случайный открытый тикет</button>
+</form>
+
+<?php
+$randomTicket = null;
+if (isset($_GET['get_ticket'])) {
+    $res = $mf->doRequest('api/admin/getRandomTicket', $jwt);
+    if ($res['httpCode'] === 200) {
+        $randomTicket = json_decode($res['response'], true);
+    } else {
+        echo "<p style='color:red;'>Ошибка получения тикета: " . htmlspecialchars($res['response']) . "</p>";
+    }
+}
+
+if ($randomTicket):
+?>
+<h4>Случайный открытый тикет</h4>
+<table border="1" cellpadding="5">
+<tr>
+    <th>ID</th>
+    <th>User ID</th>
+    <th>Admin ID</th>
+    <th>Status</th>
+    <th>Subject</th>
+    <th>Created At</th>
+    <th>Updated At</th>
+</tr>
+<tr>
+    <td><?= htmlspecialchars($randomTicket['ID'] ?? '') ?></td>
+    <td><?= htmlspecialchars($randomTicket['UserID'] ?? '') ?></td>
+    <td>
+        <?= isset($randomTicket['AdminID']['Valid']) && $randomTicket['AdminID']['Valid'] 
+            ? htmlspecialchars($randomTicket['AdminID']['Int64']) 
+            : '—' ?>
+    </td>
+    <td><?= htmlspecialchars($randomTicket['Status'] ?? '') ?></td>
+    <td><?= htmlspecialchars($randomTicket['Subject'] ?? '') ?></td>
+    <td><?= htmlspecialchars($randomTicket['CreatedAt'] ?? '') ?></td>
+    <td><?= htmlspecialchars($randomTicket['UpdatedAt'] ?? '') ?></td>
+</tr>
+</table>
+<?php endif; ?>

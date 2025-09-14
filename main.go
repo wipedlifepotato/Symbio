@@ -131,6 +131,17 @@ func main() {
     apiMux.Handle("/admin/transactions", server.AuthMiddleware(server.RequireAdmin(server.AdminTransactionsHandler)))
     apiMux.Handle("/admin/wallets", server.AuthMiddleware(server.RequireAdmin(server.AdminWalletsHandler)))
     apiMux.Handle("/admin/update_balance", server.AuthMiddleware(server.RequireAdmin(server.AdminUpdateBalanceHandler)))
+    apiMux.Handle("/admin/getRandomTicket", server.AuthMiddleware(server.RequireAdmin(server.AdminGetRandomTicketHandler)))
+
+    apiMux.Handle("/ticket/my", server.AuthMiddleware(http.HandlerFunc(server.GetMyTicketsHandler)))
+    apiMux.Handle("/ticket/messages", server.AuthMiddleware(http.HandlerFunc(server.GetTicketMessagesHandler)))
+    apiMux.Handle("/ticket/write", server.AuthMiddleware(http.HandlerFunc(server.WriteToTicketHandler)))
+    apiMux.Handle("/ticket/exit", server.AuthMiddleware(http.HandlerFunc(server.ExitFromTicketHandler)))
+    apiMux.Handle("/ticket/close", server.AuthMiddleware(http.HandlerFunc(server.CloseTicketHandler)))
+
+    apiMux.Handle("/ticket/createTicket", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server.CreateTicket(w, r)
+    })))
     s.HandleHandler("/api/", http.StripPrefix("/api", apiMux))
     s.Handle("/profile", func(w http.ResponseWriter, r *http.Request) {
 	    server.AuthMiddleware(server.ProfileHandler()).ServeHTTP(w, r)
