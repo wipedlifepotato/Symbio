@@ -247,50 +247,70 @@ func StartTxBlockTransactions(ctx context.Context, client *electrum.Client, inte
 		}
 	}()
 }
-func StartTxPoolFlusher(client *electrum.Client, interval time.Duration) {
+func StartTxPoolFlusher(client *electrum.Client, interval time.Duration, maxBatchSize int) {
 	ticker := time.NewTicker(interval)
-	go func() {
-		for range ticker.C {
+
+	flush := func() {
+		txPool.Lock()
+		if len(txPool.outputs) == 0 {
+			txPool.Unlock()
+			return
+		}
+
+		var outs [][2]string
+		for addr, amt := range txPool.outputs {
+			outs = append(outs, [2]string{addr, amt.Text('f', 8)})
+		}
+
+		txPool.outputs = make(map[string]*big.Float)
+		txPool.Unlock()
+
+		txid, err := client.PayToMany(outs)
+		if err != nil {
+			log.Println("Ошибка PayToMany:", err)
+
 			txPool.Lock()
-			if len(txPool.outputs) == 0 {
-				txPool.Unlock()
-				continue
+			for _, o := range outs {
+				val, _ := new(big.Float).SetString(o[1])
+				if existing, ok := txPool.outputs[o[0]]; ok {
+					txPool.outputs[o[0]] = new(big.Float).Add(existing, val)
+				} else {
+					txPool.outputs[o[0]] = val
+				}
 			}
-
-			var outs [][2]string
-			for addr, amt := range txPool.outputs {
-				outs = append(outs, [2]string{addr, amt.Text('f', 8)})
-			}
-
-			txPool.outputs = make(map[string]*big.Float)
 			txPool.Unlock()
 
-			txid, err := client.PayToMany(outs)
-			if err != nil {
-				log.Println("Ошибка PayToMany:", err)
+			f, _ := os.OpenFile("FailedPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			defer f.Close()
+			fmt.Fprintf(f, "%s - PayToMany failed: %v\nOutputs: %+v\n", time.Now().Format(time.RFC3339), err, outs)
+		} else {
+			log.Println("PayToMany успешно, txid:", txid)
 
+			f, _ := os.OpenFile("SuccessfulPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			defer f.Close()
+			fmt.Fprintf(f, "%s - txid: %s\nOutputs: %+v\n", time.Now().Format(time.RFC3339), txid, outs)
+			lastTx = strings.Trim(txid, `"'`)
+		}
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				flush()
+			default:
 				txPool.Lock()
-				for _, o := range outs {
-					val, _ := new(big.Float).SetString(o[1])
-					if existing, ok := txPool.outputs[o[0]]; ok {
-						txPool.outputs[o[0]] = new(big.Float).Add(existing, val)
-					} else {
-						txPool.outputs[o[0]] = val
-					}
-				}
+				tooBig := len(txPool.outputs) >= maxBatchSize
 				txPool.Unlock()
 
-				f, _ := os.OpenFile("FailedPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				defer f.Close()
-				fmt.Fprintf(f, "%s - PayToMany failed: %v\nOutputs: %+v\n", time.Now().Format(time.RFC3339), err, outs)
-			} else {
-				log.Println("PayToMany успешно, txid:", txid)
-
-				f, _ := os.OpenFile("SuccessfulPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				defer f.Close()
-				fmt.Fprintf(f, "%s - txid: %s\nOutputs: %+v\n", time.Now().Format(time.RFC3339), txid, outs)
-				lastTx = strings.Trim(txid, `"'`)
+				if tooBig {
+					log.Println("TxPool достиг лимита, выполняю срочный сброс")
+					flush()
+				} else {
+					time.Sleep(100 * time.Millisecond)
+				}
 			}
 		}
 	}()
 }
+

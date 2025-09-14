@@ -45,6 +45,8 @@ func RegisterConfigGlobals(L *lua.LState) {
 	// Constants
 	L.SetField(cfg, "MaxProfiles", lua.LNumber(config.AppConfig.MaxProfiles))
 	L.SetField(cfg, "MaxAvatarSize", lua.LNumber(config.AppConfig.MaxAvatarSize))	
+	L.SetField(cfg, "MaxAddrPerBlock", lua.LNumber(config.AppConfig.MaxAddrPerBlock))	
+
 	L.SetGlobal("config", cfg)
 }
 

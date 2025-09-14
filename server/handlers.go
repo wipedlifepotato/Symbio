@@ -17,7 +17,7 @@ import (
     "mFrelance/electrum"
     "gitlab.com/moneropay/go-monero/walletrpc"
     "mFrelance/config"
-    "fmt"
+   // "fmt"
     "sync"
     "math/big"
     "os"
@@ -397,161 +397,146 @@ func savePendingRequest(req PendingRequest) error {
 // @Security BearerAuth
 // @Router /api/wallet/bitcoinSend [post]
 func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electrum.Client) {
-    if IsTxPoolBlocked() {
-        http.Error(w, "withdrawals temporarily blocked", http.StatusForbidden)
-        return
-    }
+	if IsTxPoolBlocked() {
+		http.Error(w, "withdrawals temporarily blocked", http.StatusForbidden)
+		return
+	}
 
-    claims := GetUserFromContext(r)
-    if claims == nil {
-        http.Error(w, "user not found", http.StatusUnauthorized)
-        return
-    }
-    userID := claims.UserID
+	claims := GetUserFromContext(r)
+	if claims == nil {
+		http.Error(w, "user not found", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
 
-    blocked, err := db.IsUserBlocked(db.Postgres, userID)
-    if err != nil {
-        http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
-        return
-    }
-    if blocked {
-        http.Error(w, "user is blocked", http.StatusForbidden)
-        return
-    }
+	blocked, err := db.IsUserBlocked(db.Postgres, userID)
+	if err != nil {
+		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if blocked {
+		http.Error(w, "user is blocked", http.StatusForbidden)
+		return
+	}
 
-    destAddress := r.URL.Query().Get("to")
-    amountStr := r.URL.Query().Get("amount")
-    if destAddress == "" || amountStr == "" {
-        http.Error(w, "destination and amount required", http.StatusBadRequest)
-        return
-    }
+	destAddress := r.URL.Query().Get("to")
+	amountStr := r.URL.Query().Get("amount")
+	if destAddress == "" || amountStr == "" {
+		http.Error(w, "destination and amount required", http.StatusBadRequest)
+		return
+	}
 
-    amount, ok := new(big.Float).SetString(amountStr)
-    if !ok {
-        http.Error(w, "invalid amount", http.StatusBadRequest)
-        return
-    }
+	amount, ok := new(big.Float).SetString(amountStr)
+	if !ok {
+		http.Error(w, "invalid amount", http.StatusBadRequest)
+		return
+	}
 
-    if !IsValidBTCAddress(destAddress) {
-        http.Error(w, "invalid Bitcoin address format", http.StatusBadRequest)
-        return
-    }
+	if !IsValidBTCAddress(destAddress) {
+		http.Error(w, "invalid Bitcoin address format", http.StatusBadRequest)
+		return
+	}
 
-    minBTC := big.NewFloat(0.0001)
-    if amount.Cmp(minBTC) < 0 {
-        http.Error(w, "amount below minimum", http.StatusBadRequest)
-        return
-    }
+	minBTC := big.NewFloat(0.0001)
+	if amount.Cmp(minBTC) < 0 {
+		http.Error(w, "amount below minimum", http.StatusBadRequest)
+		return
+	}
 
-    var userBalanceStr, userAddress string
-    err = db.Postgres.QueryRow(`SELECT balance::text, address FROM wallets WHERE user_id=$1 AND currency='BTC' LIMIT 1`,
-        userID).Scan(&userBalanceStr, &userAddress)
-    if err != nil {
-        http.Error(w, "failed to get wallet: "+err.Error(), http.StatusInternalServerError)
-        return
-    }
+	userWallet, err := models.GetWalletByUserAndCurrency(userID, "BTC")
+	if err != nil {
+		http.Error(w, "failed to get wallet: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	userBalance := userWallet.BigBalance()
+	if userBalance.Cmp(amount) < 0 {
+		http.Error(w, "insufficient balance", http.StatusBadRequest)
+		return
+	}
 
-    userBalance, _ := new(big.Float).SetString(userBalanceStr)
-    if userBalance.Cmp(amount) < 0 {
-        http.Error(w, "insufficient balance", http.StatusBadRequest)
-        return
-    }
+	commissionPerc := big.NewFloat(config.AppConfig.BitcoinCommission)
+	commission := new(big.Float).Quo(new(big.Float).Mul(amount, commissionPerc), big.NewFloat(100))
+	remaining := new(big.Float).Sub(amount, commission)
+	if remaining.Cmp(big.NewFloat(0)) <= 0 {
+		http.Error(w, "amount too small for commission", http.StatusBadRequest)
+		return
+	}
 
-    commissionPerc := big.NewFloat(config.AppConfig.BitcoinCommission)
-    commission := new(big.Float).Quo(new(big.Float).Mul(amount, commissionPerc), big.NewFloat(100))
-    remaining := new(big.Float).Sub(amount, commission)
-    if remaining.Cmp(big.NewFloat(0)) <= 0 {
-        http.Error(w, "amount too small for commission", http.StatusBadRequest)
-        return
-    }
-    req := PendingRequest{
+	req := PendingRequest{
 		UserID:     userID,
 		To:         destAddress,
 		Amount:     amountStr,
 		Commission: commission.Text('f', 8),
 		Remaining:  remaining.Text('f', 8),
 		Timestamp:  time.Now().Unix(),
-    }
-
-    if err := savePendingRequest(req); err != nil {
+	}
+	if err := savePendingRequest(req); err != nil {
 		log.Printf("Failed to save pending request: %v", err)
-    }
-    newBalance := new(big.Float).Sub(userBalance, amount)
-    newBalanceStr := fmt.Sprintf("%.8f", newBalance)
-    _, err = db.Postgres.Exec(`UPDATE wallets SET balance=$1 WHERE user_id=$2 AND currency='BTC'`, newBalanceStr, userID)
-    if err != nil {
-        http.Error(w, "failed to update balance: "+err.Error(), http.StatusInternalServerError)
-        return
-    }
+	}
 
-    isOur, err := db.IsOurAddr(db.Postgres, destAddress)
-    if err != nil {
-        http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
-        return
-    }
-    var fromWalletID int
-    err = db.Postgres.QueryRow(`SELECT id FROM wallets WHERE user_id=$1 AND currency='BTC'`, userID).Scan(&fromWalletID)
-    if err != nil {
-	    http.Error(w, "failed to get wallet id: "+err.Error(), http.StatusInternalServerError)
-	    return
-    }
+	if err := userWallet.SubBalance(amount); err != nil {
+		http.Error(w, "failed to update balance: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    tx := models.Transaction{
-	    FromWalletID: sql.NullInt64{Int64: int64(fromWalletID), Valid: true},
-	    ToWalletID:   sql.NullInt64{Valid: false},
-	    ToAddress:    sql.NullString{String: destAddress, Valid: true},
-	    Amount:       remaining.Text('f', 8),
-	    Currency:     "BTC",
-	    Confirmed:    false,
-    }
-
-    if isOur {
-    	var toWalletID int
-    	err := db.Postgres.QueryRow(`SELECT id FROM wallets WHERE address=$1 AND currency='BTC'`, destAddress).Scan(&toWalletID)
-    	if err == nil {
-    	    tx.ToWalletID = sql.NullInt64{Int64: int64(toWalletID), Valid: true}
-    	}
-    }
-
-    if err := models.SaveTransaction(&tx); err != nil {
-    	log.Printf("Failed to save transaction: %v", err)
-    }
-    if !isOur {
-	    txPool.Lock()
-	    if existing, ok := txPool.outputs[config.AppConfig.BitcoinAddress]; ok {
-		txPool.outputs[config.AppConfig.BitcoinAddress] = new(big.Float).Add(existing, commission)
-	    } else {
-		txPool.outputs[config.AppConfig.BitcoinAddress] = new(big.Float).Set(commission)
-	    }
-	    if existing, ok := txPool.outputs[destAddress]; ok {
-		txPool.outputs[destAddress] = new(big.Float).Add(existing, remaining)
-	    } else {
-		txPool.outputs[destAddress] = new(big.Float).Set(remaining)
-	    }
-	    txPool.Unlock()
-
-	    log.Printf("Added to pool: to=%s amount=%s commission=%s", destAddress, remaining.Text('f', 8), commission.Text('f', 8))
-	} else {
-	    _, err := db.Postgres.Exec(`
-		UPDATE wallets 
-		SET balance = balance + $1 
-		WHERE address = $2 AND currency='BTC'`, remaining.Text('f', 8), destAddress)
-	    if err != nil {
+	isOur, err := models.IsOurWalletAddress(destAddress, "BTC")
+	if err != nil {
 		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
 		return
-	    }
-    }
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]any{
-        "status":        "ok",
-        "queued_amount": amountStr,
-        "commission":    commission.Text('f', 8),
-        "remaining":     remaining.Text('f', 8),
-        "from":          userAddress,
-        "to":            destAddress,
-    })
+	tx := models.Transaction{
+		FromWalletID: sql.NullInt64{Int64: userWallet.ID, Valid: true},
+		ToWalletID:   sql.NullInt64{Valid: false},
+		ToAddress:    sql.NullString{String: destAddress, Valid: true},
+		Amount:       remaining.Text('f', 8),
+		Currency:     "BTC",
+		Confirmed:    false,
+	}
+
+	if isOur {
+		if destWallet, err := models.GetWalletByAddress(destAddress, "BTC"); err == nil {
+			tx.ToWalletID = sql.NullInt64{Int64: destWallet.ID, Valid: true}
+		}
+	}
+
+	if err := models.SaveTransaction(&tx); err != nil {
+		log.Printf("Failed to save transaction: %v", err)
+	}
+
+	if !isOur {
+		txPool.Lock()
+		if existing, ok := txPool.outputs[config.AppConfig.BitcoinAddress]; ok {
+			txPool.outputs[config.AppConfig.BitcoinAddress] = new(big.Float).Add(existing, commission)
+		} else {
+			txPool.outputs[config.AppConfig.BitcoinAddress] = new(big.Float).Set(commission)
+		}
+		if existing, ok := txPool.outputs[destAddress]; ok {
+			txPool.outputs[destAddress] = new(big.Float).Add(existing, remaining)
+		} else {
+			txPool.outputs[destAddress] = new(big.Float).Set(remaining)
+		}
+		txPool.Unlock()
+
+		log.Printf("Added to pool: to=%s amount=%s commission=%s", destAddress, remaining.Text('f', 8), commission.Text('f', 8))
+	} else {
+		if err := models.AddToWalletBalance(destAddress, "BTC", remaining); err != nil {
+			http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":        "ok",
+		"queued_amount": amountStr,
+		"commission":    commission.Text('f', 8),
+		"remaining":     remaining.Text('f', 8),
+		"from":          userWallet.Address,
+		"to":            destAddress,
+	})
 }
+
 ///// Admin Handlers
 
 type AdminRequest struct {
