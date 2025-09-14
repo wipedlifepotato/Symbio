@@ -3,3 +3,13 @@ tests/header.txt
 SuccessfulPayments.log
 payments_log.json
 pendingRequests.json
+# Emacs backup files
+*~
+# Auto-save files
+#*#
+.#*
+# Desktop save (emacsclient)
+.emacs.desktop
+
+# Optional: custom backup directory
+~/.emacs.d/backup/
