@@ -8,6 +8,24 @@ if (!$jwt) die("Пожалуйста, войдите в систему.");
 
 $error = '';
 $message = '';
+$userCache = []; // Кэш для usernameByID
+
+// Функция для получения имени пользователя по ID
+function usernameByID($mf, $jwt, $userId, &$cache) {
+    $uid = intval($userId);
+    if ($uid <= 0) return 'Unknown';
+    if (isset($cache[$uid])) return $cache[$uid];
+    $resp = $mf->doRequest("profile/by_id?user_id=$uid", $jwt, [], false);
+    if ($resp['httpCode'] === 200) {
+        $data = json_decode($resp['response'], true);
+        $name = $data['username'] ?? '';
+        if ($name === '') $name = 'User '.$uid;
+        $cache[$uid] = $name;
+        return $name;
+    }
+    return 'User '.$uid;
+}
+
 // Обработка выхода из чата
 if (isset($_GET['exit_chat_id'])) {
     $exitChatID = (int)$_GET['exit_chat_id'];
@@ -19,11 +37,11 @@ if (isset($_GET['exit_chat_id'])) {
         $error = "Ошибка при выходе из чата: " . $res['response'];
     }
 }
+
 // ======================
 // 1. Обработка POST-запросов
 // ======================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Отправка запроса на чат
     if (isset($_POST['requested_id'])) {
         $requestedID = (int)$_POST['requested_id'];
         $res = $mf->doRequest("api/chat/createChatRequest?requested_id=$requestedID", $jwt, [], true);
@@ -33,8 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Ошибка отправки запроса: " . $res['response'];
         }
     }
-
-    // Отправка сообщения в чат
     if (isset($_POST['chat_room_id'], $_POST['message'])) {
         $postData = ['message' => $_POST['message']];
         $res = $mf->doRequest('api/chat/sendMessage?chat_room_id=' . (int)$_POST['chat_room_id'], $jwt, $postData, true);
@@ -50,8 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ======================
 // 2. Обработка GET-запросов
 // ======================
-
-// Принятие входящего запроса на чат
 if (isset($_GET['accept_request'])) {
     $requesterID = (int)$_GET['accept_request'];
     $res = $mf->doRequest("api/chat/acceptChatRequest?requester_id=$requesterID", $jwt, [], true);
@@ -66,22 +80,18 @@ if (isset($_GET['accept_request'])) {
 // ======================
 // 3. Получаем данные для отображения
 // ======================
-
-// Входящие запросы
 $chatRequests = [];
 $res = $mf->doRequest("api/chat/getChatRequests", $jwt);
 if ($res['httpCode'] === 200) {
     $chatRequests = json_decode($res['response'], true);
 }
 
-// Список чатов
 $chatRooms = [];
 $res = $mf->doRequest('api/chat/getChatRoomsForUser', $jwt);
 if ($res['httpCode'] === 200) {
     $chatRooms = json_decode($res['response'], true);
 }
 
-// Сообщения выбранного чата
 $selectedChatID = $_GET['chat_id'] ?? null;
 $messages = [];
 if ($selectedChatID) {
@@ -92,15 +102,12 @@ if ($selectedChatID) {
 }
 ?>
 
-<!-- ====================== HTML ====================== -->
-
 <h2>Входящие запросы на чат</h2>
 <?php if (!empty($chatRequests)): ?>
     <ul>
         <?php foreach ($chatRequests as $req): ?>
             <li>
-                <?php //var_dump($req); ?>
-                От пользователя #<?= htmlspecialchars($req['requested_id']) ?> —
+                От пользователя <?= htmlspecialchars(usernameByID($mf, $jwt, $req['requested_id'], $userCache)) ?> —
                 Статус: <?= htmlspecialchars($req['status']) ?>
                 <?php if ($req['status'] === 'pending'): ?>
                     <a href="?accept_request=<?= (int)$req['requested_id'] ?>">Принять</a>
@@ -134,7 +141,7 @@ if ($selectedChatID) {
 <div style="border:1px solid #ccc; padding:10px; max-height:400px; overflow-y:scroll;">
     <?php foreach ($messages as $msg): ?>
         <p>
-            <strong><?= htmlspecialchars($msg['sender_id']) ?>:</strong>
+            <strong><?= htmlspecialchars(usernameByID($mf, $jwt, $msg['sender_id'], $userCache)) ?>:</strong>
             <?= htmlspecialchars($msg['message']) ?>
             <em style="color:gray; font-size:0.8em;"><?= htmlspecialchars($msg['created_at']) ?></em>
         </p>
@@ -148,11 +155,8 @@ if ($selectedChatID) {
     <button type="submit">Отправить</button>
 </form>
 
-<!-- Кнопка выхода из чата -->
 <form method="GET" style="margin-top:10px;">
     <input type="hidden" name="exit_chat_id" value="<?= htmlspecialchars($selectedChatID) ?>">
     <button type="submit" style="background-color:red; color:white;">Выйти из чата</button>
 </form>
-
-
 <?php endif; ?>
