@@ -7,6 +7,100 @@ definitions:
       balance:
         type: number
     type: object
+  handlers.AdminRequest:
+    properties:
+      user_id:
+        type: integer
+    type: object
+  handlers.AdminTransactionsRequest:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      wallet_id:
+        type: integer
+    type: object
+  handlers.AdminUpdateBalanceRequest:
+    properties:
+      balance:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  handlers.AuthRequest:
+    properties:
+      captcha_answer:
+        type: string
+      captcha_id:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.AuthResponse:
+    properties:
+      message:
+        type: string
+      token:
+        type: string
+    type: object
+  handlers.RegisterRequest:
+    properties:
+      captcha_answer:
+        type: string
+      captcha_id:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.Response:
+    properties:
+      encrypted:
+        type: string
+      message:
+        type: string
+    type: object
+  handlers.RestoreRequest:
+    properties:
+      captcha_answer:
+        type: string
+      captcha_id:
+        type: string
+      mnemonic:
+        type: string
+      new_password:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.TicketCreateAnswer:
+    properties:
+      ticket_id:
+        type: integer
+    type: object
+  handlers.TicketCreateRequest:
+    properties:
+      message:
+        type: string
+      subject:
+        type: string
+    type: object
+  handlers.TicketIDRequest:
+    properties:
+      ticket_id:
+        type: integer
+    type: object
+  handlers.WriteTicketRequest:
+    properties:
+      message:
+        type: string
+      ticket_id:
+        type: integer
+    type: object
   models.Profile:
     properties:
       avatar:
@@ -75,74 +169,6 @@ definitions:
       userID:
         type: integer
     type: object
-  server.AdminRequest:
-    properties:
-      user_id:
-        type: integer
-    type: object
-  server.AdminTransactionsRequest:
-    properties:
-      limit:
-        type: integer
-      offset:
-        type: integer
-      wallet_id:
-        type: integer
-    type: object
-  server.AdminUpdateBalanceRequest:
-    properties:
-      balance:
-        type: string
-      user_id:
-        type: integer
-    type: object
-  server.AuthRequest:
-    properties:
-      captcha_answer:
-        type: string
-      captcha_id:
-        type: string
-      password:
-        type: string
-      username:
-        type: string
-    type: object
-  server.RegisterRequest:
-    properties:
-      captcha_answer:
-        type: string
-      captcha_id:
-        description: GPGKey        string `json:"gpg_key"`
-        type: string
-      password:
-        type: string
-      username:
-        type: string
-    type: object
-  server.TicketCreateAnswer:
-    properties:
-      ticket_id:
-        type: integer
-    type: object
-  server.TicketCreateRequest:
-    properties:
-      message:
-        type: string
-      subject:
-        type: string
-    type: object
-  server.TicketIDRequest:
-    properties:
-      ticket_id:
-        type: integer
-    type: object
-  server.WriteTicketRequest:
-    properties:
-      message:
-        type: string
-      ticket_id:
-        type: integer
-    type: object
 info:
   contact: {}
   description: API for user registration, authentication, wallet operations and admin
@@ -161,7 +187,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.AdminRequest'
+          $ref: '#/definitions/handlers.AdminRequest'
       produces:
       - application/json
       responses:
@@ -231,7 +257,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.AdminRequest'
+          $ref: '#/definitions/handlers.AdminRequest'
       produces:
       - application/json
       responses:
@@ -271,7 +297,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.AdminRequest'
+          $ref: '#/definitions/handlers.AdminRequest'
       produces:
       - application/json
       responses:
@@ -304,7 +330,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.AdminTransactionsRequest'
+          $ref: '#/definitions/handlers.AdminTransactionsRequest'
       produces:
       - application/json
       responses:
@@ -339,7 +365,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.AdminRequest'
+          $ref: '#/definitions/handlers.AdminRequest'
       produces:
       - application/json
       responses:
@@ -371,7 +397,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.AdminUpdateBalanceRequest'
+          $ref: '#/definitions/handlers.AdminUpdateBalanceRequest'
       produces:
       - application/json
       responses:
@@ -436,14 +462,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.TicketCreateRequest'
+          $ref: '#/definitions/handlers.TicketCreateRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.TicketCreateAnswer'
+            $ref: '#/definitions/handlers.TicketCreateAnswer'
         "400":
           description: Bad Request
           schema:
@@ -472,7 +498,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.TicketIDRequest'
+          $ref: '#/definitions/handlers.TicketIDRequest'
       produces:
       - application/json
       responses:
@@ -580,7 +606,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.WriteTicketRequest'
+          $ref: '#/definitions/handlers.WriteTicketRequest'
       produces:
       - application/json
       responses:
@@ -706,16 +732,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.AuthRequest'
+          $ref: '#/definitions/handlers.AuthRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.AuthResponse'
         "401":
           description: Unauthorized
           schema:
@@ -723,6 +747,34 @@ paths:
               type: string
             type: object
       summary: Authenticate user
+      tags:
+      - auth
+  /captcha:
+    get:
+      description: Returns a captcha image and X-Captcha-ID header
+      produces:
+      - image/png
+      responses:
+        "200":
+          description: image/png
+          headers:
+            X-Captcha-ID:
+              description: Captcha ID
+              type: string
+      summary: Get captcha image
+      tags:
+      - auth
+  /hello:
+    get:
+      description: Simple hello endpoint
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.Response'
+      summary: Health/hello
       tags:
       - auth
   /profile:
@@ -823,16 +875,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/server.RegisterRequest'
+          $ref: '#/definitions/handlers.RegisterRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.Response'
         "400":
           description: Bad Request
           schema:
@@ -840,6 +890,64 @@ paths:
               type: string
             type: object
       summary: Register new user
+      tags:
+      - auth
+  /restoreuser:
+    post:
+      consumes:
+      - application/json
+      description: Restore account by mnemonic and set new password
+      parameters:
+      - description: Restore payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RestoreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.Response'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Restore user account
+      tags:
+      - auth
+  /verify:
+    get:
+      description: Verifies provided captcha answer
+      parameters:
+      - description: Captcha ID
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Captcha answer
+        in: query
+        name: answer
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Verify captcha
       tags:
       - auth
 securityDefinitions:

@@ -13,15 +13,29 @@ import (
     "mFrelance/server"
 )
 
+// TicketCreateRequest represents request to create ticket
 type TicketCreateRequest struct {
     Message string `json:"message"`
     Subject string `json:"subject"`
 }
 
+// TicketCreateAnswer represents response after creating ticket
 type TicketCreateAnswer struct {
     TicketID int64 `json:"ticket_id"`
 }
 
+// CreateTicket godoc
+// @Summary Create new ticket
+// @Description Create new ticket
+// @Tags ticket
+// @Accept  json
+// @Produce  json
+// @Param request body TicketCreateRequest true "Ticket info"
+// @Success 200 {object} TicketCreateAnswer
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /api/ticket/createTicket [post]
+// @Security bearerAuth
 func CreateTicket(w http.ResponseWriter, r *http.Request) {
     claims := server.GetUserFromContext(r)
     if claims == nil {
@@ -56,6 +70,20 @@ type WriteTicketRequest struct {
     Message  string `json:"message"`
 }
 
+// WriteToTicketHandler godoc
+// @Summary Write to ticket
+// @Description Add message to ticket
+// @Tags ticket
+// @Accept  json
+// @Produce  json
+// @Param request body WriteTicketRequest true "Message info"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /api/ticket/write [post]
+// @Security bearerAuth
 func WriteToTicketHandler(w http.ResponseWriter, r *http.Request) {
     claims := server.GetUserFromContext(r)
     if claims == nil {
@@ -105,6 +133,19 @@ func WriteToTicketHandler(w http.ResponseWriter, r *http.Request) {
 
 type TicketIDRequest struct { TicketID int64 `json:"ticket_id"` }
 
+// ExitFromTicketHandler godoc
+// @Summary Exit from a ticket
+// @Description Removes the user from the ticket's participants
+// @Tags ticket
+// @Accept json
+// @Produce json
+// @Param request body TicketIDRequest true "Ticket ID"
+// @Success 200 {object} map[string]string "status: ok"
+// @Failure 400 {object} map[string]string "Invalid payload or ticket_id"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/ticket/exit [post]
+// @Security bearerAuth
 func ExitFromTicketHandler(w http.ResponseWriter, r *http.Request) {
     claims := server.GetUserFromContext(r)
     if claims == nil {
@@ -128,6 +169,18 @@ func ExitFromTicketHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
+// GetTicketMessagesHandler godoc
+// @Summary Get messages for a ticket
+// @Description Returns all messages for a given ticket if the user has access
+// @Tags ticket
+// @Produce json
+// @Param ticket_id query int true "Ticket ID"
+// @Success 200 {array} models.TicketMessage "List of messages"
+// @Failure 400 {object} map[string]string "Invalid ticket_id"
+// @Failure 401 {object} map[string]string "User not authenticated"
+// @Failure 403 {object} map[string]string "User does not have access"
+// @Router /api/ticket/messages [get]
+// @Security bearerAuth
 func GetTicketMessagesHandler(w http.ResponseWriter, r *http.Request) {
     claims := server.GetUserFromContext(r)
     if claims == nil {
@@ -153,6 +206,15 @@ func GetTicketMessagesHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(messages)
 }
 
+// GetMyTicketsHandler godoc
+// @Summary Get own tickets
+// @Description Get all tickets of user
+// @Tags ticket
+// @Produce json
+// @Success 200 {array} models.TicketDoc
+// @Failure 401 {object} map[string]string
+// @Router /api/ticket/my [get]
+// @Security bearerAuth
 func GetMyTicketsHandler(w http.ResponseWriter, r *http.Request) {
     claims := server.GetUserFromContext(r)
     if claims == nil {

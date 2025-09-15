@@ -20,6 +20,14 @@ import (
     "mFrelance/server"
 )
 
+// WalletHandler godoc
+// @Summary Get wallet balances
+// @Description Returns user’s balances in BTC and XMR
+// @Tags wallet
+// @Produce json
+// @Success 200 {object} db.WalletBalance
+// @Security BearerAuth
+// @Router /api/wallet [get]
 func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Client, eClient *electrum.Client) {
     claims := server.GetUserFromContext(r)
     if claims == nil {
@@ -57,6 +65,16 @@ func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Cl
     json.NewEncoder(w).Encode(wallet)
 }
 
+// SendMoneroHandler godoc
+// @Summary Send Monero
+// @Description Sends Monero transaction (not implemented)
+// @Tags wallet
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Security BearerAuth
+// @Router /api/wallet/moneroSend [post]
 func SendMoneroHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Client) {
     // TODO
 }
@@ -80,6 +98,18 @@ func savePendingRequest(req PendingRequest) error {
     return os.WriteFile(filePath, newData, 0644)
 }
 
+// SendElectrumHandler godoc
+// @Summary Send Bitcoin
+// @Description Sends Bitcoin transaction using Electrum
+// @Tags wallet
+// @Accept json
+// @Produce json
+// @Param to query string true "Destination address"
+// @Param amount query string true "Amount"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Security BearerAuth
+// @Router /api/wallet/bitcoinSend [post]
 func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electrum.Client) {
     if server.IsTxPoolBlocked() { http.Error(w, "withdrawals temporarily blocked", http.StatusForbidden); return }
     claims := server.GetUserFromContext(r)

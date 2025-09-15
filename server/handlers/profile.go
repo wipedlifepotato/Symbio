@@ -12,6 +12,19 @@ import (
     "mFrelance/server"
 )
 
+// ProfileHandler godoc
+// @Summary Get or update profile
+// @Description Get current user profile (GET) or update profile (POST)
+// @Tags profile
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.Profile
+// @Failure 400 {string} string "invalid payload"
+// @Failure 401 {string} string "unauthorized"
+// @Failure 500 {string} string "db error"
+// @Security BearerAuth
+// @Router /profile [get]
+// @Router /profile [post]
 func ProfileHandler() http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         claims := server.GetUserFromContext(r)
@@ -54,6 +67,17 @@ func ProfileHandler() http.HandlerFunc {
     }
 }
 
+// ProfilesHandler godoc
+// @Summary List profiles
+// @Description Returns paginated list of profiles
+// @Tags profile
+// @Produce json
+// @Param limit query int false "Limit"
+// @Param offset query int false "Offset"
+// @Success 200 {array} models.Profile
+// @Failure 500 {string} string "db error"
+// @Security BearerAuth
+// @Router /profiles [get]
 func ProfilesHandler() http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         limit := 50

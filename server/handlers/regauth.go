@@ -28,6 +28,13 @@ type Response struct {
     Encrypted string `json:"encrypted,omitempty"`
 }
 
+// HelloHandler godoc
+// @Summary Health/hello
+// @Description Simple hello endpoint
+// @Tags auth
+// @Produce json
+// @Success 200 {object} Response
+// @Router /hello [get]
 func HelloHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     resp := Response{Message: "Hello, REST API!"}
@@ -44,6 +51,14 @@ func GetCaptchaFromRedis(rdb *redis.Client, id string) (string, error) {
     return val, nil
 }
 
+// CaptchaHandler godoc
+// @Summary Get captcha image
+// @Description Returns a captcha image and X-Captcha-ID header
+// @Tags auth
+// @Produce png
+// @Success 200 "image/png"
+// @Header 200 {string} X-Captcha-ID "Captcha ID"
+// @Router /captcha [get]
 func CaptchaHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     data, _ := captcha.New(150, 50)
     id := strconv.Itoa(int(time.Now().UnixNano()))
@@ -54,6 +69,15 @@ func CaptchaHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     data.WriteImage(w)
 }
 
+// VerifyHandler godoc
+// @Summary Verify captcha
+// @Description Verifies provided captcha answer
+// @Tags auth
+// @Param id query string true "Captcha ID"
+// @Param answer query string true "Captcha answer"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {object} map[string]string
+// @Router /verify [get]
 func VerifyHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     id := r.URL.Query().Get("id")
     answer := r.URL.Query().Get("answer")
@@ -73,6 +97,16 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     w.Write([]byte(`{"ok":false}`))
 }
 
+// RegisterHandler godoc
+// @Summary Register new user
+// @Description Creates a new user with login, password and captcha
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "User credentials"
+// @Success 200 {object} Response
+// @Failure 400 {object} map[string]string
+// @Router /register [post]
 func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     var req RegisterRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -112,6 +146,16 @@ type RestoreRequest struct {
     CaptchaAnswer string `json:"captcha_answer"`
 }
 
+// RestoreHandler godoc
+// @Summary Restore user account
+// @Description Restore account by mnemonic and set new password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RestoreRequest true "Restore payload"
+// @Success 200 {object} Response
+// @Failure 400 {object} map[string]string
+// @Router /restoreuser [post]
 func RestoreHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     var req RestoreRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -161,6 +205,16 @@ type AuthResponse struct {
     Token   string `json:"token,omitempty"`
 }
 
+// AuthHandler godoc
+// @Summary Authenticate user
+// @Description Logs in user and returns JWT token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body AuthRequest true "Login credentials"
+// @Success 200 {object} AuthResponse
+// @Failure 401 {object} map[string]string
+// @Router /auth [post]
 func AuthHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     var req AuthRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

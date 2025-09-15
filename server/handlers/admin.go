@@ -11,6 +11,7 @@ import (
     "mFrelance/server"
 )
 
+// AdminRequest payload
 type AdminRequest struct {
     UserID int64 `json:"user_id"`
 }
@@ -31,6 +32,20 @@ func RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
     }
 }
 
+// MakeAdminHandler godoc
+// @Summary Grant admin rights
+// @Description Makes a user admin by userID
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminRequest true "UserID payload"
+// @Success 200 {string} string "user is now admin"
+// @Failure 400 {string} string "invalid request body"
+// @Failure 401 {string} string "unauthorized"
+// @Failure 403 {string} string "admin rights required"
+// @Failure 500 {string} string "internal server error"
+// @Security BearerAuth
+// @Router /api/admin/make [post]
 func MakeAdminHandler(w http.ResponseWriter, r *http.Request) {
     var req AdminRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -45,6 +60,18 @@ func MakeAdminHandler(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte("user is now admin"))
 }
 
+// RemoveAdminHandler godoc
+// @Summary Revoke admin rights
+// @Description Removes admin status from a user
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminRequest true "UserID payload"
+// @Success 200 {string} string "user admin removed"
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/remove [post]
 func RemoveAdminHandler(w http.ResponseWriter, r *http.Request) {
     var req AdminRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -59,6 +86,13 @@ func RemoveAdminHandler(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte("user admin removed"))
 }
 
+// IsAdminHandler godoc
+// @Summary Check if user is admin
+// @Description Returns true/false if current user has admin privileges
+// @Tags admin
+// @Produce json
+// @Security BearerAuth
+// @Router /api/admin/check [get]
 func IsAdminHandler(w http.ResponseWriter, r *http.Request) {
     var req AdminRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -76,6 +110,18 @@ func IsAdminHandler(w http.ResponseWriter, r *http.Request) {
     })
 }
 
+// BlockUserHandler godoc
+// @Summary Block user
+// @Description Blocks a user by userID
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminRequest true "UserID payload"
+// @Success 200 {string} string "user blocked"
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/block [post]
 func BlockUserHandler(w http.ResponseWriter, r *http.Request) {
     var req AdminRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -96,6 +142,19 @@ type AdminTransactionsRequest struct {
     Offset   int `json:"offset,omitempty"`
 }
 
+// AdminTransactionsHandler godoc
+// @Summary Admin: View transactions
+// @Description Allows admin to view transactions by wallet or all transactions with pagination
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminTransactionsRequest true "Request payload"
+// @Success 200 {array} object
+// @Success 200 {array} object "id:int, from_wallet_id:int, to_wallet_id:int, to_address:string, task_id:int, amount:string, currency:string, confirmed:bool, created_at:string"
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/transactions [post]
 func AdminTransactionsHandler(w http.ResponseWriter, r *http.Request) {
     var req AdminTransactionsRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -125,6 +184,18 @@ func AdminTransactionsHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(txs)
 }
 
+// UnblockUserHandler godoc
+// @Summary Unblock user
+// @Description Unblocks a user by userID
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminRequest true "UserID payload"
+// @Success 200 {string} string "user unblocked"
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/unblock [post]
 func UnblockUserHandler(w http.ResponseWriter, r *http.Request) {
     var req AdminRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -139,6 +210,18 @@ func UnblockUserHandler(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte("user unblocked"))
 }
 
+// AdminWalletsHandler godoc
+// @Summary Get user wallets
+// @Description Returns all wallets for a given user
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {array} models.Wallet
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/wallets [get]
 func AdminWalletsHandler(w http.ResponseWriter, r *http.Request) {
     userIDStr := r.URL.Query().Get("user_id")
     if userIDStr == "" {
@@ -164,6 +247,18 @@ type AdminUpdateBalanceRequest struct {
     Balance string `json:"balance"`
 }
 
+// AdminUpdateBalanceHandler godoc
+// @Summary Update wallet balance
+// @Description Allows admin to set a new balance for a wallet
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param request body AdminUpdateBalanceRequest true "Wallet balance payload"
+// @Success 200 {string} string "balance updated"
+// @Failure 400 {string} string
+// @Failure 500 {string} string
+// @Security BearerAuth
+// @Router /api/admin/update_balance [post]
 func AdminUpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
     var req AdminUpdateBalanceRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -185,6 +280,16 @@ func AdminUpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // AdminGetRandomTicketHandler assigns a random open ticket to the current admin
+// AdminGetRandomTicketHandler godoc
+// @Summary Get random opened ticket (admin)
+// @Description Set ticket to admin (random)
+// @Tags admin
+// @Produce json
+// @Success 200 {object} models.TicketDoc
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /api/admin/getRandomTicket [get]
+// @Security bearerAuth
 func AdminGetRandomTicketHandler(w http.ResponseWriter, r *http.Request) {
     claims := server.GetUserFromContext(r)
     if claims == nil {
