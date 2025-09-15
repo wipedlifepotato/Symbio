@@ -598,6 +598,153 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		L.Push(lua.LString(token))
 		return 1
 	}))
+
+	// Создать чат
+	L.SetGlobal("create_chat_room", L.NewFunction(func(L *lua.LState) int {
+		room, err := db.CreateChatRoom(psql)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LNumber(room.ID))
+		return 1
+	}))
+
+	// Добавить пользователя в чат
+	L.SetGlobal("add_user_to_chat", L.NewFunction(func(L *lua.LState) int {
+		userID := int64(L.ToInt(1))
+		chatRoomID := int64(L.ToInt(2))
+		err := db.AddUserToChatRoom(psql, userID, chatRoomID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	// Получить участников чата
+	L.SetGlobal("get_chat_participants", L.NewFunction(func(L *lua.LState) int {
+		chatRoomID := int64(L.ToInt(1))
+		participants, err := db.GetChatParticipants(psql, chatRoomID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tb := L.NewTable()
+		for _, p := range participants {
+			tb.Append(lua.LNumber(p.UserID))
+		}
+		L.Push(tb)
+		return 1
+	}))
+
+	// Отправить сообщение в чат
+	L.SetGlobal("create_chat_message", L.NewFunction(func(L *lua.LState) int {
+		chatRoomID := int64(L.ToInt(1))
+		senderID := int64(L.ToInt(2))
+		msg := L.ToString(3)
+		message := &models.ChatMessage{
+			ChatRoomID: chatRoomID,
+			SenderID:   senderID,
+			Message:    msg,
+			CreatedAt:  time.Now(),
+		}
+		err := db.CreateChatMessage(psql, message)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	// Получить сообщения чата
+	L.SetGlobal("get_chat_messages", L.NewFunction(func(L *lua.LState) int {
+		chatRoomID := int64(L.ToInt(1))
+		messages, err := db.GetChatMessages(psql, chatRoomID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tb := L.NewTable()
+		for _, m := range messages {
+			msgTbl := L.NewTable()
+			msgTbl.RawSetString("sender_id", lua.LNumber(m.SenderID))
+			msgTbl.RawSetString("message", lua.LString(m.Message))
+			msgTbl.RawSetString("created_at", lua.LString(m.CreatedAt.Format(time.RFC3339)))
+			tb.Append(msgTbl)
+		}
+		L.Push(tb)
+		return 1
+	}))
+
+	// Создать запрос на чат
+	L.SetGlobal("create_chat_request", L.NewFunction(func(L *lua.LState) int {
+		requesterID := int64(L.ToInt(1))
+		requestedID := int64(L.ToInt(2))
+		req := &models.ChatRequest{
+			RequesterID: requesterID,
+			RequestedID: requestedID,
+			Status:      "pending",
+			CreatedAt:   time.Now(),
+		}
+		err := db.CreateChatRequest(psql, req)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	// Принять запрос на чат
+	L.SetGlobal("accept_chat_request", L.NewFunction(func(L *lua.LState) int {
+		requesterID := int64(L.ToInt(1))
+		requestedID := int64(L.ToInt(2))
+		err := db.AcceptChatRequest(psql, requesterID, requestedID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	// Отменить запрос на чат
+	L.SetGlobal("delete_chat_request", L.NewFunction(func(L *lua.LState) int {
+		requesterID := int64(L.ToInt(1))
+		requestedID := int64(L.ToInt(2))
+		err := db.DeleteChatRequest(psql, requesterID, requestedID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	// Удалить участника чата
+	L.SetGlobal("delete_chat_participant", L.NewFunction(func(L *lua.LState) int {
+		chatRoomID := int64(L.ToInt(1))
+		userID := int64(L.ToInt(2))
+		err := db.DeleteChatParticipant(psql, chatRoomID, userID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
 }
 
 var registeredPaths = make(map[string]bool)
