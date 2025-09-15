@@ -172,8 +172,6 @@ func GetChatMessagesHandler() http.HandlerFunc {
 			return
 		}
 
-		// Verify user is a participant in the chat room (optional)
-		// ...
 		if h, err := db.IsUserHaveAccessToChatRoom(db.Postgres, claims.UserID, chatRoomID); err != nil {
 			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
 			return
