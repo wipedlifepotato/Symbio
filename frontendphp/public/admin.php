@@ -168,3 +168,28 @@ if ($randomTicket):
 </tr>
 </table>
 <?php endif; ?>
+
+<h3>Add User to Chat Room</h3>
+<form method="POST">
+    <input type="number" name="chat_id" placeholder="Chat ID" required>
+    <input type="number" name="user_id" placeholder="User ID" required>
+    <button type="submit" name="add_to_chat" value="1">Add User</button>
+</form>
+<?php
+if (isset($_POST['add_to_chat'])) {
+    $chatID = (int)($_POST['chat_id'] ?? 0);
+    $userID = (int)($_POST['user_id'] ?? 0);
+
+    if ($chatID && $userID) {
+        $res = $mf->doRequest('api/admin/addUserToChatRoom?chat_id=' . $chatID . '&user_id=' . $userID, $jwt, [], true);
+        if ($res['httpCode'] === 200) {
+            $message = "Пользователь добавлен в чат";
+        } else {
+            $message = "Ошибка: " . $res['response'];
+        }
+    } else {
+        $message = "Неверные ID";
+    }
+}
+?>
+<?php echo $message; ?>

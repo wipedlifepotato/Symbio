@@ -313,3 +313,53 @@ func AdminGetRandomTicketHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ticket)
 }
+
+func AdminAddUserToChatRoom(w http.ResponseWriter, r *http.Request) {
+	claims := server.GetUserFromContext(r)
+	if claims == nil {
+		server.WriteErrorJSON(w, "user not found in context", http.StatusUnauthorized)
+		return
+	}
+	chatID := r.URL.Query().Get("chat_id")
+	userId := r.URL.Query().Get("user_id")
+	chatIDInt, err := strconv.ParseInt(chatID, 10, 64)
+	if err != nil {
+		server.WriteErrorJSON(w, "bad chat id", http.StatusBadRequest)
+
+	}
+	userIDInt, err := strconv.ParseInt(userId, 10, 64)
+	if err != nil {
+		server.WriteErrorJSON(w, "bad user id", http.StatusBadRequest)
+
+	}
+	err = db.AddUserToChatRoom(db.Postgres, chatIDInt, userIDInt)
+	if err != nil {
+		server.WriteErrorJSON(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{\"res\":\"user added to chat room\"}"))
+}
+
+func DeleteChatRoom(w http.ResponseWriter, r *http.Request) {
+	claims := server.GetUserFromContext(r)
+	if claims == nil {
+		server.WriteErrorJSON(w, "user not found in context", http.StatusUnauthorized)
+		return
+	}
+	chatID := r.URL.Query().Get("chat_id")
+	chatIDInt, err := strconv.ParseInt(chatID, 10, 64)
+	if err != nil {
+		server.WriteErrorJSON(w, "bad chat id", http.StatusBadRequest)
+
+	}
+	err = db.DeleteChatRoom(db.Postgres, chatIDInt)
+	if err != nil {
+		server.WriteErrorJSON(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{\"res\":\"chat room deleted\"}"))
+}

@@ -45,6 +45,7 @@ if (!$jwt) {
             <th>Avatar</th>
             <th>Rating</th>
             <th>Completed Tasks</th>
+            <th>Actions</th>
         </tr>
         <?php foreach ($profiles as $p): ?>
             <tr>
@@ -59,6 +60,14 @@ if (!$jwt) {
                 </td>
                 <td><?= htmlspecialchars($p['rating']) ?></td>
                 <td><?= htmlspecialchars($p['completed_tasks']) ?></td>
+                <td>
+                    <?php if ($p['user_id'] != ($_SESSION['user_id'] ?? 0)): ?>
+                        <form method="POST" style="margin:0;">
+                            <input type="hidden" name="requested_id" value="<?= htmlspecialchars($p['user_id']) ?>">
+                            <button type="submit" name="create_chat_request">Запросить чат</button>
+                        </form>
+                    <?php endif; ?>
+                </td>
             </tr>
         <?php endforeach; ?>
     </table>
@@ -67,3 +76,15 @@ if (!$jwt) {
 <?php endif; ?>
 
 <p><a href="index.php">Назад</a></p>
+
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_chat_request'], $_POST['requested_id'])) {
+    $requestedID = (int)$_POST['requested_id'];
+    $res = $mf->doRequest("api/chat/createChatRequest?requested_id=$requestedID", $jwt, [], true);
+    if ($res['httpCode'] === 201) {
+        echo "<p style='color:green;'>Запрос на чат отправлен пользователю #$requestedID</p>";
+    } else {
+        echo "<p style='color:red;'>Ошибка: " . htmlspecialchars($res['response']) . "</p>";
+    }
+}
+?>
