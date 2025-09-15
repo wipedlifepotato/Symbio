@@ -259,21 +259,6 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		return 1
 	}))
 
-	L.SetGlobal("get_balance", L.NewFunction(func(L *lua.LState) int {
-		userID := L.ToString(1)
-		currency := L.ToString(2)
-
-		var balanceStr string
-		err := psql.QueryRow(`SELECT balance::text FROM wallets WHERE user_id=$1 AND currency=$2 LIMIT 1`, userID, currency).Scan(&balanceStr)
-		if err != nil {
-			L.Push(lua.LNil)
-			L.Push(lua.LString(err.Error()))
-			return 2
-		}
-		L.Push(lua.LString(balanceStr))
-		return 1
-	}))
-
 	L.SetGlobal("set_balance", L.NewFunction(func(L *lua.LState) int {
 		userID := L.ToString(1)
 		currency := L.ToString(2)
