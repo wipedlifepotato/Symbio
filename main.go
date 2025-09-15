@@ -173,6 +173,9 @@ func main() {
 	apiMux.Handle("/chat/exitFromChat", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		serverhandlers.ExitFromChat().ServeHTTP(w, r)
 	})))
+	apiMux.Handle("/chat/cancelChatRequest", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		serverhandlers.CancelChatRequestHandler().ServeHTTP(w, r)
+	})))
 
 	s.HandleHandler("/api/", http.StripPrefix("/api", apiMux))
 	s.Handle("/profile", func(w http.ResponseWriter, r *http.Request) {

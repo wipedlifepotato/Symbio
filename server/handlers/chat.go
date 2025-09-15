@@ -34,8 +34,8 @@ func CreateChatRequestHandler() http.HandlerFunc {
 		}
 
 		request := &models.ChatRequest{
-			RequesterID: claims.UserID,
-			RequestedID: requestedID,
+			RequesterID: requestedID,
+			RequestedID: claims.UserID,
 			Status:      "pending",
 			CreatedAt:   time.Now(),
 		}
@@ -350,5 +350,28 @@ func ExitFromChat() http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "ok",
 		})
+	}
+}
+
+func CancelChatRequestHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims := server.GetUserFromContext(r)
+		if claims == nil {
+			log.Println("unauthorized: claims nil")
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		requesterIDStr := r.URL.Query().Get("requester_id")
+		if requesterIDStr == "" {
+			http.Error(w, "invalid requester_id", http.StatusBadRequest)
+			return
+		}
+		requesterID, err := strconv.ParseInt(requesterIDStr, 10, 64)
+		if err != nil {
+			http.Error(w, "invalid requester_id", http.StatusBadRequest)
+			return
+		}
+		db.DeleteChatRequest(db.Postgres, claims.UserID, requesterID)
 	}
 }

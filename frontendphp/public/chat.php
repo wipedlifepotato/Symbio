@@ -10,6 +10,20 @@ $error = '';
 $message = '';
 $userCache = []; // Кэш для usernameByID
 
+// ======================
+// Отмена входящего запроса на чат
+// ======================
+if (isset($_GET['cancel_request'])) {
+    $requesterID = (int)$_GET['cancel_request'];
+    $res = $mf->doRequest("api/chat/cancelChatRequest?requester_id=$requesterID", $jwt, [], true);
+    if ($res['httpCode'] === 200) {
+        header('Location: chat.php');
+        exit;
+    } else {
+        $error = "Ошибка при отмене запроса: " . $res['response'];
+    }
+}
+
 // Функция для получения имени пользователя по ID
 function usernameByID($mf, $jwt, $userId, &$cache) {
     $uid = intval($userId);
@@ -109,8 +123,13 @@ if ($selectedChatID) {
             <li>
                 От пользователя <?= htmlspecialchars(usernameByID($mf, $jwt, $req['requested_id'], $userCache)) ?> —
                 Статус: <?= htmlspecialchars($req['status']) ?>
+                
                 <?php if ($req['status'] === 'pending'): ?>
+                    <!-- Кнопка принять -->
                     <a href="?accept_request=<?= (int)$req['requested_id'] ?>">Принять</a>
+
+                    <!-- Кнопка отменить -->
+                    <a href="?cancel_request=<?= (int)$req['requested_id'] ?>" style="color:red; margin-left:10px;">Отменить</a>
                 <?php endif; ?>
             </li>
         <?php endforeach; ?>
