@@ -1,15 +1,15 @@
 package handlers
 
 import (
-    "encoding/json"
-    "log"
-    "net/http"
-    "strconv"
+	"encoding/json"
+	"log"
+	"net/http"
+	"strconv"
 
-    "mFrelance/config"
-    "mFrelance/db"
-    "mFrelance/models"
-    "mFrelance/server"
+	"mFrelance/config"
+	"mFrelance/db"
+	"mFrelance/models"
+	"mFrelance/server"
 )
 
 // ProfileHandler godoc
@@ -26,54 +26,63 @@ import (
 // @Router /profile [get]
 // @Router /profile [post]
 func ProfileHandler() http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        claims := server.GetUserFromContext(r)
-        if claims == nil {
-            http.Error(w, "unauthorized", http.StatusUnauthorized)
-            return
-        }
-        maxAvatarSize := int(config.AppConfig.MaxAvatarSize) * 1024 * 1024
-        switch r.Method {
-        case "GET":
-            profile, err := models.GetProfile(db.Postgres, claims.UserID)
-            if err != nil {
-                http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
-                return
-            }
-            username, err := db.GetUsernameByID(db.Postgres, claims.UserID)
-            if err != nil {
-                http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
-                return
-            }
-            server.SanitizeProfile(profile)
-            w.Header().Set("Content-Type", "application/json")
-            json.NewEncoder(w).Encode(map[string]any{
-                "username": username,
-                "profile":  profile,
-            })
-        case "POST":
-            var p models.Profile
-            if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-                log.Println("Decode error:", err)
-                http.Error(w, "invalid payload: "+err.Error(), http.StatusBadRequest)
-                return
-            }
-            p.UserID = claims.UserID
-            if len(p.Avatar) > maxAvatarSize {
-                http.Error(w, "avatar too large", http.StatusBadRequest)
-                return
-            }
-            server.SanitizeProfile(&p)
-            if err := models.UpsertProfile(db.Postgres, &p); err != nil {
-                http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
-                return
-            }
-            w.WriteHeader(http.StatusOK)
-            json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-        default:
-            http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-        }
-    }
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims := server.GetUserFromContext(r)
+		if claims == nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		maxAvatarSize := int(config.AppConfig.MaxAvatarSize) * 1024 * 1024
+		switch r.Method {
+		case "GET":
+			isBlocked, err := db.IsUserBlocked(db.Postgres, claims.UserID)
+			if err != nil {
+				http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if isBlocked {
+				http.Error(w, "user blocked", http.StatusForbidden)
+				return
+			}
+			profile, err := models.GetProfile(db.Postgres, claims.UserID)
+			if err != nil {
+				http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			username, err := db.GetUsernameByID(db.Postgres, claims.UserID)
+			if err != nil {
+				http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			server.SanitizeProfile(profile)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{
+				"username": username,
+				"profile":  profile,
+			})
+		case "POST":
+			var p models.Profile
+			if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+				log.Println("Decode error:", err)
+				http.Error(w, "invalid payload: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+			p.UserID = claims.UserID
+			if len(p.Avatar) > maxAvatarSize {
+				http.Error(w, "avatar too large", http.StatusBadRequest)
+				return
+			}
+			server.SanitizeProfile(&p)
+			if err := models.UpsertProfile(db.Postgres, &p); err != nil {
+				http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}
 }
 
 // ProfilesHandler godoc
@@ -88,31 +97,66 @@ func ProfileHandler() http.HandlerFunc {
 // @Security BearerAuth
 // @Router /profiles [get]
 func ProfilesHandler() http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        limit := 50
-        offset := 0
-        if l := r.URL.Query().Get("limit"); l != "" {
-            if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 500 {
-                limit = v
-            }
-        }
-        if limit > int(config.AppConfig.MaxProfiles) {
-            limit = int(config.AppConfig.MaxProfiles)
-        }
-        if o := r.URL.Query().Get("offset"); o != "" {
-            if v, err := strconv.Atoi(o); err == nil && v >= 0 {
-                offset = v
-            }
-        }
-        profiles, err := models.GetProfilesWithLimitOffset(db.Postgres, limit, offset)
-        if err != nil {
-            http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
-            return
-        }
-        json.NewEncoder(w).Encode(profiles)
-    }
-}
+	return func(w http.ResponseWriter, r *http.Request) {
+		limit := 50
+		offset := 0
+		if l := r.URL.Query().Get("limit"); l != "" {
+			if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 500 {
+				limit = v
+			}
+		}
+		if limit > int(config.AppConfig.MaxProfiles) {
+			limit = int(config.AppConfig.MaxProfiles)
+		}
+		if o := r.URL.Query().Get("offset"); o != "" {
+			if v, err := strconv.Atoi(o); err == nil && v >= 0 {
+				offset = v
+			}
+		}
 
+		userIDs, err := db.GetAllUserIDs(db.Postgres)
+		if err != nil {
+			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		var filteredProfiles []models.Profile
+		for _, userID := range userIDs {
+			isBlocked, err := db.IsUserBlocked(db.Postgres, userID)
+			if err != nil {
+				log.Printf("Error checking block status for user %d: %v", userID, err)
+				continue // Skip this user if there's an error
+			}
+			if isBlocked {
+				continue // Skip blocked users
+			}
+
+			profile, err := models.GetProfile(db.Postgres, userID)
+			if err != nil {
+				log.Printf("Error getting profile for user %d: %v", userID, err)
+				continue // Skip this user if there's an error
+			}
+			if profile == nil {
+				log.Printf("Profile not found for user %d", userID)
+				continue // Skip if profile is nil
+			}
+
+			filteredProfiles = append(filteredProfiles, *profile)
+		}
+
+		// Apply limit and offset after filtering
+		start := offset
+		end := offset + limit
+		if start > len(filteredProfiles) {
+			start = len(filteredProfiles)
+		}
+		if end > len(filteredProfiles) {
+			end = len(filteredProfiles)
+		}
+
+		json.NewEncoder(w).Encode(filteredProfiles[start:end])
+	}
+}
 
 // ProfileByIDHandler godoc
 // @Summary Get public profile by user_id
@@ -125,40 +169,48 @@ func ProfilesHandler() http.HandlerFunc {
 // @Failure 404 {string} string "not found"
 // @Router /profile/by_id [get]
 func ProfileByIDHandler() http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        userIDStr := r.URL.Query().Get("user_id")
-        if userIDStr == "" {
-            http.Error(w, "invalid user_id", http.StatusBadRequest)
-            return
-        }
-        userID, err := strconv.ParseInt(userIDStr, 10, 64)
-        if err != nil || userID <= 0 {
-            http.Error(w, "invalid user_id", http.StatusBadRequest)
-            return
-        }
+	return func(w http.ResponseWriter, r *http.Request) {
+		userIDStr := r.URL.Query().Get("user_id")
+		if userIDStr == "" {
+			http.Error(w, "invalid user_id", http.StatusBadRequest)
+			return
+		}
+		userID, err := strconv.ParseInt(userIDStr, 10, 64)
+		if err != nil || userID <= 0 {
+			http.Error(w, "invalid user_id", http.StatusBadRequest)
+			return
+		}
 
-        prof, err := models.GetProfile(db.Postgres, userID)
-        if err != nil {
-            http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
-            return
-        }
-        if prof == nil {
-            http.Error(w, "not found", http.StatusNotFound)
-            return
-        }
-        username, err := db.GetUsernameByID(db.Postgres, userID)
-        if err != nil {
-            http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
-            return
-        }
-        // включим username в ответе отдельно
-        server.SanitizeProfile(prof)
-        w.Header().Set("Content-Type", "application/json")
-        json.NewEncoder(w).Encode(map[string]any{
-            "username": username,
-            "profile":  prof,
-        })
-    }
+		isBlocked, err := db.IsUserBlocked(db.Postgres, userID)
+		if err != nil {
+			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if isBlocked {
+			http.Error(w, "user blocked", http.StatusNotFound) // Or StatusForbidden
+			return
+		}
+
+		prof, err := models.GetProfile(db.Postgres, userID)
+		if err != nil {
+			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if prof == nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		username, err := db.GetUsernameByID(db.Postgres, userID)
+		if err != nil {
+			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// включим username в ответе отдельно
+		server.SanitizeProfile(prof)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"username": username,
+			"profile":  prof,
+		})
+	}
 }
-
-

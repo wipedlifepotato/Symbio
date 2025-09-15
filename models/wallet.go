@@ -1,11 +1,11 @@
 package models
 
 import (
-	//"database/sql"
 	"fmt"
 	"log"
 	"math/big"
-	"mFrelance/db"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type Wallet struct {
@@ -16,8 +16,8 @@ type Wallet struct {
 	Address  string `db:"address"`
 }
 
-func GetWalletsByUser(userID int64) ([]Wallet, error) {
-	rows, err := db.Postgres.Query(`
+func GetWalletsByUser(db *sqlx.DB, userID int64) ([]Wallet, error) {
+	rows, err := db.Query(`
 		SELECT id, user_id, balance, currency, address
 		FROM wallets
 		WHERE user_id=$1
@@ -38,9 +38,9 @@ func GetWalletsByUser(userID int64) ([]Wallet, error) {
 	return wallets, nil
 }
 
-func GetWalletByUserAndCurrency(userID int64, currency string) (*Wallet, error) {
+func GetWalletByUserAndCurrency(db *sqlx.DB, userID int64, currency string) (*Wallet, error) {
 	var w Wallet
-	err := db.Postgres.QueryRow(`
+	err := db.QueryRow(`
 		SELECT id, user_id, balance, currency, address
 		FROM wallets
 		WHERE user_id=$1 AND currency=$2
@@ -52,9 +52,9 @@ func GetWalletByUserAndCurrency(userID int64, currency string) (*Wallet, error) 
 	return &w, nil
 }
 
-func GetWalletByAddress(address, currency string) (*Wallet, error) {
+func GetWalletByAddress(db *sqlx.DB, address, currency string) (*Wallet, error) {
 	var w Wallet
-	err := db.Postgres.QueryRow(`
+	err := db.QueryRow(`
 		SELECT id, user_id, balance, currency, address
 		FROM wallets
 		WHERE address=$1 AND currency=$2
@@ -66,9 +66,9 @@ func GetWalletByAddress(address, currency string) (*Wallet, error) {
 	return &w, nil
 }
 
-func IsOurWalletAddress(address, currency string) (bool, error) {
+func IsOurWalletAddress(db *sqlx.DB, address, currency string) (bool, error) {
 	var exists bool
-	err := db.Postgres.QueryRow(`
+	err := db.QueryRow(`
 		SELECT EXISTS(SELECT 1 FROM wallets WHERE address=$1 AND currency=$2)
 	`, address, currency).Scan(&exists)
 	if err != nil {
@@ -86,9 +86,9 @@ func (w *Wallet) BigBalance() *big.Float {
 	return b
 }
 
-func (w *Wallet) SetBalance(newBal *big.Float) error {
+func (w *Wallet) SetBalance(db *sqlx.DB, newBal *big.Float) error {
 	newBalanceStr := fmt.Sprintf("%.8f", newBal)
-	_, err := db.Postgres.Exec(`
+	_, err := db.Exec(`
 		UPDATE wallets 
 		SET balance=$1 
 		WHERE id=$2
@@ -99,26 +99,25 @@ func (w *Wallet) SetBalance(newBal *big.Float) error {
 	return err
 }
 
-func (w *Wallet) AddBalance(delta *big.Float) error {
+func (w *Wallet) AddBalance(db *sqlx.DB, delta *big.Float) error {
 	current := w.BigBalance()
 	newBal := new(big.Float).Add(current, delta)
-	return w.SetBalance(newBal)
+	return w.SetBalance(db, newBal)
 }
 
-func (w *Wallet) SubBalance(delta *big.Float) error {
+func (w *Wallet) SubBalance(db *sqlx.DB, delta *big.Float) error {
 	current := w.BigBalance()
 	newBal := new(big.Float).Sub(current, delta)
 	if newBal.Cmp(big.NewFloat(0)) < 0 {
 		return fmt.Errorf("insufficient balance")
 	}
-	return w.SetBalance(newBal)
+	return w.SetBalance(db, newBal)
 }
 
-func AddToWalletBalance(address, currency string, delta *big.Float) error {
-	w, err := GetWalletByAddress(address, currency)
+func AddToWalletBalance(db *sqlx.DB, address, currency string, delta *big.Float) error {
+	w, err := GetWalletByAddress(db, address, currency)
 	if err != nil {
 		return err
 	}
-	return w.AddBalance(delta)
+	return w.AddBalance(db, delta)
 }
-

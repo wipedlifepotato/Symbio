@@ -53,8 +53,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     currency VARCHAR(10) NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
-/*
-
 CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
     client_id INT REFERENCES users(id) ON DELETE CASCADE,
@@ -68,6 +66,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     deadline TIMESTAMP
 );
 
+CREATE INDEX IF NOT EXISTS idx_tasks_client_id ON tasks (client_id);
+
 CREATE TABLE IF NOT EXISTS task_offers (
     id SERIAL PRIMARY KEY,
     task_id INT REFERENCES tasks(id) ON DELETE CASCADE,
@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS task_offers (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_task_offers_task_id ON task_offers (task_id);
+CREATE INDEX IF NOT EXISTS idx_task_offers_freelancer_id ON task_offers (freelancer_id);
 
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -90,5 +92,49 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages (sender_id);
+CREATE INDEX IF NOT EXISTS idx_messages_recipient_id ON messages (recipient_id);
+CREATE INDEX IF NOT EXISTS idx_messages_task_id ON messages (task_id);
 
-*/
+-- Chat rooms
+CREATE TABLE IF NOT EXISTS chat_rooms (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Participants in chat rooms
+CREATE TABLE IF NOT EXISTS chat_participants (
+    id SERIAL PRIMARY KEY,
+    chat_room_id INT REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    joined_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE (chat_room_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_participants_chat_room_id ON chat_participants (chat_room_id);
+CREATE INDEX IF NOT EXISTS idx_chat_participants_user_id ON chat_participants (user_id);
+
+-- Chat messages
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id SERIAL PRIMARY KEY,
+    chat_room_id INT REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    sender_id INT REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_room_id ON chat_messages (chat_room_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_sender_id ON chat_messages (sender_id);
+
+-- Chat requests
+CREATE TABLE IF NOT EXISTS chat_requests (
+    id SERIAL PRIMARY KEY,
+    requester_id INT REFERENCES users(id) ON DELETE CASCADE,
+    requested_id INT REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, rejected
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE (requester_id, requested_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_requests_requester_id ON chat_requests (requester_id);
+CREATE INDEX IF NOT EXISTS idx_chat_requests_requested_id ON chat_requests (requested_id);
