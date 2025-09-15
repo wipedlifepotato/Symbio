@@ -25,6 +25,11 @@ func writeErrorJSON(w http.ResponseWriter, msg string, code int) {
     json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
+// WriteErrorJSON is an exported helper for other packages to send JSON errors
+func WriteErrorJSON(w http.ResponseWriter, msg string, code int) {
+    writeErrorJSON(w, msg, code)
+}
+
 func ValidateMessage(message string) error {
     if message == "" {
         return errors.New("Message is null")

@@ -40,7 +40,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.AdminRequest"
+                            "$ref": "#/definitions/handlers.AdminRequest"
                         }
                     }
                 ],
@@ -152,7 +152,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.AdminRequest"
+                            "$ref": "#/definitions/handlers.AdminRequest"
                         }
                     }
                 ],
@@ -215,7 +215,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.AdminRequest"
+                            "$ref": "#/definitions/handlers.AdminRequest"
                         }
                     }
                 ],
@@ -266,7 +266,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.AdminTransactionsRequest"
+                            "$ref": "#/definitions/handlers.AdminTransactionsRequest"
                         }
                     }
                 ],
@@ -320,7 +320,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.AdminRequest"
+                            "$ref": "#/definitions/handlers.AdminRequest"
                         }
                     }
                 ],
@@ -371,7 +371,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.AdminUpdateBalanceRequest"
+                            "$ref": "#/definitions/handlers.AdminUpdateBalanceRequest"
                         }
                     }
                 ],
@@ -474,7 +474,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.TicketCreateRequest"
+                            "$ref": "#/definitions/handlers.TicketCreateRequest"
                         }
                     }
                 ],
@@ -482,7 +482,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.TicketCreateAnswer"
+                            "$ref": "#/definitions/handlers.TicketCreateAnswer"
                         }
                     },
                     "400": {
@@ -531,7 +531,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.TicketIDRequest"
+                            "$ref": "#/definitions/handlers.TicketIDRequest"
                         }
                     }
                 ],
@@ -701,7 +701,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.WriteTicketRequest"
+                            "$ref": "#/definitions/handlers.WriteTicketRequest"
                         }
                     }
                 ],
@@ -895,7 +895,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.AuthRequest"
+                            "$ref": "#/definitions/handlers.AuthRequest"
                         }
                     }
                 ],
@@ -903,10 +903,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.AuthResponse"
                         }
                     },
                     "401": {
@@ -916,6 +913,49 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/captcha": {
+            "get": {
+                "description": "Returns a captcha image and X-Captcha-ID header",
+                "produces": [
+                    "image/png"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get captcha image",
+                "responses": {
+                    "200": {
+                        "description": "image/png",
+                        "headers": {
+                            "X-Captcha-ID": {
+                                "type": "string",
+                                "description": "Captcha ID"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/hello": {
+            "get": {
+                "description": "Simple hello endpoint",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Health/hello",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.Response"
                         }
                     }
                 }
@@ -1079,8 +1119,93 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.RegisterRequest"
+                            "$ref": "#/definitions/handlers.RegisterRequest"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/restoreuser": {
+            "post": {
+                "description": "Restore account by mnemonic and set new password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Restore user account",
+                "parameters": [
+                    {
+                        "description": "Restore payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.RestoreRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/verify": {
+            "get": {
+                "description": "Verifies provided captcha answer",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Verify captcha",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Captcha ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Captcha answer",
+                        "name": "answer",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1089,7 +1214,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "string"
+                                "type": "boolean"
                             }
                         }
                     },
@@ -1115,6 +1240,153 @@ const docTemplate = `{
                 },
                 "balance": {
                     "type": "number"
+                }
+            }
+        },
+        "handlers.AdminRequest": {
+            "type": "object",
+            "properties": {
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.AdminTransactionsRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "wallet_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.AdminUpdateBalanceRequest": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.AuthRequest": {
+            "type": "object",
+            "properties": {
+                "captcha_answer": {
+                    "type": "string"
+                },
+                "captcha_id": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.RegisterRequest": {
+            "type": "object",
+            "properties": {
+                "captcha_answer": {
+                    "type": "string"
+                },
+                "captcha_id": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.Response": {
+            "type": "object",
+            "properties": {
+                "encrypted": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.RestoreRequest": {
+            "type": "object",
+            "properties": {
+                "captcha_answer": {
+                    "type": "string"
+                },
+                "captcha_id": {
+                    "type": "string"
+                },
+                "mnemonic": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.TicketCreateAnswer": {
+            "type": "object",
+            "properties": {
+                "ticket_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.TicketCreateRequest": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.TicketIDRequest": {
+            "type": "object",
+            "properties": {
+                "ticket_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.WriteTicketRequest": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "ticket_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -1218,112 +1490,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "userID": {
-                    "type": "integer"
-                }
-            }
-        },
-        "server.AdminRequest": {
-            "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "server.AdminTransactionsRequest": {
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "offset": {
-                    "type": "integer"
-                },
-                "wallet_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "server.AdminUpdateBalanceRequest": {
-            "type": "object",
-            "properties": {
-                "balance": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "server.AuthRequest": {
-            "type": "object",
-            "properties": {
-                "captcha_answer": {
-                    "type": "string"
-                },
-                "captcha_id": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "server.RegisterRequest": {
-            "type": "object",
-            "properties": {
-                "captcha_answer": {
-                    "type": "string"
-                },
-                "captcha_id": {
-                    "description": "GPGKey        string ` + "`" + `json:\"gpg_key\"` + "`" + `",
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "server.TicketCreateAnswer": {
-            "type": "object",
-            "properties": {
-                "ticket_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "server.TicketCreateRequest": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string"
-                },
-                "subject": {
-                    "type": "string"
-                }
-            }
-        },
-        "server.TicketIDRequest": {
-            "type": "object",
-            "properties": {
-                "ticket_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "server.WriteTicketRequest": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string"
-                },
-                "ticket_id": {
                     "type": "integer"
                 }
             }
