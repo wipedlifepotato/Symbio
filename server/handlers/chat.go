@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -317,23 +317,34 @@ func AcceptChatRequestHandler() http.HandlerFunc {
 
 func ExitFromChat() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Print("Exit from chat")
+		log.Println("ExitFromChat handler called")
+
 		claims := server.GetUserFromContext(r)
 		if claims == nil {
+			log.Println("unauthorized: claims nil")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
+
 		chatRoomID := r.URL.Query().Get("chat_room_id")
+		log.Printf("chatRoomID: %s, UserID: %d", chatRoomID, claims.UserID)
+
 		val, err := strconv.ParseInt(chatRoomID, 10, 64)
 		if err != nil {
+			log.Println("invalid chat_room_id")
 			http.Error(w, "invalid chat_room_id", http.StatusBadRequest)
 			return
 		}
+
 		err = db.DeleteChatParticipant(db.Postgres, val, claims.UserID)
 		if err != nil {
+			log.Printf("db error: %v", err)
 			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		log.Printf("Deleted participant chat_room_id=%d user_id=%d", val, claims.UserID)
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]interface{}{

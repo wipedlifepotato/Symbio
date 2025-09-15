@@ -8,7 +8,17 @@ if (!$jwt) die("Пожалуйста, войдите в систему.");
 
 $error = '';
 $message = '';
-
+// Обработка выхода из чата
+if (isset($_GET['exit_chat_id'])) {
+    $exitChatID = (int)$_GET['exit_chat_id'];
+    $res = $mf->doRequest('api/chat/exitFromChat?chat_room_id=' . $exitChatID, $jwt, [], true);
+    if ($res['httpCode'] === 200) {
+        header('Location: chat.php');
+        exit;
+    } else {
+        $error = "Ошибка при выходе из чата: " . $res['response'];
+    }
+}
 // ======================
 // 1. Обработка POST-запросов
 // ======================
@@ -144,17 +154,5 @@ if ($selectedChatID) {
     <button type="submit" style="background-color:red; color:white;">Выйти из чата</button>
 </form>
 
-<?php
-// Обработка выхода из чата
-if (isset($_GET['exit_chat_id'])) {
-    $exitChatID = (int)$_GET['exit_chat_id'];
-    $res = $mf->doRequest('api/chat/exitFromChat?chat_room_id=' . $exitChatID, $jwt, [], true);
-    if ($res['httpCode'] === 200) {
-        header('Location: chat.php');
-        exit;
-    } else {
-        $error = "Ошибка при выходе из чата: " . $res['response'];
-    }
-}
-?>
+
 <?php endif; ?>
