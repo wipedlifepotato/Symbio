@@ -137,6 +137,7 @@ func main() {
 	apiMux.Handle("/admin/update_balance", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminUpdateBalanceHandler)))
 	apiMux.Handle("/admin/getRandomTicket", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminGetRandomTicketHandler)))
 	apiMux.Handle("/admin/addUserToChatRoom", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminAddUserToChatRoom)))
+	apiMux.Handle("/admin/deleteChatRoom", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.DeleteChatRoom)))
 
 	apiMux.Handle("/ticket/my", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetMyTicketsHandler)))
 	apiMux.Handle("/ticket/messages", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetTicketMessagesHandler)))
@@ -163,6 +164,16 @@ func main() {
 	apiMux.Handle("/chat/sendMessage", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		serverhandlers.SendMessageHandler().ServeHTTP(w, r)
 	})))
+	apiMux.Handle("/chat/getChatRequests", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		serverhandlers.GetChatRequestsHandler().ServeHTTP(w, r)
+	})))
+	apiMux.Handle("/chat/acceptChatRequest", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		serverhandlers.AcceptChatRequestHandler().ServeHTTP(w, r)
+	})))
+	apiMux.Handle("/chat/exitFromChat", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		serverhandlers.ExitFromChat().ServeHTTP(w, r)
+	})))
+
 	s.HandleHandler("/api/", http.StripPrefix("/api", apiMux))
 	s.Handle("/profile", func(w http.ResponseWriter, r *http.Request) {
 		server.AuthMiddleware(serverhandlers.ProfileHandler()).ServeHTTP(w, r)
