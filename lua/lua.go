@@ -1,24 +1,27 @@
 package lua
 
 import (
-    "github.com/yuin/gopher-lua"
-    "github.com/go-redis/redis/v8"
-    "github.com/jmoiron/sqlx"
-    "fmt"
-    "net/http"
-    "github.com/fsnotify/fsnotify"
-    "log"
-    "time"
-    "mFrelance/server"
-    "mFrelance/db"
-    "mFrelance/auth"
-    "mFrelance/electrum"
-    "mFrelance/models"
-    //"mFrelance/server"
-    "gitlab.com/moneropay/go-monero/walletrpc"
-    "math/big"
+	"fmt"
+	"log"
+	"mFrelance/auth"
+	"mFrelance/db"
+	"mFrelance/electrum"
+	"mFrelance/models"
+	"mFrelance/server"
+	"net/http"
+	"time"
 
+	"github.com/fsnotify/fsnotify"
+	"github.com/go-redis/redis/v8"
+	"github.com/jmoiron/sqlx"
+	lua "github.com/yuin/gopher-lua"
+
+	//"mFrelance/server"
+	"math/big"
+
+	"gitlab.com/moneropay/go-monero/walletrpc"
 )
+
 var L *lua.LState
 
 type LuaVM struct {
@@ -26,103 +29,102 @@ type LuaVM struct {
 }
 
 func WatchLuaFile(L *lua.LState, path string) {
-    log.Printf("[LUA] Start monitoring %s", path)
+	log.Printf("[LUA] Start monitoring %s", path)
 
-    watcher, err := fsnotify.NewWatcher()
-    if err != nil {
-        log.Fatal(err)
-    }
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    err = watcher.Add(path)
-    if err != nil {
-        log.Fatal(err)
-    }
+	err = watcher.Add(path)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    go func() {
-        defer watcher.Close()
+	go func() {
+		defer watcher.Close()
 
-        for {
-            select {
-            case event, ok := <-watcher.Events:
-                if !ok {
-                    return
-                }
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
 
-                switch {
-                case event.Op&fsnotify.Write == fsnotify.Write, event.Op&fsnotify.Create == fsnotify.Create:
-                    log.Println("[LUA] Reloading Lua handlers:", event.Name)
-                    if err := L.DoFile(path); err != nil {
-                        log.Println("Error reloading Lua:", err)
-                    }
+				switch {
+				case event.Op&fsnotify.Write == fsnotify.Write, event.Op&fsnotify.Create == fsnotify.Create:
+					log.Println("[LUA] Reloading Lua handlers:", event.Name)
+					if err := L.DoFile(path); err != nil {
+						log.Println("Error reloading Lua:", err)
+					}
 
-                case event.Op&fsnotify.Remove == fsnotify.Remove, event.Op&fsnotify.Rename == fsnotify.Rename:
-                    log.Println("[LUA] File removed or renamed, re-adding watcher:", event.Name)
-                    time.Sleep(100 * time.Millisecond) 
-                    watcher.Remove(path) 
-                    err := watcher.Add(path)
-                    if err != nil {
-                        log.Println("Error re-adding watcher:", err)
-                    }
-                    if err := L.DoFile(path); err != nil {
-                        log.Println("Error reloading Lua:", err)
-                    }
-                }
-            case err, ok := <-watcher.Errors:
-                if !ok {
-                    return
-                }
-                log.Println("[LUA] Watcher error:", err)
-            }
-        }
-    }()
+				case event.Op&fsnotify.Remove == fsnotify.Remove, event.Op&fsnotify.Rename == fsnotify.Rename:
+					log.Println("[LUA] File removed or renamed, re-adding watcher:", event.Name)
+					time.Sleep(100 * time.Millisecond)
+					watcher.Remove(path)
+					err := watcher.Add(path)
+					if err != nil {
+						log.Println("Error re-adding watcher:", err)
+					}
+					if err := L.DoFile(path); err != nil {
+						log.Println("Error reloading Lua:", err)
+					}
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Println("[LUA] Watcher error:", err)
+			}
+		}
+	}()
 }
 
 func RegisterJWTLua(L *lua.LState) {
-    L.SetGlobal("get_user_from_jwt", L.NewFunction(func(L *lua.LState) int {
-        token := L.ToString(1)
-        claims, err := auth.ParseJWT(token)
-        if err != nil {
-            L.Push(lua.LNil)
-            L.Push(lua.LString(err.Error()))
-            return 2
-        }
-        tbl := L.NewTable()
-        tbl.RawSetString("user_id", lua.LNumber(claims.UserID))
-        tbl.RawSetString("username", lua.LString(claims.Username))
-        L.Push(tbl)
-        return 1
-    }))
+	L.SetGlobal("get_user_from_jwt", L.NewFunction(func(L *lua.LState) int {
+		token := L.ToString(1)
+		claims, err := auth.ParseJWT(token)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tbl := L.NewTable()
+		tbl.RawSetString("user_id", lua.LNumber(claims.UserID))
+		tbl.RawSetString("username", lua.LString(claims.Username))
+		L.Push(tbl)
+		return 1
+	}))
 }
 
 func RegisterElectrumLua(L *lua.LState, client *electrum.Client) {
 
-    L.SetGlobal("electrum_create_address", L.NewFunction(func(L *lua.LState) int {
-        addr, err := client.CreateAddress()
-        if err != nil {
-            L.Push(lua.LNil)
-            L.Push(lua.LString(err.Error()))
-            return 2
-        }
-        L.Push(lua.LString(addr))
-        return 1
-    }))
+	L.SetGlobal("electrum_create_address", L.NewFunction(func(L *lua.LState) int {
+		addr, err := client.CreateAddress()
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LString(addr))
+		return 1
+	}))
 
-    L.SetGlobal("electrum_set_withdraw_blocked", L.NewFunction(func(L *lua.LState) int {
-        blocked := L.CheckBool(1) 
-        server.SetTxPoolBlocked(blocked)
-        return 0 
-    }))
+	L.SetGlobal("electrum_set_withdraw_blocked", L.NewFunction(func(L *lua.LState) int {
+		blocked := L.CheckBool(1)
+		server.SetTxPoolBlocked(blocked)
+		return 0
+	}))
 
-
-    L.SetGlobal("electrum_is_withdraw_blocked", L.NewFunction(func(L *lua.LState) int {
-        if server.IsTxPoolBlocked() {
-            L.Push(lua.LTrue)
-        } else {
-            L.Push(lua.LFalse)
-        }
-        return 1
-    }))
-    L.SetGlobal("electrum_pay_to_many", L.NewFunction(func(L *lua.LState) int {
+	L.SetGlobal("electrum_is_withdraw_blocked", L.NewFunction(func(L *lua.LState) int {
+		if server.IsTxPoolBlocked() {
+			L.Push(lua.LTrue)
+		} else {
+			L.Push(lua.LFalse)
+		}
+		return 1
+	}))
+	L.SetGlobal("electrum_pay_to_many", L.NewFunction(func(L *lua.LState) int {
 
 		tbl := L.CheckTable(1)
 		var outputs [][2]string
@@ -146,55 +148,55 @@ func RegisterElectrumLua(L *lua.LState, client *electrum.Client) {
 
 		L.Push(lua.LString(txID))
 		return 1
-    }))
-    
-    L.SetGlobal("electrum_get_balance", L.NewFunction(func(L *lua.LState) int {
-        addr := L.ToString(1)
-        bal, err := client.GetBalance(addr)
-        if err != nil {
-            L.Push(lua.LNil)
-            L.Push(lua.LString(err.Error()))
-            return 2
-        }
-        f, _ := bal.Float64()
-        L.Push(lua.LNumber(f))
-        return 1
-    }))
+	}))
 
-    L.SetGlobal("electrum_pay_to", L.NewFunction(func(L *lua.LState) int {
-	    destination := L.ToString(1)
-	    amount := L.ToString(2)
-	    if destination == "" || amount == "" {
-		L.Push(lua.LNil)
-		L.Push(lua.LString("destination and amount required"))
-		return 2
-	    }
+	L.SetGlobal("electrum_get_balance", L.NewFunction(func(L *lua.LState) int {
+		addr := L.ToString(1)
+		bal, err := client.GetBalance(addr)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		f, _ := bal.Float64()
+		L.Push(lua.LNumber(f))
+		return 1
+	}))
 
-	    txid, err := client.PayTo(destination, amount)
-	    if err != nil {
-		L.Push(lua.LNil)
-		L.Push(lua.LString(err.Error()))
-		return 2
-	    }
+	L.SetGlobal("electrum_pay_to", L.NewFunction(func(L *lua.LState) int {
+		destination := L.ToString(1)
+		amount := L.ToString(2)
+		if destination == "" || amount == "" {
+			L.Push(lua.LNil)
+			L.Push(lua.LString("destination and amount required"))
+			return 2
+		}
 
-	    L.Push(lua.LString(txid))
-	    return 1
-    }))
+		txid, err := client.PayTo(destination, amount)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
 
-    L.SetGlobal("electrum_list_addresses", L.NewFunction(func(L *lua.LState) int {
-        addrs, err := client.ListAddresses()
-        if err != nil {
-            L.Push(lua.LNil)
-            L.Push(lua.LString(err.Error()))
-            return 2
-        }
-        tbl := L.NewTable()
-        for _, a := range addrs {
-            tbl.Append(lua.LString(a))
-        }
-        L.Push(tbl)
-        return 1
-    }))
+		L.Push(lua.LString(txid))
+		return 1
+	}))
+
+	L.SetGlobal("electrum_list_addresses", L.NewFunction(func(L *lua.LState) int {
+		addrs, err := client.ListAddresses()
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tbl := L.NewTable()
+		for _, a := range addrs {
+			tbl.Append(lua.LString(a))
+		}
+		L.Push(tbl)
+		return 1
+	}))
 }
 
 func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
@@ -205,34 +207,34 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		return 1
 	}))
 	L.SetGlobal("get_transactions", L.NewFunction(func(L *lua.LState) int {
-	    walletID := L.ToInt64(1)
-	    limit := L.ToInt(2)
-	    offset := L.ToInt(3)
+		walletID := L.ToInt64(1)
+		limit := L.ToInt(2)
+		offset := L.ToInt(3)
 
-	    txs, err := models.GetTransactionsByWallet(walletID, limit, offset)
-	    if err != nil {
-		L.Push(lua.LNil)
-		L.Push(lua.LString(err.Error()))
-		return 2
-	    }
+		txs, err := models.GetTransactionsByWallet(db.Postgres, walletID, limit, offset)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
 
-	    tbl := L.NewTable()
-	    for _, tx := range txs {
-		txTbl := L.NewTable()
-		txTbl.RawSetString("id", lua.LNumber(tx.ID))
-		txTbl.RawSetString("from_wallet_id", lua.LNumber(tx.FromWalletID.Int64))
-		txTbl.RawSetString("to_wallet_id", lua.LNumber(tx.ToWalletID.Int64))
-		txTbl.RawSetString("to_address", lua.LString(tx.ToAddress.String))
-		txTbl.RawSetString("task_id", lua.LNumber(tx.TaskID.Int64))
-		txTbl.RawSetString("amount", lua.LString(tx.Amount))
-		txTbl.RawSetString("currency", lua.LString(tx.Currency))
-		txTbl.RawSetString("confirmed", lua.LBool(tx.Confirmed))
-		txTbl.RawSetString("created_at", lua.LString(tx.CreatedAt.Format(time.RFC3339)))
-		tbl.Append(txTbl)
-	    }
+		tbl := L.NewTable()
+		for _, tx := range txs {
+			txTbl := L.NewTable()
+			txTbl.RawSetString("id", lua.LNumber(tx.ID))
+			txTbl.RawSetString("from_wallet_id", lua.LNumber(tx.FromWalletID.Int64))
+			txTbl.RawSetString("to_wallet_id", lua.LNumber(tx.ToWalletID.Int64))
+			txTbl.RawSetString("to_address", lua.LString(tx.ToAddress.String))
+			txTbl.RawSetString("task_id", lua.LNumber(tx.TaskID.Int64))
+			txTbl.RawSetString("amount", lua.LString(tx.Amount))
+			txTbl.RawSetString("currency", lua.LString(tx.Currency))
+			txTbl.RawSetString("confirmed", lua.LBool(tx.Confirmed))
+			txTbl.RawSetString("created_at", lua.LString(tx.CreatedAt.Format(time.RFC3339)))
+			tbl.Append(txTbl)
+		}
 
-	    L.Push(tbl)
-	    return 1
+		L.Push(tbl)
+		return 1
 	}))
 	L.SetGlobal("get_wallet", L.NewFunction(func(L *lua.LState) int {
 		userID := L.ToString(1)
@@ -374,7 +376,6 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		return 1
 	}))
 
-
 	L.SetGlobal("make_admin", L.NewFunction(func(L *lua.LState) int {
 		userID := int64(L.ToInt(1))
 		err := db.MakeAdmin(psql, userID)
@@ -398,7 +399,7 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		L.Push(lua.LBool(true))
 		return 1
 	}))
-	
+
 	L.SetGlobal("get_user", L.NewFunction(func(L *lua.LState) int {
 		username := L.ToString(1)
 		userID, passwordHash, err := db.GetUserByUsername(psql, username)
@@ -423,33 +424,32 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		L.Push(lua.LBool(true))
 		return 1
 	}))
-	
+
 	L.SetGlobal("get_profile", L.NewFunction(func(L *lua.LState) int {
 		userID := L.CheckInt64(1)
 		profile, err := models.GetProfile(psql, userID)
 		if err != nil {
-		    L.RaiseError("GetProfile error: %v", err)
-		    return 0
+			L.RaiseError("GetProfile error: %v", err)
+			return 0
 		}
 		tbl := L.NewTable()
 		tbl.RawSetString("user_id", lua.LNumber(profile.UserID))
 		tbl.RawSetString("full_name", lua.LString(profile.FullName))
 		tbl.RawSetString("bio", lua.LString(profile.Bio))
-		
+
 		skillsTbl := L.NewTable()
 		for _, s := range profile.Skills {
-		    skillsTbl.Append(lua.LString(s))
+			skillsTbl.Append(lua.LString(s))
 		}
 		tbl.RawSetString("skills", skillsTbl)
-		
+
 		tbl.RawSetString("avatar", lua.LString(profile.Avatar))
 		tbl.RawSetString("rating", lua.LNumber(profile.Rating))
 		tbl.RawSetString("completed_tasks", lua.LNumber(profile.CompletedTasks))
-		
+
 		L.Push(tbl)
 		return 1
-	    }))
-
+	}))
 
 	L.SetGlobal("upsert_profile", L.NewFunction(func(L *lua.LState) int {
 		userID := L.CheckInt64(1)
@@ -460,27 +460,27 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 
 		skills := make(models.JSONStrings, 0)
 		skillsTbl.ForEach(func(_, value lua.LValue) {
-		    if s, ok := value.(lua.LString); ok {
-		        skills = append(skills, string(s))
-		    }
+			if s, ok := value.(lua.LString); ok {
+				skills = append(skills, string(s))
+			}
 		})
 
 		profile := &models.Profile{
-		    UserID: userID,
-		    FullName: fullName,
-		    Bio: bio,
-		    Skills: skills,
-		    Avatar: avatar,
+			UserID:   userID,
+			FullName: fullName,
+			Bio:      bio,
+			Skills:   skills,
+			Avatar:   avatar,
 		}
 
 		if err := models.UpsertProfile(psql, profile); err != nil {
-		    L.RaiseError("UpsertProfile error: %v", err)
-		    return 0
+			L.RaiseError("UpsertProfile error: %v", err)
+			return 0
 		}
 
 		L.Push(lua.LBool(true))
 		return 1
-	    }))
+	}))
 
 	L.SetGlobal("get_profiles", L.NewFunction(func(L *lua.LState) int {
 		limit := L.CheckInt(1)
@@ -488,33 +488,33 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 
 		profiles, err := models.GetProfilesWithLimitOffset(psql, limit, offset)
 		if err != nil {
-		    L.RaiseError("GetProfilesWithLimitOffset error: %v", err)
-		    return 0
+			L.RaiseError("GetProfilesWithLimitOffset error: %v", err)
+			return 0
 		}
 
 		tbl := L.NewTable()
 		for _, p := range profiles {
-		    pTbl := L.NewTable()
-		    pTbl.RawSetString("user_id", lua.LNumber(p.UserID))
-		    pTbl.RawSetString("full_name", lua.LString(p.FullName))
-		    pTbl.RawSetString("bio", lua.LString(p.Bio))
+			pTbl := L.NewTable()
+			pTbl.RawSetString("user_id", lua.LNumber(p.UserID))
+			pTbl.RawSetString("full_name", lua.LString(p.FullName))
+			pTbl.RawSetString("bio", lua.LString(p.Bio))
 
-		    skillsTbl := L.NewTable()
-		    for _, s := range p.Skills {
-		        skillsTbl.Append(lua.LString(s))
-		    }
-		    pTbl.RawSetString("skills", skillsTbl)
+			skillsTbl := L.NewTable()
+			for _, s := range p.Skills {
+				skillsTbl.Append(lua.LString(s))
+			}
+			pTbl.RawSetString("skills", skillsTbl)
 
-		    pTbl.RawSetString("avatar", lua.LString(p.Avatar))
-		    pTbl.RawSetString("rating", lua.LNumber(p.Rating))
-		    pTbl.RawSetString("completed_tasks", lua.LNumber(p.CompletedTasks))
+			pTbl.RawSetString("avatar", lua.LString(p.Avatar))
+			pTbl.RawSetString("rating", lua.LNumber(p.Rating))
+			pTbl.RawSetString("completed_tasks", lua.LNumber(p.CompletedTasks))
 
-		    tbl.Append(pTbl)
+			tbl.Append(pTbl)
 		}
 
 		L.Push(tbl)
 		return 1
-	    }))
+	}))
 	// unblock_user(userID)
 	L.SetGlobal("unblock_user", L.NewFunction(func(L *lua.LState) int {
 		userID := L.ToInt64(1)
@@ -526,7 +526,6 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		L.Push(lua.LBool(true))
 		return 1
 	}))
-
 
 	L.SetGlobal("is_user_blocked", L.NewFunction(func(L *lua.LState) int {
 		username := L.ToString(1)
@@ -543,41 +542,40 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		L.Push(lua.LBool(blocked))
 		return 1
 	}))
-	
+
 	L.SetGlobal("verify_password", L.NewFunction(func(L *lua.LState) int {
-	    password := L.ToString(1)
-	    hashed := L.ToString(2)
+		password := L.ToString(1)
+		hashed := L.ToString(2)
 
-	    res := server.VerifyPassword(password,hashed)
-	    L.Push(lua.LBool(res))
-	    return 1
+		res := server.VerifyPassword(password, hashed)
+		L.Push(lua.LBool(res))
+		return 1
 	}))
-	
+
 	L.SetGlobal("change_password", L.NewFunction(func(L *lua.LState) int {
-	    username := L.ToString(1)
-	    newPassword := L.ToString(2)
+		username := L.ToString(1)
+		newPassword := L.ToString(2)
 
+		hashed := server.HashPassword(newPassword)
 
-	    hashed := server.HashPassword(newPassword)
+		err := db.ChangeUserPassword(psql, username, string(hashed))
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
 
-	    err := db.ChangeUserPassword(psql, username, string(hashed))
-	    if err != nil {
-		L.Push(lua.LNil)
-		L.Push(lua.LString(err.Error()))
-		return 2
-	    }
-
-	    tbl := L.NewTable()
-	    tbl.RawSetString("username", lua.LString(username))
-	    L.Push(tbl)
-	    return 1
+		tbl := L.NewTable()
+		tbl.RawSetString("username", lua.LString(username))
+		L.Push(tbl)
+		return 1
 	}))
-	
+
 	L.SetGlobal("restore_user", L.NewFunction(func(L *lua.LState) int {
 		username := L.ToString(1)
 		mnemonic := L.ToString(2)
 		userID, usernameOut, err := db.RestoreUser(psql, username, mnemonic)
-		
+
 		if err != nil || userID == 0 {
 			L.Push(lua.LNil)
 			return 1
@@ -588,7 +586,6 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		L.Push(tbl)
 		return 1
 	}))
-
 
 	L.SetGlobal("generate_jwt", L.NewFunction(func(L *lua.LState) int {
 		userID := int64(L.ToInt(1))
@@ -606,45 +603,44 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 var registeredPaths = make(map[string]bool)
 
 func RegisterHttpHandler(L *lua.LState, mux *http.ServeMux) {
-    L.SetGlobal("register_handler", L.NewFunction(func(L *lua.LState) int {
-        path := L.ToString(1)
-        handlerFn := L.ToFunction(2)
+	L.SetGlobal("register_handler", L.NewFunction(func(L *lua.LState) int {
+		path := L.ToString(1)
+		handlerFn := L.ToFunction(2)
 
-        if registeredPaths[path] {
-            return 0
-        }
-        registeredPaths[path] = true
+		if registeredPaths[path] {
+			return 0
+		}
+		registeredPaths[path] = true
 
-        mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-            r.ParseForm()
-            reqTable := L.NewTable()
-            reqTable.RawSetString("method", lua.LString(r.Method))
+		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			r.ParseForm()
+			reqTable := L.NewTable()
+			reqTable.RawSetString("method", lua.LString(r.Method))
 
-            paramsTable := L.NewTable()
-            for key, values := range r.Form {
-                if len(values) > 0 {
-                    paramsTable.RawSetString(key, lua.LString(values[0]))
-                }
-            }
-            reqTable.RawSetString("params", paramsTable)
+			paramsTable := L.NewTable()
+			for key, values := range r.Form {
+				if len(values) > 0 {
+					paramsTable.RawSetString(key, lua.LString(values[0]))
+				}
+			}
+			reqTable.RawSetString("params", paramsTable)
 
-            if err := L.CallByParam(lua.P{
-                Fn:      handlerFn,
-                NRet:    1,
-                Protect: true,
-            }, reqTable); err != nil {
-                http.Error(w, err.Error(), 500)
-                return
-            }
+			if err := L.CallByParam(lua.P{
+				Fn:      handlerFn,
+				NRet:    1,
+				Protect: true,
+			}, reqTable); err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
 
-            ret := L.Get(-1)
-            L.Pop(1)
-            w.Write([]byte(ret.String()))
-        })
-        return 0
-    }))
+			ret := L.Get(-1)
+			L.Pop(1)
+			w.Write([]byte(ret.String()))
+		})
+		return 0
+	}))
 }
-
 
 func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client, mClient *walletrpc.Client) {
 	//l := lua.NewState()
@@ -652,7 +648,7 @@ func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.
 	RegisterLuaRedis(l, rdb)
 	RegisterLuaPostgres(l, psql)
 	RegisterConfigGlobals(l)
-	RegisterLuaHelpers(l,rdb,psql)
+	RegisterLuaHelpers(l, rdb, psql)
 	RegisterElectrumLua(l, eClient)
 	RegisterJWTLua(l)
 	RegisterMoneroLua(l, mClient)
@@ -662,7 +658,7 @@ func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.
 func NewVM(rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client, mClient *walletrpc.Client) *LuaVM {
 	l := lua.NewState()
 	luaInit(l, rdb, psql, eClient, mClient)
-	
+
 	return &LuaVM{L: l}
 }
 
@@ -671,14 +667,14 @@ func (vm *LuaVM) Close() {
 }
 
 func HelloLua(L *lua.LState) int {
-    name := L.ToString(1)
-    fmt.Println("Hello from Go,", name)
-    L.Push(lua.LString("Hi, " + name))
-    return 1
+	name := L.ToString(1)
+	fmt.Println("Hello from Go,", name)
+	L.Push(lua.LString("Hi, " + name))
+	return 1
 }
 
 func NewState(rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client, mClient *walletrpc.Client) *lua.LState {
 	L = lua.NewState()
-	luaInit(L, rdb, psql, eClient, mClient) 
+	luaInit(L, rdb, psql, eClient, mClient)
 	return L
 }

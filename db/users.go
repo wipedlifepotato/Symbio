@@ -2,10 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"time"
 	"errors"
-	"github.com/jmoiron/sqlx"
 	"log"
+	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 func BlockUser(db *sqlx.DB, userID int64) error {
@@ -64,7 +65,6 @@ func IsUserBlocked(db *sqlx.DB, userID int64) (bool, error) {
 	return blocked, nil
 }
 
-
 func CheckUser(db *sqlx.DB, username, passwordHash string) (int64, error) {
 	var userID int64
 	err := db.QueryRow(`
@@ -80,7 +80,7 @@ func CheckUser(db *sqlx.DB, username, passwordHash string) (int64, error) {
 	return userID, nil
 }
 
-//   err = db.RestoreUser(db.Postgres, req.Username, req.Mnemonic)
+// err = db.RestoreUser(db.Postgres, req.Username, req.Mnemonic)
 func RestoreUser(db *sqlx.DB, wantusername, mnemonic string) (int64, string, error) {
 	var (
 		userID   int64
@@ -125,11 +125,11 @@ func ChangeUserPassword(db *sqlx.DB, username, passwordHash string) error {
 }
 
 func CreateUser(db *sqlx.DB, username, passwordHash, mnemonic string) error {
-    _, err := db.Exec(`
+	_, err := db.Exec(`
         INSERT INTO users (username, password_hash, mnemonic, created_at)
         VALUES ($1, $2, $3, $4)
     `, username, passwordHash, mnemonic, time.Now())
-    return err
+	return err
 }
 
 func GetUserByUsername(db *sqlx.DB, username string) (int64, string, error) {
@@ -151,17 +151,26 @@ func GetUserByUsername(db *sqlx.DB, username string) (int64, string, error) {
 
 // GetUsernameByID returns username by user id (empty if not found)
 func GetUsernameByID(db *sqlx.DB, userID int64) (string, error) {
-    var username string
-    err := db.QueryRow(`
+	var username string
+	err := db.QueryRow(`
         SELECT username FROM users WHERE id = $1
     `, userID).Scan(&username)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            return "", nil
-        }
-        return "", err
-    }
-    return username, nil
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil
+		}
+		return "", err
+	}
+	return username, nil
+}
+
+func GetAllUserIDs(db *sqlx.DB) ([]int64, error) {
+	var userIDs []int64
+	err := db.Select(&userIDs, `SELECT id FROM users`)
+	if err != nil {
+		return nil, err
+	}
+	return userIDs, nil
 }
 
 func IsAdmin(db *sqlx.DB, userID int64) (bool, error) {
@@ -179,8 +188,6 @@ func IsAdmin(db *sqlx.DB, userID int64) (bool, error) {
 	log.Printf("User %d is_admin=%v", userID, isAdmin)
 	return isAdmin, nil
 }
-
-
 func MakeAdmin(db *sqlx.DB, userID int64) error {
 	res, err := db.Exec(`
         UPDATE users SET is_admin = TRUE WHERE id = $1

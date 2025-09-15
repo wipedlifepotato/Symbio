@@ -1,23 +1,23 @@
 package handlers
 
 import (
-    "context"
-    "database/sql"
-    "encoding/json"
-    "log"
-    "math/big"
-    "net/http"
-    "strconv"
-    "time"
-    "os"
+	"context"
+	"database/sql"
+	"encoding/json"
+	"log"
+	"math/big"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
 
-    "gitlab.com/moneropay/go-monero/walletrpc"
+	"gitlab.com/moneropay/go-monero/walletrpc"
 
-    "mFrelance/config"
-    "mFrelance/db"
-    "mFrelance/electrum"
-    "mFrelance/models"
-    "mFrelance/server"
+	"mFrelance/config"
+	"mFrelance/db"
+	"mFrelance/electrum"
+	"mFrelance/models"
+	"mFrelance/server"
 )
 
 // WalletHandler godoc
@@ -29,40 +29,49 @@ import (
 // @Security BearerAuth
 // @Router /api/wallet [get]
 func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Client, eClient *electrum.Client) {
-    claims := server.GetUserFromContext(r)
-    if claims == nil {
-        http.Error(w, "user not found in context", http.StatusUnauthorized)
-        return
-    }
-    userID := claims.UserID
-    currency := r.URL.Query().Get("currency")
+	claims := server.GetUserFromContext(r)
+	if claims == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
+	currency := r.URL.Query().Get("currency")
 
-    wallet, err := db.GetWalletBalance(db.Postgres, userID, currency)
-    if err != nil {
-        http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
-        return
-    }
-    if wallet == nil {
-        var address string
-        switch currency {
-        case "XMR":
-            resp, err := mClient.CreateAddress(context.Background(), &walletrpc.CreateAddressRequest{AccountIndex: 0, Label: "user_" + strconv.Itoa(int(userID))})
-            if err != nil { http.Error(w, "Monero RPC error: "+err.Error(), http.StatusInternalServerError); return }
-            address = resp.Address
-        case "BTC":
-            addr, err := eClient.CreateAddress()
-            if err != nil { http.Error(w, "Electrum error: "+err.Error(), http.StatusInternalServerError); return }
-            address = addr
-        default:
-            http.Error(w, "Unsupported currency", http.StatusBadRequest)
-            return
-        }
-        _, err = db.Postgres.Exec(`INSERT INTO wallets(user_id,currency,address) VALUES($1,$2,$3)`, userID, currency, address)
-        if err != nil { http.Error(w, "DB insert error: "+err.Error(), http.StatusInternalServerError); return }
-        wallet = &db.WalletBalance{Address: address, Balance: 0}
-    }
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(wallet)
+	wallet, err := db.GetWalletBalance(db.Postgres, userID, currency)
+	if err != nil {
+		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if wallet == nil {
+		var address string
+		switch currency {
+		case "XMR":
+			resp, err := mClient.CreateAddress(context.Background(), &walletrpc.CreateAddressRequest{AccountIndex: 0, Label: "user_" + strconv.Itoa(int(userID))})
+			if err != nil {
+				http.Error(w, "Monero RPC error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			address = resp.Address
+		case "BTC":
+			addr, err := eClient.CreateAddress()
+			if err != nil {
+				http.Error(w, "Electrum error: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			address = addr
+		default:
+			http.Error(w, "Unsupported currency", http.StatusBadRequest)
+			return
+		}
+		_, err = db.Postgres.Exec(`INSERT INTO wallets(user_id,currency,address) VALUES($1,$2,$3)`, userID, currency, address)
+		if err != nil {
+			http.Error(w, "DB insert error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		wallet = &db.WalletBalance{Address: address, Balance: 0}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(wallet)
 }
 
 // SendMoneroHandler godoc
@@ -76,26 +85,28 @@ func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Cl
 // @Security BearerAuth
 // @Router /api/wallet/moneroSend [post]
 func SendMoneroHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Client) {
-    // TODO
+	// TODO
 }
 
 type PendingRequest struct {
-    UserID     int64  `json:"user_id"`
-    To         string `json:"to"`
-    Amount     string `json:"amount"`
-    Commission string `json:"commission"`
-    Remaining  string `json:"remaining"`
-    Timestamp  int64  `json:"timestamp"`
+	UserID     int64  `json:"user_id"`
+	To         string `json:"to"`
+	Amount     string `json:"amount"`
+	Commission string `json:"commission"`
+	Remaining  string `json:"remaining"`
+	Timestamp  int64  `json:"timestamp"`
 }
 
 func savePendingRequest(req PendingRequest) error {
-    const filePath = "pendingRequests.json"
-    var pending []PendingRequest
-    data, err := os.ReadFile(filePath)
-    if err == nil { _ = json.Unmarshal(data, &pending) }
-    pending = append(pending, req)
-    newData, _ := json.MarshalIndent(pending, "", "  ")
-    return os.WriteFile(filePath, newData, 0644)
+	const filePath = "pendingRequests.json"
+	var pending []PendingRequest
+	data, err := os.ReadFile(filePath)
+	if err == nil {
+		_ = json.Unmarshal(data, &pending)
+	}
+	pending = append(pending, req)
+	newData, _ := json.MarshalIndent(pending, "", "  ")
+	return os.WriteFile(filePath, newData, 0644)
 }
 
 // SendElectrumHandler godoc
@@ -111,66 +122,112 @@ func savePendingRequest(req PendingRequest) error {
 // @Security BearerAuth
 // @Router /api/wallet/bitcoinSend [post]
 func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electrum.Client) {
-    if server.IsTxPoolBlocked() { http.Error(w, "withdrawals temporarily blocked", http.StatusForbidden); return }
-    claims := server.GetUserFromContext(r)
-    if claims == nil { http.Error(w, "user not found", http.StatusUnauthorized); return }
-    userID := claims.UserID
+	if server.IsTxPoolBlocked() {
+		http.Error(w, "withdrawals temporarily blocked", http.StatusForbidden)
+		return
+	}
+	claims := server.GetUserFromContext(r)
+	if claims == nil {
+		http.Error(w, "user not found", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
 
-    blocked, err := db.IsUserBlocked(db.Postgres, userID)
-    if err != nil { http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError); return }
-    if blocked { http.Error(w, "user is blocked", http.StatusForbidden); return }
+	blocked, err := db.IsUserBlocked(db.Postgres, userID)
+	if err != nil {
+		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if blocked {
+		http.Error(w, "user is blocked", http.StatusForbidden)
+		return
+	}
 
-    destAddress := r.URL.Query().Get("to")
-    amountStr := r.URL.Query().Get("amount")
-    if destAddress == "" || amountStr == "" { http.Error(w, "destination and amount required", http.StatusBadRequest); return }
+	destAddress := r.URL.Query().Get("to")
+	amountStr := r.URL.Query().Get("amount")
+	if destAddress == "" || amountStr == "" {
+		http.Error(w, "destination and amount required", http.StatusBadRequest)
+		return
+	}
 
-    amount, ok := new(big.Float).SetString(amountStr)
-    if !ok { http.Error(w, "invalid amount", http.StatusBadRequest); return }
-    if !server.IsValidBTCAddress(destAddress) { http.Error(w, "invalid Bitcoin address format", http.StatusBadRequest); return }
-    minBTC := big.NewFloat(0.0001)
-    if amount.Cmp(minBTC) < 0 { http.Error(w, "amount below minimum", http.StatusBadRequest); return }
+	amount, ok := new(big.Float).SetString(amountStr)
+	if !ok {
+		http.Error(w, "invalid amount", http.StatusBadRequest)
+		return
+	}
+	if !server.IsValidBTCAddress(destAddress) {
+		http.Error(w, "invalid Bitcoin address format", http.StatusBadRequest)
+		return
+	}
+	minBTC := big.NewFloat(0.0001)
+	if amount.Cmp(minBTC) < 0 {
+		http.Error(w, "amount below minimum", http.StatusBadRequest)
+		return
+	}
 
-    userWallet, err := models.GetWalletByUserAndCurrency(userID, "BTC")
-    if err != nil { http.Error(w, "failed to get wallet: "+err.Error(), http.StatusInternalServerError); return }
-    userBalance := userWallet.BigBalance()
-    if userBalance.Cmp(amount) < 0 { http.Error(w, "insufficient balance", http.StatusBadRequest); return }
+	userWallet, err := models.GetWalletByUserAndCurrency(db.Postgres, userID, "BTC")
+	if err != nil {
+		http.Error(w, "failed to get wallet: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	userBalance := userWallet.BigBalance()
+	if userBalance.Cmp(amount) < 0 {
+		http.Error(w, "insufficient balance", http.StatusBadRequest)
+		return
+	}
 
-    commissionPerc := big.NewFloat(config.AppConfig.BitcoinCommission)
-    commission := new(big.Float).Quo(new(big.Float).Mul(amount, commissionPerc), big.NewFloat(100))
-    remaining := new(big.Float).Sub(amount, commission)
-    if remaining.Cmp(big.NewFloat(0)) <= 0 { http.Error(w, "amount too small for commission", http.StatusBadRequest); return }
+	commissionPerc := big.NewFloat(config.AppConfig.BitcoinCommission)
+	commission := new(big.Float).Quo(new(big.Float).Mul(amount, commissionPerc), big.NewFloat(100))
+	remaining := new(big.Float).Sub(amount, commission)
+	if remaining.Cmp(big.NewFloat(0)) <= 0 {
+		http.Error(w, "amount too small for commission", http.StatusBadRequest)
+		return
+	}
 
-    req := PendingRequest{UserID: userID, To: destAddress, Amount: amountStr, Commission: commission.Text('f', 8), Remaining: remaining.Text('f', 8), Timestamp: time.Now().Unix()}
-    if err := savePendingRequest(req); err != nil { log.Printf("Failed to save pending request: %v", err) }
+	req := PendingRequest{UserID: userID, To: destAddress, Amount: amountStr, Commission: commission.Text('f', 8), Remaining: remaining.Text('f', 8), Timestamp: time.Now().Unix()}
+	if err := savePendingRequest(req); err != nil {
+		log.Printf("Failed to save pending request: %v", err)
+	}
 
-    if err := userWallet.SubBalance(amount); err != nil { http.Error(w, "failed to update balance: "+err.Error(), http.StatusInternalServerError); return }
+	if err := userWallet.SubBalance(db.Postgres, amount); err != nil {
+		http.Error(w, "failed to update balance: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    isOur, err := models.IsOurWalletAddress(destAddress, "BTC")
-    if err != nil { http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError); return }
+	isOur, err := db.IsOurWalletAddress(db.Postgres, destAddress, "BTC")
+	if err != nil {
+		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    tx := models.Transaction{FromWalletID: sql.NullInt64{Int64: userWallet.ID, Valid: true}, ToWalletID: sql.NullInt64{Valid: false}, ToAddress: sql.NullString{String: destAddress, Valid: true}, Amount: remaining.Text('f', 8), Currency: "BTC", Confirmed: false}
-    if isOur {
-        if destWallet, err := models.GetWalletByAddress(destAddress, "BTC"); err == nil { tx.ToWalletID = sql.NullInt64{Int64: destWallet.ID, Valid: true} }
-    }
-    if err := models.SaveTransaction(&tx); err != nil { log.Printf("Failed to save transaction: %v", err) }
+	tx := models.Transaction{FromWalletID: sql.NullInt64{Int64: userWallet.ID, Valid: true}, ToWalletID: sql.NullInt64{Valid: false}, ToAddress: sql.NullString{String: destAddress, Valid: true}, Amount: remaining.Text('f', 8), Currency: "BTC", Confirmed: false}
+	if isOur {
+		if destWallet, err := models.GetWalletByAddress(db.Postgres, destAddress, "BTC"); err == nil {
+			tx.ToWalletID = sql.NullInt64{Int64: destWallet.ID, Valid: true}
+		}
+	}
+	if err := db.SaveTransaction(db.Postgres, &tx); err != nil {
+		log.Printf("Failed to save transaction: %v", err)
+	}
 
-    if !isOur {
-        server.AddToTxPool(config.AppConfig.BitcoinAddress, commission)
-        server.AddToTxPool(destAddress, remaining)
-        log.Printf("Added to pool: to=%s amount=%s commission=%s", destAddress, remaining.Text('f', 8), commission.Text('f', 8))
-    } else {
-        if err := models.AddToWalletBalance(destAddress, "BTC", remaining); err != nil { http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError); return }
-    }
+	if !isOur {
+		server.AddToTxPool(config.AppConfig.BitcoinAddress, commission)
+		server.AddToTxPool(destAddress, remaining)
+		log.Printf("Added to pool: to=%s amount=%s commission=%s", destAddress, remaining.Text('f', 8), commission.Text('f', 8))
+	} else {
+		if err := models.AddToWalletBalance(db.Postgres, destAddress, "BTC", remaining); err != nil {
+			http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]any{
-        "status":        "ok",
-        "queued_amount": amountStr,
-        "commission":    commission.Text('f', 8),
-        "remaining":     remaining.Text('f', 8),
-        "from":          userWallet.Address,
-        "to":            destAddress,
-    })
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":        "ok",
+		"queued_amount": amountStr,
+		"commission":    commission.Text('f', 8),
+		"remaining":     remaining.Text('f', 8),
+		"from":          userWallet.Address,
+		"to":            destAddress,
+	})
 }
-
-
