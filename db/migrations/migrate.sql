@@ -81,21 +81,6 @@ CREATE TABLE IF NOT EXISTS task_offers (
 CREATE INDEX IF NOT EXISTS idx_task_offers_task_id ON task_offers (task_id);
 CREATE INDEX IF NOT EXISTS idx_task_offers_freelancer_id ON task_offers (freelancer_id);
 
-
-CREATE TABLE IF NOT EXISTS messages (
-    id SERIAL PRIMARY KEY,
-    sender_id INT REFERENCES users(id) ON DELETE CASCADE,
-    recipient_id INT REFERENCES users(id) ON DELETE CASCADE,
-    task_id INT REFERENCES tasks(id) ON DELETE CASCADE,
-    message TEXT NOT NULL,
-    read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages (sender_id);
-CREATE INDEX IF NOT EXISTS idx_messages_recipient_id ON messages (recipient_id);
-CREATE INDEX IF NOT EXISTS idx_messages_task_id ON messages (task_id);
-
 -- Chat rooms
 CREATE TABLE IF NOT EXISTS chat_rooms (
     id SERIAL PRIMARY KEY,

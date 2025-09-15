@@ -1,8 +1,9 @@
 package db
 
 import (
-	"github.com/jmoiron/sqlx"
 	"mFrelance/models"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // CreateChatRoom creates a new chat room
@@ -69,11 +70,39 @@ func UpdateChatRequest(db *sqlx.DB, request *models.ChatRequest) error {
 
 // GetChatRoomsForUser retrieves chat rooms for a given user
 func GetChatRoomsForUser(db *sqlx.DB, userID int64) ([]models.ChatRoom, error) {
-    var chatRooms []models.ChatRoom
-    err := db.Select(&chatRooms, `
+	var chatRooms []models.ChatRoom
+	err := db.Select(&chatRooms, `
         SELECT cr.* FROM chat_rooms cr
         INNER JOIN chat_participants cp ON cr.id = cp.chat_room_id
         WHERE cp.user_id = $1
     `, userID)
-    return chatRooms, err
+	return chatRooms, err
+}
+
+func IsUserHaveAccessToChatRoom(db *sqlx.DB, userID int64, chatRoomID int64) (bool, error) {
+	var count int
+	err := db.Get(&count, `
+		SELECT COUNT(*) FROM chat_rooms cr
+		INNER JOIN chat_participants cp ON cr.id = cp.chat_room_id
+		WHERE cp.user_id = $1 AND cr.id = $2
+	`, userID, chatRoomID)
+	return count > 0, err
+}
+
+func GetUsersInChatRoom(db *sqlx.DB, chatRoomID int64) ([]models.User, error) {
+	var users []models.User
+	err := db.Select(&users, `
+		SELECT u.* FROM users u
+		INNER JOIN chat_participants cp ON u.id = cp.user_id
+		WHERE cp.chat_room_id = $1
+	`, chatRoomID)
+	return users, err
+}
+
+func AddUserToChatRoom(db *sqlx.DB, userID int64, chatRoomID int64) error {
+	_, err := db.Exec(`
+		INSERT INTO chat_participants (chat_room_id, user_id, joined_at)
+		VALUES ($1, $2, NOW())
+	`, chatRoomID, userID)
+	return err
 }
