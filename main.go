@@ -150,6 +150,9 @@ func main() {
     s.Handle("/profiles", func(w http.ResponseWriter, r *http.Request) {
 	    	    server.AuthMiddleware(serverhandlers.ProfilesHandler()).ServeHTTP(w,r)
     })
+    s.Handle("/profile/by_id", func(w http.ResponseWriter, r *http.Request) {
+	    server.AuthMiddleware(serverhandlers.ProfileByIDHandler()).ServeHTTP(w, r)
+    })
     
     s.Handle("/swagger/", httpSwagger.WrapHandler)
 

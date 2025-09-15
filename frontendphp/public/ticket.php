@@ -20,6 +20,22 @@ $myTickets = [];
 
 $mf = new MFrelance('localhost', 9999);
 $jwt = $_SESSION['jwt'] ?? '';
+$usernameCache = [];
+
+function usernameByID($mf, $jwt, $userId, &$cache) {
+    $uid = intval($userId);
+    if ($uid <= 0) return 'Unknown';
+    if (isset($cache[$uid])) return $cache[$uid];
+    $resp = $mf->doRequest("profile/by_id?user_id=$uid", $jwt, [], false);
+    if ($resp['httpCode'] === 200) {
+        $data = json_decode($resp['response'], true);
+        $name = $data['username'] ?? '';
+        if ($name === '') $name = 'User '.$uid;
+        $cache[$uid] = $name;
+        return $name;
+    }
+    return 'User '.$uid;
+}
 
 if (!$jwt) {
     $message = "JWT отсутствует. Пожалуйста, войдите в систему.";
@@ -132,7 +148,8 @@ if (!$jwt) {
     <div style="border:1px solid #ccc; padding:10px; max-height:300px; overflow-y:scroll;">
         <?php foreach ($ticketMessages as $m): ?>
             <p>
-                <strong>User <?= htmlspecialchars($m['SenderID'] ?? 'Unknown') ?>:</strong><br>
+                <?php $sender = isset($m['SenderID']) ? intval($m['SenderID']) : 0; ?>
+                <strong><?= htmlspecialchars(usernameByID($mf, $jwt, $sender, $usernameCache)) ?>:</strong><br>
                 <?php
                 $type = isBase64Image($m['Message']);
                 if ($type) {

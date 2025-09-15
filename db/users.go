@@ -149,6 +149,21 @@ func GetUserByUsername(db *sqlx.DB, username string) (int64, string, error) {
 	return userID, passwordHash, nil
 }
 
+// GetUsernameByID returns username by user id (empty if not found)
+func GetUsernameByID(db *sqlx.DB, userID int64) (string, error) {
+    var username string
+    err := db.QueryRow(`
+        SELECT username FROM users WHERE id = $1
+    `, userID).Scan(&username)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return "", nil
+        }
+        return "", err
+    }
+    return username, nil
+}
+
 func IsAdmin(db *sqlx.DB, userID int64) (bool, error) {
 	var isAdmin bool
 	query := `SELECT is_admin FROM users WHERE id = $1`
