@@ -4,6 +4,7 @@ require_once __DIR__ . '/../src/mfrelance.php';
 
 $message = '';
 $profile = null;
+$username = '';
 
 $mf = new MFrelance('localhost', 9999);
 
@@ -14,7 +15,9 @@ if (!$jwt) {
 } else {
     $profileResponse = $mf->doRequest("profile", $jwt);
     if ($profileResponse['httpCode'] === 200) {
-        $profile = json_decode($profileResponse['response'], true);
+        $data = json_decode($profileResponse['response'], true);
+        $username = $data['username'] ?? '';
+        $profile = $data['profile'] ?? null;
     } else {
         $message = "Ошибка при получении профиля: " . $profileResponse['response'];
         //unset($_SESSION['jwt']);
@@ -60,7 +63,7 @@ if (!$jwt) {
 }
 ?>
 
-<h2>Профиль пользователя</h2>
+<h2>Профиль пользователя <?= htmlspecialchars($username) ?></h2>
 
 <?php if ($message) echo "<p style='color:red;'>$message</p>"; ?>
 

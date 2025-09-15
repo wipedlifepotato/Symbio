@@ -40,8 +40,17 @@ func ProfileHandler() http.HandlerFunc {
                 http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
                 return
             }
+            username, err := db.GetUsernameByID(db.Postgres, claims.UserID)
+            if err != nil {
+                http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+                return
+            }
             server.SanitizeProfile(profile)
-            json.NewEncoder(w).Encode(profile)
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(map[string]any{
+                "username": username,
+                "profile":  profile,
+            })
         case "POST":
             var p models.Profile
             if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
@@ -101,6 +110,54 @@ func ProfilesHandler() http.HandlerFunc {
             return
         }
         json.NewEncoder(w).Encode(profiles)
+    }
+}
+
+
+// ProfileByIDHandler godoc
+// @Summary Get public profile by user_id
+// @Description Returns sanitized profile and username by user_id
+// @Tags profile
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {object} models.Profile
+// @Failure 400 {string} string "invalid user_id"
+// @Failure 404 {string} string "not found"
+// @Router /profile/by_id [get]
+func ProfileByIDHandler() http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        userIDStr := r.URL.Query().Get("user_id")
+        if userIDStr == "" {
+            http.Error(w, "invalid user_id", http.StatusBadRequest)
+            return
+        }
+        userID, err := strconv.ParseInt(userIDStr, 10, 64)
+        if err != nil || userID <= 0 {
+            http.Error(w, "invalid user_id", http.StatusBadRequest)
+            return
+        }
+
+        prof, err := models.GetProfile(db.Postgres, userID)
+        if err != nil {
+            http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+            return
+        }
+        if prof == nil {
+            http.Error(w, "not found", http.StatusNotFound)
+            return
+        }
+        username, err := db.GetUsernameByID(db.Postgres, userID)
+        if err != nil {
+            http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+            return
+        }
+        // включим username в ответе отдельно
+        server.SanitizeProfile(prof)
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(map[string]any{
+            "username": username,
+            "profile":  prof,
+        })
     }
 }
 
