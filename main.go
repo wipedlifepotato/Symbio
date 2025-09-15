@@ -8,6 +8,7 @@ import (
     "mFrelance/config"
     "mFrelance/db"
     "mFrelance/server"
+    serverhandlers "mFrelance/server/handlers"
     "mFrelance/lua"
     "net/http"
     "mFrelance/electrum"
@@ -90,64 +91,64 @@ func main() {
         }
     }
 
-    s.Handle("/hello", server.HelloHandler)
+    s.Handle("/hello", serverhandlers.HelloHandler)
     s.Handle("/register", func(w http.ResponseWriter, r *http.Request) {
-        server.RegisterHandler(w, r, db.RedisClient)
+        serverhandlers.RegisterHandler(w, r, db.RedisClient)
     })
     s.Handle("/auth", func(w http.ResponseWriter, r *http.Request) {
-        server.AuthHandler(w, r, db.RedisClient)
+        serverhandlers.AuthHandler(w, r, db.RedisClient)
     })
     s.Handle("/captcha", func(w http.ResponseWriter, r *http.Request) {
-        server.CaptchaHandler(w, r, db.RedisClient)
+        serverhandlers.CaptchaHandler(w, r, db.RedisClient)
     })
     s.Handle("/verify", func(w http.ResponseWriter, r *http.Request) {
-        server.VerifyHandler(w, r, db.RedisClient)
+        serverhandlers.VerifyHandler(w, r, db.RedisClient)
     })
     s.Handle("/restoreuser", func(w http.ResponseWriter, r *http.Request) {
-        server.RestoreHandler(w, r, db.RedisClient)
+        serverhandlers.RestoreHandler(w, r, db.RedisClient)
     })
 
     apiMux := http.NewServeMux()
-    apiMux.Handle("/test", server.AuthMiddleware(http.HandlerFunc(server.TestHandler)))
+    apiMux.Handle("/test", server.AuthMiddleware(http.HandlerFunc(serverhandlers.TestHandler)))
     apiMux.Handle("/wallet", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		server.WalletHandler(w, r, moneroClient, electrumClient)
+		serverhandlers.WalletHandler(w, r, moneroClient, electrumClient)
     })))
 
 	//apiMux.Handle("/wallet/update", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 //		server.UpdateBalanceHandler(w, r, moneroClient, electrumClient)
 //    })))
     apiMux.Handle("/wallet/moneroSend", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    	server.SendMoneroHandler(w, r, moneroClient)
+    	serverhandlers.SendMoneroHandler(w, r, moneroClient)
     })))
     apiMux.Handle("/wallet/bitcoinSend", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    	server.SendElectrumHandler(w, r, electrumClient)
+    	serverhandlers.SendElectrumHandler(w, r, electrumClient)
     })))
     
-    apiMux.Handle("/admin/make", server.AuthMiddleware(server.RequireAdmin(server.MakeAdminHandler)))
-    apiMux.Handle("/admin/remove", server.AuthMiddleware(server.RequireAdmin(server.RemoveAdminHandler)))
-    apiMux.Handle("/admin/check", server.AuthMiddleware(server.RequireAdmin(server.IsAdminHandler)))
-    apiMux.Handle("/admin/block", server.AuthMiddleware(server.RequireAdmin(server.BlockUserHandler)))
-    apiMux.Handle("/admin/unblock", server.AuthMiddleware(server.RequireAdmin(server.UnblockUserHandler)))
-    apiMux.Handle("/admin/transactions", server.AuthMiddleware(server.RequireAdmin(server.AdminTransactionsHandler)))
-    apiMux.Handle("/admin/wallets", server.AuthMiddleware(server.RequireAdmin(server.AdminWalletsHandler)))
-    apiMux.Handle("/admin/update_balance", server.AuthMiddleware(server.RequireAdmin(server.AdminUpdateBalanceHandler)))
-    apiMux.Handle("/admin/getRandomTicket", server.AuthMiddleware(server.RequireAdmin(server.AdminGetRandomTicketHandler)))
+    apiMux.Handle("/admin/make", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.MakeAdminHandler)))
+    apiMux.Handle("/admin/remove", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.RemoveAdminHandler)))
+    apiMux.Handle("/admin/check", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.IsAdminHandler)))
+    apiMux.Handle("/admin/block", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.BlockUserHandler)))
+    apiMux.Handle("/admin/unblock", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.UnblockUserHandler)))
+    apiMux.Handle("/admin/transactions", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminTransactionsHandler)))
+    apiMux.Handle("/admin/wallets", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminWalletsHandler)))
+    apiMux.Handle("/admin/update_balance", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminUpdateBalanceHandler)))
+    apiMux.Handle("/admin/getRandomTicket", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminGetRandomTicketHandler)))
 
-    apiMux.Handle("/ticket/my", server.AuthMiddleware(http.HandlerFunc(server.GetMyTicketsHandler)))
-    apiMux.Handle("/ticket/messages", server.AuthMiddleware(http.HandlerFunc(server.GetTicketMessagesHandler)))
-    apiMux.Handle("/ticket/write", server.AuthMiddleware(http.HandlerFunc(server.WriteToTicketHandler)))
-    apiMux.Handle("/ticket/exit", server.AuthMiddleware(http.HandlerFunc(server.ExitFromTicketHandler)))
-    apiMux.Handle("/ticket/close", server.AuthMiddleware(http.HandlerFunc(server.CloseTicketHandler)))
+    apiMux.Handle("/ticket/my", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetMyTicketsHandler)))
+    apiMux.Handle("/ticket/messages", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetTicketMessagesHandler)))
+    apiMux.Handle("/ticket/write", server.AuthMiddleware(http.HandlerFunc(serverhandlers.WriteToTicketHandler)))
+    apiMux.Handle("/ticket/exit", server.AuthMiddleware(http.HandlerFunc(serverhandlers.ExitFromTicketHandler)))
+    apiMux.Handle("/ticket/close", server.AuthMiddleware(http.HandlerFunc(serverhandlers.CloseTicketHandler)))
 
     apiMux.Handle("/ticket/createTicket", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		server.CreateTicket(w, r)
+		serverhandlers.CreateTicket(w, r)
     })))
     s.HandleHandler("/api/", http.StripPrefix("/api", apiMux))
     s.Handle("/profile", func(w http.ResponseWriter, r *http.Request) {
-	    server.AuthMiddleware(server.ProfileHandler()).ServeHTTP(w, r)
+	    server.AuthMiddleware(serverhandlers.ProfileHandler()).ServeHTTP(w, r)
     })
     s.Handle("/profiles", func(w http.ResponseWriter, r *http.Request) {
-    	    server.AuthMiddleware(server.ProfilesHandler()).ServeHTTP(w,r)
+	    	    server.AuthMiddleware(serverhandlers.ProfilesHandler()).ServeHTTP(w,r)
     })
     
     s.Handle("/swagger/", httpSwagger.WrapHandler)
