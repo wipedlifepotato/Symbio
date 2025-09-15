@@ -136,6 +136,7 @@ func main() {
 	apiMux.Handle("/admin/wallets", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminWalletsHandler)))
 	apiMux.Handle("/admin/update_balance", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminUpdateBalanceHandler)))
 	apiMux.Handle("/admin/getRandomTicket", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminGetRandomTicketHandler)))
+	apiMux.Handle("/admin/addUserToChatRoom", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminAddUserToChatRoom)))
 
 	apiMux.Handle("/ticket/my", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetMyTicketsHandler)))
 	apiMux.Handle("/ticket/messages", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetTicketMessagesHandler)))
