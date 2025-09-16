@@ -1,0 +1,26 @@
+FROM alpine:latest
+
+WORKDIR /electrum
+
+RUN apk add --no-cache python3 py3-pip wget build-base libtool autoconf automake libffi-dev openssl-dev
+
+RUN pip install cryptography --break-system-packages
+
+ENV ELECTRUM_VERSION=4.6.2
+ENV ELECTRUM_PORT=7777
+
+RUN wget https://download.electrum.org/${ELECTRUM_VERSION}/Electrum-${ELECTRUM_VERSION}.tar.gz \
+    && tar -xzf Electrum-${ELECTRUM_VERSION}.tar.gz
+
+RUN pip install Electrum-${ELECTRUM_VERSION}.tar.gz --break-system-packages
+
+RUN pip install -r Electrum-${ELECTRUM_VERSION}/contrib/requirements/requirements.txt --break-system-packages
+
+RUN rm -rf Electrum-${ELECTRUM_VERSION} Electrum-${ELECTRUM_VERSION}.tar.gz
+
+ENV ELECTRUM_PORT 7777
+EXPOSE ${ELECTRUM_PORT}
+# ELECTRUM_NETWORK
+RUN electrum --offline create
+
+CMD electrum daemon $( [ "$ELECTRUM_TESTNET" = "true" ] && echo "--testnet" ) --rpchost 0.0.0.0 --rpcport ${ELECTRUM_PORT} --rpcuser Electrum --rpcpassword Electrum

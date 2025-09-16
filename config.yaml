@@ -14,7 +14,7 @@ jwt:
   token: supersecrettoken123
 
 server:
-  port: 9998
+  port: 9999
   listen_addr: 127.0.0.1
 
 electrum:

@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: docker.io/library/postgres:15
@@ -22,21 +20,6 @@ services:
       - "${REDIS_PORT}:6379"
     command: redis-server --appendonly yes
 
-  electrum:
-    image: docker.io/lukechilds/electrumx
-    container_name: mfreelance-electrum
-    restart: unless-stopped
-    environment:
-      COIN: BTC
-      DAEMON_URL: "tcp://${ELECTRUM_HOST}:8332"
-      DB_DIRECTORY: /data
-      RPC_USER: ${ELECTRUM_USER}
-      RPC_PASSWORD: ${ELECTRUM_PASSWORD}
-    ports:
-      - "${ELECTRUM_PORT}:8000"
-    volumes:
-      - electrum_data:/data
-
   php:
     image: docker.io/library/php:8.2-apache
     container_name: mfreelance-php
@@ -45,7 +28,15 @@ services:
       - "8585:80"
     volumes:
       - ./frontendphp:/var/www/html
-
+  electrum-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.electrum
+    ports:
+      - "127.0.0.1:7779:7777"
+    environment:
+      - ELECTRUM_NETWORK=testnet
+    restart: unless-stopped
   go-server:
     build:
       context: .
@@ -59,9 +50,9 @@ services:
     depends_on:
       - postgres
       - redis
-      - electrum
+    environment:
+      - ELECTRUM_NETWORK=testnet
 
 volumes:
   pgdata:
-  electrum_data:
 
