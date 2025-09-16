@@ -14,6 +14,7 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/mFrelance .
 COPY config.yaml .
+COPY mods .
 
 EXPOSE 9999
 
