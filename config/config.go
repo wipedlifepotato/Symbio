@@ -46,11 +46,32 @@ var AppConfig Config
 func Init() {
     _ = godotenv.Load()
 
+    // CLI flags
     pflag.String("config", "", "Path to config file")
     pflag.String("port", "", "Server port")
     pflag.String("listen_addr", "", "Listen address")
+
+    pflag.String("electrum.host", "", "Electrum RPC host")
+    pflag.Int("electrum.port", 0, "Electrum RPC port")
+    pflag.String("electrum.user", "", "Electrum RPC user")
+    pflag.String("electrum.password", "", "Electrum RPC password")
+
+    pflag.String("monero.host", "", "Monero RPC host")
+    pflag.Int("monero.port", 0, "Monero RPC port")
+    pflag.String("monero.user", "", "Monero RPC user")
+    pflag.String("monero.password", "", "Monero RPC password")
+
+    pflag.String("postgres.host", "localhost", "Postgres host")
+	pflag.String("postgres.port", "5432", "Postgres port")
+	pflag.String("postgres.user", "user", "Postgres user")
+	pflag.String("postgres.password", "password", "Postgres password")
+	pflag.String("postgres.db", "db", "Postgres database")
+
+	pflag.String("redis.host", "localhost", "Redis host")
+	pflag.String("redis.port", "6379", "Redis port")
+	pflag.String("redis.password", "", "Redis password")
     pflag.Parse()
-    viper.BindPFlags(pflag.CommandLine)
+    _ = viper.BindPFlags(pflag.CommandLine)
 
     configPath := viper.GetString("config")
     if configPath != "" {
@@ -62,7 +83,7 @@ func Init() {
         viper.AddConfigPath("./config")
     }
 
-    viper.AutomaticEnv() 
+    viper.AutomaticEnv()
 
     viper.SetDefault("postgres.host", "localhost")
     viper.SetDefault("postgres.port", "5432")
