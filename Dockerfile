@@ -18,5 +18,5 @@ COPY config.yaml .
 EXPOSE 9999
 
 ENTRYPOINT ["./mFrelance"]
-CMD ["--electrum.port=7777","--postgres.host=postgres","--postgres.port=5432","--postgres.user=mfreelance","--postgres.password=mysecretpassword","--postgres.db=mydb","--redis.host=redis","--redis.port=6379","--electrum.host=electrum-server"]
+CMD ["--electrum.port=7777","--postgres.host=postgres","--postgres.port=5432","--postgres.user=postgres","--postgres.password=mysecretpassword","--postgres.db=mydb","--redis.host=redis","--redis.port=6379","--electrum.host=electrum-server"]
 
