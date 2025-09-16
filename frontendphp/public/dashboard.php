@@ -60,4 +60,8 @@ if (!$jwt) {
 <?php endif; ?>
 <p><a href="profiles.php">Профили</a></p>
 <p><a href="profile.php">Профиль</a></p>
+
+<p><a href="admin.php">Админка</a></p>
+<p><a href="admin_ticket.php">Админ тикет</a></p>
+<p><a href="chat.php">Чаты</a></p>
 <p><a href="index.php">Назад</a></p>

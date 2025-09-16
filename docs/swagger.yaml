@@ -101,6 +101,40 @@ definitions:
       ticket_id:
         type: integer
     type: object
+  models.ChatMessage:
+    properties:
+      chat_room_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      message:
+        type: string
+      sender_id:
+        type: integer
+    type: object
+  models.ChatRequest:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      requested_id:
+        type: integer
+      requester_id:
+        type: integer
+      status:
+        description: pending, accepted, rejected
+        type: string
+    type: object
+  models.ChatRoom:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+    type: object
   models.Profile:
     properties:
       avatar:
@@ -764,6 +798,305 @@ paths:
       summary: Get captcha image
       tags:
       - auth
+  /chat/UpdateChatRequest:
+    post:
+      consumes:
+      - application/json
+      description: Accept or reject a chat request by the requested user
+      parameters:
+      - description: ID of the user who sent the chat request
+        in: query
+        name: requester_id
+        required: true
+        type: integer
+      - description: 'New status: accepted or rejected'
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns status ok
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid requester_id or status
+          schema:
+            type: string
+        "401":
+          description: Unauthorized — user not logged in or not allowed to update
+          schema:
+            type: string
+        "500":
+          description: Database error
+          schema:
+            type: string
+      summary: Update a chat request
+      tags:
+      - Chat
+  /chat/acceptChatRequest:
+    post:
+      consumes:
+      - application/json
+      description: Accepts a chat request from another user and creates a chat room
+      parameters:
+      - description: ID of the user who sent the request
+        in: query
+        name: requester_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns accepted status and chatRoomID
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid requester_id
+          schema:
+            type: string
+        "401":
+          description: Unauthorized — user not logged in
+          schema:
+            type: string
+        "500":
+          description: Database error
+          schema:
+            type: string
+      summary: Accept chat request
+      tags:
+      - Chat
+  /chat/cancelChatRequest:
+    post:
+      consumes:
+      - application/json
+      description: Cancels a previously sent chat request
+      parameters:
+      - description: ID of the user to whom the request was sent
+        in: query
+        name: requester_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Request cancelled successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid requester_id
+          schema:
+            type: string
+        "401":
+          description: Unauthorized — user not logged in
+          schema:
+            type: string
+        "500":
+          description: Database error
+          schema:
+            type: string
+      summary: Cancel chat request
+      tags:
+      - Chat
+  /chat/createChatRequest:
+    post:
+      consumes:
+      - application/json
+      description: Create a new chat request from the logged-in user to another user
+      parameters:
+      - description: ID of the user you want to start a chat with
+        in: query
+        name: requested_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Returns the created chat request
+          schema:
+            $ref: '#/definitions/models.ChatRequest'
+        "400":
+          description: invalid requested_id
+          schema:
+            type: string
+        "401":
+          description: Unauthorized — user not logged in
+          schema:
+            type: string
+        "500":
+          description: db error
+          schema:
+            type: string
+      summary: Create a chat request
+      tags:
+      - Chat
+  /chat/exitFromChat:
+    post:
+      consumes:
+      - application/json
+      description: Removes the logged-in user from a chat room
+      parameters:
+      - description: ID of the chat room
+        in: query
+        name: chat_room_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns status ok
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid chat_room_id
+          schema:
+            type: string
+        "401":
+          description: Unauthorized — user not logged in
+          schema:
+            type: string
+        "500":
+          description: Database error
+          schema:
+            type: string
+      summary: Exit chat room
+      tags:
+      - Chat
+  /chat/getChatMessages:
+    get:
+      consumes:
+      - application/json
+      description: Returns all messages for a given chat room if the user has access
+      parameters:
+      - description: ID of the chat room
+        in: query
+        name: chat_room_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of messages
+          schema:
+            items:
+              $ref: '#/definitions/models.ChatMessage'
+            type: array
+        "400":
+          description: Invalid chat_room_id
+          schema:
+            type: string
+        "401":
+          description: Unauthorized — user not logged in or no access
+          schema:
+            type: string
+        "500":
+          description: Database error
+          schema:
+            type: string
+      summary: Get chat messages
+      tags:
+      - Chat
+  /chat/getChatRequests:
+    get:
+      consumes:
+      - application/json
+      description: Returns all incoming chat requests for the logged-in user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of chat requests
+          schema:
+            items:
+              $ref: '#/definitions/models.ChatRequest'
+            type: array
+        "401":
+          description: Unauthorized — user not logged in
+          schema:
+            type: string
+        "500":
+          description: Database error
+          schema:
+            type: string
+      summary: Get chat requests
+      tags:
+      - Chat
+  /chat/getChatRoomsForUser:
+    get:
+      consumes:
+      - application/json
+      description: Returns all chat rooms the logged-in user participates in
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of chat rooms
+          schema:
+            items:
+              $ref: '#/definitions/models.ChatRoom'
+            type: array
+        "401":
+          description: Unauthorized — user not logged in
+          schema:
+            type: string
+        "500":
+          description: Database error
+          schema:
+            type: string
+      summary: Get chat rooms
+      tags:
+      - Chat
+  /chat/sendMessage:
+    post:
+      consumes:
+      - application/json
+      description: Sends a message to a chat room for the logged-in user
+      parameters:
+      - description: ID of the chat room
+        in: query
+        name: chat_room_id
+        required: true
+        type: integer
+      - description: Message object
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChatMessage'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Returns the created message
+          schema:
+            $ref: '#/definitions/models.ChatMessage'
+        "400":
+          description: Invalid chat_room_id or request body
+          schema:
+            type: string
+        "401":
+          description: Unauthorized — user not logged in
+          schema:
+            type: string
+        "500":
+          description: Database error
+          schema:
+            type: string
+      summary: Send message
+      tags:
+      - Chat
   /hello:
     get:
       description: Simple hello endpoint
@@ -832,6 +1165,33 @@ paths:
       security:
       - BearerAuth: []
       summary: Get or update profile
+      tags:
+      - profile
+  /profile/by_id:
+    get:
+      description: Returns sanitized profile and username by user_id
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Profile'
+        "400":
+          description: invalid user_id
+          schema:
+            type: string
+        "404":
+          description: not found
+          schema:
+            type: string
+      summary: Get public profile by user_id
       tags:
       - profile
   /profiles:
