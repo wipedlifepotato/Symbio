@@ -15,6 +15,8 @@ WORKDIR /app
 COPY --from=builder /app/mFrelance .
 COPY config.yaml .
 COPY mods/ ./mods/
+RUN mkdir -p ./db/migrations
+COPY db/migrations/ ./db/migrations
 
 EXPOSE 9999
 #ENV ELECTRUM_PORT 7777

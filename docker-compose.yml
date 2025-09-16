@@ -50,7 +50,7 @@ services:
     container_name: mfreelance-go
     restart: unless-stopped
     ports:
-      - "${PORT}:${PORT}"
+      - "9999:9999"
     env_file:
       - .env
     depends_on:
