@@ -1,125 +1,144 @@
 package config
 
 import (
-    "log"
-    "os"
-    "strconv"
-    "github.com/joho/godotenv"
+	"log"
+	"github.com/joho/godotenv"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	"strconv"
 )
 
 type Config struct {
-    PostgresHost     string
-    PostgresPort     string
-    PostgresUser     string
-    PostgresPassword string
-    PostgresDB       string
-    RedisHost        string
-    RedisPort        string
-    RedisPassword    string
-    Port             string
-    JWTToken         string
-    ListenAddr       string
+	PostgresHost     string
+	PostgresPort     string
+	PostgresUser     string
+	PostgresPassword string
+	PostgresDB       string
+	RedisHost        string
+	RedisPort        string
+	RedisPassword    string
+	Port             string
+	JWTToken         string
+	ListenAddr       string
 
-    ElectrumHost     string
-    ElectrumPort     string
-    ElectrumUser     string
-    ElectrumPassword string
+	ElectrumHost     string
+	ElectrumPort     string
+	ElectrumUser     string
+	ElectrumPassword string
 
-    MoneroHost       string
-    MoneroPort       string
-    MoneroUser       string
-    MoneroPassword   string
-    
-    MoneroAddress string
-    MoneroCommission float64
-    BitcoinAddress string
-    BitcoinCommission float64
-    
-    MaxProfiles	int64
-    MaxAvatarSize int64
-    MaxAddrPerBlock int64
+	MoneroHost       string
+	MoneroPort       string
+	MoneroUser       string
+	MoneroPassword   string
+
+	MoneroAddress     string
+	MoneroCommission  float64
+	BitcoinAddress    string
+	BitcoinCommission float64
+
+	MaxProfiles     int64
+	MaxAvatarSize   int64
+	MaxAddrPerBlock int64
 }
 
 var AppConfig Config
 
-func MustAtoi(s string) int {
-    i, err := strconv.Atoi(s)
-    if err != nil {
-        log.Fatalf("Invalid port: %v", err)
-    }
-    return i
-}
-
 func Init() {
-    err := godotenv.Load()
-    if err != nil {
-        log.Println("No .env file found, using system environment")
+    _ = godotenv.Load()
+
+    pflag.String("config", "", "Path to config file")
+    pflag.String("port", "", "Server port")
+    pflag.String("listen_addr", "", "Listen address")
+    pflag.Parse()
+    viper.BindPFlags(pflag.CommandLine)
+
+    configPath := viper.GetString("config")
+    if configPath != "" {
+        viper.SetConfigFile(configPath)
+    } else {
+        viper.SetConfigName("config")
+        viper.SetConfigType("yaml")
+        viper.AddConfigPath(".")
+        viper.AddConfigPath("./config")
     }
 
-    moneroCommStr := os.Getenv("MONERO_COMMISSION")
-    bitcoinCommStr := os.Getenv("BITCOIN_COMMISSION")
-    maxProfilesStr := os.Getenv("MAX_PROFILES")
-    maxAvatarSizeStr := os.Getenv("MAX_AVATAR_SIZE_MB")
-    maxAddrPerBlockStr := os.Getenv("MAX_ADDR_PER_BLOCK")
+    viper.AutomaticEnv() 
 
-    moneroComm, err := strconv.ParseFloat(moneroCommStr, 64)
-    if err != nil {
-        log.Printf("Invalid MONERO_COMMISSION, using 5: %v", err)
-        moneroComm = 5
+    viper.SetDefault("postgres.host", "localhost")
+    viper.SetDefault("postgres.port", "5432")
+    viper.SetDefault("postgres.user", "mfreelance")
+    viper.SetDefault("postgres.password", "yourpassword091928374654ikd83km")
+    viper.SetDefault("postgres.db", "mfreelance")
+
+    viper.SetDefault("redis.host", "127.0.0.1")
+    viper.SetDefault("redis.port", "6379")
+    viper.SetDefault("redis.password", "")
+
+    viper.SetDefault("jwt.token", "supersecrettoken123")
+    viper.SetDefault("server.port", 9999)
+    viper.SetDefault("server.listen_addr", "127.0.0.1")
+
+    viper.SetDefault("electrum.host", "127.0.0.1")
+    viper.SetDefault("electrum.port", 7777)
+    viper.SetDefault("electrum.user", "Electrum")
+    viper.SetDefault("electrum.password", "Electrum")
+
+    viper.SetDefault("monero.host", "127.0.0.1")
+    viper.SetDefault("monero.port", 28088)
+    viper.SetDefault("monero.user", "monero")
+    viper.SetDefault("monero.password", "rpcPassword")
+    viper.SetDefault("monero.address", "9w49jr2CCtHcYkaVpwMX29Sq6AdnRXNTsZv85WWqwzCQYKmdF3ZggaiisJMFtci8LTBRNKkwpMfQ9g2qMMwr4De16Es8F4M")
+    viper.SetDefault("monero.commission", 5)
+
+    viper.SetDefault("bitcoin.address", "tb1q4zue4uyep4dgx96erac2ey3efdw2q6537wh3j7")
+    viper.SetDefault("bitcoin.commission", 25)
+
+    viper.SetDefault("max.profiles", 120)
+    viper.SetDefault("max.avatar_size_mb", 2)
+    viper.SetDefault("max.addr_per_block", 100)
+
+    if err := viper.ReadInConfig(); err != nil {
+        log.Println("No config file found, falling back to defaults/env vars")
+    } else {
+        log.Println("Loaded config file:", viper.ConfigFileUsed())
     }
 
-    bitcoinComm, err := strconv.ParseFloat(bitcoinCommStr, 64)
-    if err != nil {
-        log.Printf("Invalid BITCOIN_COMMISSION, using 5: %v", err)
-        bitcoinComm = 5
-    }
-    maxProfiles, err := strconv.ParseInt(maxProfilesStr, 10, 64)
-    if err != nil {
-        log.Printf("Invalid maxProfilesStr, using 25: %v", err)
-        maxProfiles = 25
-    }
-    maxAvatarSize, err := strconv.ParseInt(maxAvatarSizeStr, 10, 64)
-    if err != nil {
-        log.Printf("Invalid maxAvatarSizeStr, using 2: %v", err)
-        maxAvatarSize = 2
-    }
-    maxAddrPerBlock, err := strconv.ParseInt(maxAddrPerBlockStr, 10, 64)
-    if err != nil {
-        log.Printf("Invalid maxAddrPerBlockStr, using 10: %v", err)
-        maxAddrPerBlock = 10
-    }
     AppConfig = Config{
-        PostgresHost:     os.Getenv("POSTGRES_HOST"),
-        PostgresPort:     os.Getenv("POSTGRES_PORT"),
-        PostgresUser:     os.Getenv("POSTGRES_USER"),
-        PostgresPassword: os.Getenv("POSTGRES_PASSWORD"),
-        PostgresDB:       os.Getenv("POSTGRES_DB"),
-        RedisHost:        os.Getenv("REDIS_HOST"),
-        RedisPort:        os.Getenv("REDIS_PORT"),
-        RedisPassword:    os.Getenv("REDIS_PASSWORD"),
-        Port:             os.Getenv("PORT"),
-        JWTToken:         os.Getenv("JWT_TOKEN"),
-        ListenAddr:       os.Getenv("LISTEN_ADDR"),
+        PostgresHost:     viper.GetString("postgres.host"),
+        PostgresPort:     strconv.Itoa(viper.GetInt("postgres.port")),
+        PostgresUser:     viper.GetString("postgres.user"),
+        PostgresPassword: viper.GetString("postgres.password"),
+        PostgresDB:       viper.GetString("postgres.db"),
 
-        ElectrumHost:     os.Getenv("ELECTRUM_HOST"),
-        ElectrumPort:     os.Getenv("ELECTRUM_PORT"),
-        ElectrumUser:     os.Getenv("ELECTRUM_USER"),
-        ElectrumPassword: os.Getenv("ELECTRUM_PASSWORD"),
+        RedisHost:        viper.GetString("redis.host"),
+        RedisPort:        strconv.Itoa(viper.GetInt("redis.port")),
+        RedisPassword:    viper.GetString("redis.password"),
 
-        MoneroHost:       os.Getenv("MONERO_HOST"),
-        MoneroPort:       os.Getenv("MONERO_PORT"),
-        MoneroUser:       os.Getenv("MONERO_USER"),
-        MoneroPassword:   os.Getenv("MONERO_PASSWORD"),
+        JWTToken:         viper.GetString("jwt.token"),
+        ListenAddr:       viper.GetString("server.listen_addr"),
+        Port:             strconv.Itoa(viper.GetInt("server.port")),
 
-        MoneroAddress:    os.Getenv("MONERO_ADDR"),
-        MoneroCommission: moneroComm,
-        BitcoinAddress:   os.Getenv("BITCOIN_ADDR"),
-        BitcoinCommission: bitcoinComm,
-        MaxProfiles:	maxProfiles,
-        MaxAvatarSize:	maxAvatarSize,
-        MaxAddrPerBlock: maxAddrPerBlock,
+        ElectrumHost:     viper.GetString("electrum.host"),
+        ElectrumPort:     strconv.Itoa(viper.GetInt("electrum.port")),
+        ElectrumUser:     viper.GetString("electrum.user"),
+        ElectrumPassword: viper.GetString("electrum.password"),
+
+        MoneroHost:       viper.GetString("monero.host"),
+        MoneroPort:       strconv.Itoa(viper.GetInt("monero.port")),
+        MoneroUser:       viper.GetString("monero.user"),
+        MoneroPassword:   viper.GetString("monero.password"),
+        MoneroAddress:    viper.GetString("monero.address"),
+        MoneroCommission: viper.GetFloat64("monero.commission"),
+
+        BitcoinAddress:    viper.GetString("bitcoin.address"),
+        BitcoinCommission: viper.GetFloat64("bitcoin.commission"),
+
+        MaxProfiles:       viper.GetInt64("max.profiles"),
+        MaxAvatarSize:     viper.GetInt64("max.avatar_size_mb"),
+        MaxAddrPerBlock:   viper.GetInt64("max.addr_per_block"),
     }
 
     log.Println("Loaded commissions:", "BTC:", AppConfig.BitcoinCommission, "XMR:", AppConfig.MoneroCommission)
+    log.Println("MaxProfiles:", AppConfig.MaxProfiles, "MaxAvatarSize:", AppConfig.MaxAvatarSize, "MaxAddrPerBlock:", AppConfig.MaxAddrPerBlock)
 }
 

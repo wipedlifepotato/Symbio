@@ -12,16 +12,12 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-
-	//"mFrelance/monero"
 	"github.com/gabstv/httpdigest"
 	"gitlab.com/moneropay/go-monero/walletrpc"
-
-	//"fmt"
 	"context"
 	_ "mFrelance/docs"
 	"time"
-
+        "github.com/spf13/viper"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -39,7 +35,7 @@ func main() {
 		config.AppConfig.ElectrumUser,
 		config.AppConfig.ElectrumPassword,
 		config.AppConfig.ElectrumHost,
-		config.MustAtoi(config.AppConfig.ElectrumPort),
+		viper.GetInt("electrum.port"),
 	)
 	log.Print(electrumClient.GetAllBalances([]string{"tb1qljppje9qdhtp39nk2lkgm53vmslmyd4cw3g4sr"}))
 	moneroClient := walletrpc.New(walletrpc.Config{
