@@ -1,5 +1,5 @@
 # Petri
-
+### Currently developement not for usage
 **Petri — something bigger than code.**  
 
 ![Petri Logo](logo.png)
@@ -15,3 +15,10 @@
 - Run `go build`
 - Set up to /usr/local/bin (optional)
 - Run `./app --config config.yaml`
+
+### Docker 
+- Edit Dockerfile, Dockerfile.electrum, config.yaml, .env, docker-compose.yml
+- run `docker-compose build`
+- run `docker-compose up`
+- `docker ps`
+- `docker exec -it $DOCKER_CONTAINER_ID`
