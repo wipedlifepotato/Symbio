@@ -18,8 +18,9 @@ RUN pip install -r Electrum-${ELECTRUM_VERSION}/contrib/requirements/requirement
 
 RUN rm -rf Electrum-${ELECTRUM_VERSION} Electrum-${ELECTRUM_VERSION}.tar.gz
 
-ENV ELECTRUM_PORT 7777
+#ENV ELECTRUM_PORT 7777
 EXPOSE ${ELECTRUM_PORT}
+EXPOSE ${ELECTRUM_EXTPORT}
 # ELECTRUM_NETWORK
 RUN electrum --offline create
 

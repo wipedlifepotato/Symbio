@@ -37,7 +37,6 @@ func main() {
 		config.AppConfig.ElectrumHost,
 		viper.GetInt("electrum.port"),
 	)
-	log.Print(electrumClient.GetAllBalances([]string{"tb1qljppje9qdhtp39nk2lkgm53vmslmyd4cw3g4sr"}))
 	moneroClient := walletrpc.New(walletrpc.Config{
 		Address: "http://" + config.AppConfig.MoneroHost + ":" + config.AppConfig.MoneroPort + "/json_rpc",
 		Client: &http.Client{

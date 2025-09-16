@@ -21,19 +21,25 @@ services:
     command: redis-server --appendonly yes
 
   php:
-    image: docker.io/library/php:8.2-apache
+    build:
+      context: .
+      dockerfile: Dockerfile.php
     container_name: mfreelance-php
     restart: unless-stopped
     ports:
       - "8585:80"
     volumes:
       - ./frontendphp:/var/www/html
+    command: sh -c "apt-get update && apt-get install -y socat && socat TCP-LISTEN:9999,fork TCP:mfreelance-go:9999 & apache2-foreground"
+      #- /usr/bin/sh -c "chown www-data -R /var/log/apache2"
+      #- /proc/self/fd/1:/var/log/apache2/access.log
+      #- /proc/self/fd/1:/var/log/apache2/error.log
   electrum-server:
     build:
       context: .
       dockerfile: Dockerfile.electrum
     ports:
-      - "127.0.0.1:7779:7777"
+      - "127.0.0.1:${ELECTRUM_PORT}:${ELECTRUM_PORT}"
     environment:
       - ELECTRUM_NETWORK=testnet
     restart: unless-stopped
@@ -44,7 +50,7 @@ services:
     container_name: mfreelance-go
     restart: unless-stopped
     ports:
-      - "${PORT}:${PORT}"
+      - "9999:9999"
     env_file:
       - .env
     depends_on:

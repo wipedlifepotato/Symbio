@@ -97,7 +97,7 @@ func Init() {
 
     viper.SetDefault("jwt.token", "supersecrettoken123")
     viper.SetDefault("server.port", 9999)
-    viper.SetDefault("server.listen_addr", "127.0.0.1")
+    viper.SetDefault("listen_addr", "127.0.0.1")
 
     viper.SetDefault("electrum.host", "127.0.0.1")
     viper.SetDefault("electrum.port", 7777)
@@ -136,7 +136,7 @@ func Init() {
         RedisPassword:    viper.GetString("redis.password"),
 
         JWTToken:         viper.GetString("jwt.token"),
-        ListenAddr:       viper.GetString("server.listen_addr"),
+        ListenAddr:       viper.GetString("listen_addr"),
         Port:             strconv.Itoa(viper.GetInt("server.port")),
 
         ElectrumHost:     viper.GetString("electrum.host"),

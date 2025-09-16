@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    mnemonic TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     blocked BOOLEAN NOT NULL DEFAULT FALSE,
     is_admin BOOLEAN NOT NULL DEFAULT FALSE
