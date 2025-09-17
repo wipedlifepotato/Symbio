@@ -1,34 +1,34 @@
 {% extends 'ticket_base.html.twig' %}
 
-{% block title %}Мои тикеты{% endblock %}
+{% block title %}{{ 'ticket.title'|trans }}{% endblock %}
 
 {% block content %}
-<h2>Мои тикеты</h2>
+<h2>{{ 'ticket.heading'|trans }}</h2>
 
 {% if message %}
-    <p class="error">{{ message }}</p>
+    <p class="error">{{ 'ticket.error'|trans }}: {{ message }}</p>
 {% endif %}
 
-<h3>Список тикетов</h3>
+<h3>{{ 'ticket.create_ticket'|trans }}</h3>
+<form method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="create_ticket" value="1">
+    <label>{{ 'ticket.subject'|trans }}: <input type="text" name="subject" required></label><br>
+    <label>{{ 'ticket.message'|trans }}: <textarea name="message"></textarea></label><br>
+    <label>{{ 'ticket.or_file'|trans }}: <input type="file" name="file"></label><br>
+    <button type="submit">{{ 'ticket.submit_create'|trans }}</button>
+</form>
+
+<h3>{{ 'ticket.heading'|trans }}</h3>
 <ul class="ticket-list">
 {% for t in myTickets %}
     <li><a href="?ticket_id={{ t.id }}">{{ t.subject }} ({{ t.status }})</a></li>
 {% else %}
-    <li>Тикетов нет.</li>
+    <li>{{ 'ticket.no_tickets'|trans }}</li>
 {% endfor %}
 </ul>
 
-<h3>Создать новый тикет</h3>
-<form method="POST" enctype="multipart/form-data">
-    <input type="hidden" name="create_ticket" value="1">
-    <label>Тема: <input type="text" name="subject" required></label><br>
-    <label>Сообщение: <textarea name="message"></textarea></label><br>
-    <label>Или файл: <input type="file" name="file"></label><br>
-    <button type="submit">Создать тикет</button>
-</form>
-
 {% if selectedTicket %}
-<h3>Чат тикета ID {{ selectedTicket }}</h3>
+<h3>{{ 'ticket.chat_heading'|trans({'%id%': selectedTicket}) }}</h3>
 <div class="chat-box">
 {% for m in ticketMessages|reverse %}
     <p><strong>{{ m.SenderName }}:</strong><br>
@@ -41,21 +41,20 @@
 {% endfor %}
 </div>
 
-
-<h4>Отправить сообщение</h4>
+<h4>{{ 'ticket.send_message'|trans }}</h4>
 <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="ticket_id" value="{{ selectedTicket }}">
     <input type="hidden" name="send_message" value="1">
     <textarea name="message" required></textarea><br>
-    <label>Или файл: <input type="file" name="file"></label><br>
-    <button type="submit">Отправить</button>
+    <label>{{ 'ticket.or_file'|trans }}: <input type="file" name="file"></label><br>
+    <button type="submit">{{ 'ticket.submit_send'|trans }}</button>
 </form>
 
-<h4>Закрыть тикет</h4>
+<h4>{{ 'ticket.close_ticket'|trans }}</h4>
 <form method="POST">
     <input type="hidden" name="ticket_id" value="{{ selectedTicket }}">
     <input type="hidden" name="close_ticket" value="1">
-    <button type="submit" style="background:red; color:white;">Закрыть тикет</button>
+    <button type="submit" style="background:red; color:white;">{{ 'ticket.close_ticket'|trans }}</button>
 </form>
 {% endif %}
 {% endblock %}

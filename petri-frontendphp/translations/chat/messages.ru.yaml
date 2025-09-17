@@ -1,0 +1,17 @@
+chat:
+  title: "Чат"
+  incoming_requests: "Входящие запросы"
+  from_user: "От пользователя #%id%"
+  accept: "Принять"
+  cancel: "Отменить"
+  no_requests: "Запросов нет"
+  send_request: "Отправить запрос"
+  user_id: "ID пользователя"
+  send: "Отправить"
+  your_chats: "Ваши чаты"
+  chat_id: "Чат #%id%"
+  messages_in: "Сообщения в чате #%id%"
+  image: "Изображение"
+  send_message: "Отправить сообщение"
+  exit: "Выйти из чата"
+

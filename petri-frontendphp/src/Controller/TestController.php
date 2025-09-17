@@ -1,10 +1,11 @@
 <?php
+
 namespace App\Controller;
 
+use App\Service\MFrelance;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use App\Service\MFrelance;
 
 class TestController extends AbstractController
 {
@@ -12,6 +13,7 @@ class TestController extends AbstractController
     public function index(MFrelance $mfrelance): Response
     {
         $captcha = $mfrelance->getCaptcha();
+
         return $this->json($captcha);
     }
 }

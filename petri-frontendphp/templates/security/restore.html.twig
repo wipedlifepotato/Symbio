@@ -1,24 +1,24 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Восстановление аккаунта{% endblock %}
+{% block title %}{{ 'restore.title'|trans }}{% endblock %}
 
 {% block body %}
-<h2>Восстановление аккаунта</h2>
+<h2>{{ 'restore.heading'|trans }}</h2>
 
 {% if message %}
     <p style="color:red">{{ message|raw }}</p>
 {% endif %}
 
 <form method="POST">
-    Username: <input type="text" name="username" required><br>
-    Мнемоника: <input type="text" name="mnemonic"><br>
-    Новый пароль: <input type="password" name="new_password" required><br>
+    {{ 'restore.username'|trans }}: <input type="text" name="username" required><br>
+    {{ 'restore.mnemonic'|trans }}: <input type="text" name="mnemonic"><br>
+    {{ 'restore.new_password'|trans }}: <input type="password" name="new_password" required><br>
     <img src="{{ captchaImage }}" alt="captcha"><br>
     <input type="hidden" name="captcha_id" value="{{ captchaId }}">
-    Введите капчу: <input type="text" name="captcha_answer" required><br>
-    <button type="submit">Восстановить</button>
+    {{ 'restore.enter_captcha'|trans }}: <input type="text" name="captcha_answer" required><br>
+    <button type="submit">{{ 'restore.submit'|trans }}</button>
 </form>
 
-<p><a href="{{ path('app_login') }}">Назад</a></p>
+<p><a href="{{ path('app_login') }}">{{ 'restore.back'|trans }}</a></p>
 {% endblock %}
 

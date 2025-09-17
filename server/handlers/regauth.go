@@ -121,6 +121,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
 	    log.Println("[RegisterHandler] password too long")
 	    return
     }
+    log.Println(req.Password)
     if utf8.RuneCountInString(req.Password) < 6 {
 	    server.WriteErrorJSON(w, "password too small", http.StatusBadRequest)
 	    log.Println("[RegisterHandler] password too small")
@@ -191,6 +192,7 @@ func RestoreHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 	    log.Println("[RegisterHandler] password too long")
 	    return
     }
+    log.Println(req.NewPassword);
     if utf8.RuneCountInString(req.NewPassword) < 6 {
 	    server.WriteErrorJSON(w, "password too small", http.StatusBadRequest)
 	    log.Println("[RegisterHandler] password too small")

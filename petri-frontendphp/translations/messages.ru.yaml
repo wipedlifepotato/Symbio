@@ -1,0 +1,128 @@
+# Общие
+project_name: "Название проекта"
+bad_captcha: "плохая капча, попробуйте ещё"
+invalidusernameopassword: "Не правильный логин или пароль"
+passwordtoosmall: "Пароль маленький"
+notFoundUser: "Не найден юзер или мнемоника не корректна"
+# Авторизация
+auth.jwt_missing: "JWT отсутствует. Пожалуйста, войдите в систему."
+auth.error_jwt: "Ошибка: JWT не получен"
+auth.login_error: "Ошибка авторизации: %error%"
+auth.request_error: "Ошибка запроса: %error%"
+
+# Восстановление аккаунта
+restore.captcha: "Капча"
+restore.username: "Имя пользователя"
+restore.mnemonic: "Мнемоника"
+restore.new_password: "Новый пароль"
+restore.restore_button: "Восстановить аккаунт"
+restore.success: "Аккаунт успешно восстановлен"
+restore.error: "Ошибка восстановления: %error%"
+
+# Регистрация
+register.username: "Имя пользователя"
+register.password: "Пароль"
+register.captcha_answer: "Ответ капчи"
+register.register_button: "Зарегистрироваться"
+register.success: "Регистрация успешна"
+register.error: "Ошибка регистрации: %error%"
+
+# Captcha
+captcha.answer_label: "Ответ на капчу"
+captcha.refresh: "Обновить капчу"
+
+# Формы
+form.submit: "Отправить"
+form.cancel: "Отмена"
+
+dashboard:
+  title: "Панель управления"
+  heading: "Dashboard пользователя"
+  wallet:
+    btc: "Кошелек BTC"
+    address: "Адрес"
+    balance: "Баланс"
+  send_btc: "Отправить BTC"
+  send_to: "Кому (адрес)"
+  send_amount: "Сумма"
+  send_button: "Отправить"
+  send_result: "Результат отправки"
+  link:
+    profiles: "Профили"
+    profile: "Профиль"
+    tickets: "Тикеты"
+    admin: "Админка"
+    admin_tickets: "Админ тикет"
+    chats: "Чаты"
+    back: "Назад"
+login:
+  title: "Вход в MFrelance"
+  heading: "Вход"
+  username: "Имя пользователя"
+  password: "Пароль"
+  enter_captcha: "Введите капчу"
+  submit: "Войти"
+  restore: "Восстановить аккаунт"
+  register: "Регистрация"
+  
+
+register:
+  title: "Регистрация"
+  heading: "Регистрация"
+  username: "Имя пользователя"
+  password: "Пароль"
+  enter_captcha: "Введите капчу"
+  submit: "Зарегистрироваться"
+  back: "Назад"
+  mnemonic_info: "Ваш мнемонический код"
+
+restore:
+  title: "Восстановление аккаунта"
+  heading: "Восстановление аккаунта"
+  username: "Имя пользователя"
+  mnemonic: "Мнемоника"
+  new_password: "Новый пароль"
+  enter_captcha: "Введите капчу"
+  submit: "Восстановить"
+  back: "Назад"
+ticket:
+  title: "Мои тикеты"
+  heading: "Мои тикеты"
+  no_tickets: "Тикетов нет."
+  create_ticket: "Создать новый тикет"
+  subject: "Тема"
+  message: "Сообщение"
+  or_file: "Или файл"
+  submit_create: "Создать тикет"
+  chat_heading: "Чат тикета ID %id%"
+  send_message: "Отправить сообщение"
+  submit_send: "Отправить"
+  close_ticket: "Закрыть тикет"
+  error: "Ошибка"
+profiles:
+  title: "Все профили"
+  heading: "Все профили пользователей"
+  userid: "UserID"
+  full_name: "ФИО"
+  bio: "Биография"
+  skills: "Навыки"
+  avatar: "Аватар"
+  rating: "Рейтинг"
+  completed_tasks: "Выполненные задачи"
+  actions: "Действия"
+  request_chat: "Запросить чат"
+  no_profiles: "Профили отсутствуют."
+  back: "Назад"
+  error: "Ошибка"
+profile:
+  title: "Профиль"
+  heading: "Профиль пользователя %username%"
+  full_name: "Полное имя"
+  bio: "Bio"
+  skills: "Навыки (через запятую)"
+  avatar: "Аватар"
+  save_button: "Сохранить профиль"
+  back: "Назад"
+  error: "Ошибка"
+
+

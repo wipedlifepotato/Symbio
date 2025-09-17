@@ -1,0 +1,17 @@
+chat:
+  title: "Chat"
+  incoming_requests: "Incoming Requests"
+  from_user: "From user #%id%"
+  accept: "Accept"
+  cancel: "Cancel"
+  no_requests: "No requests"
+  send_request: "Send Request"
+  user_id: "User ID"
+  send: "Send"
+  your_chats: "Your Chats"
+  chat_id: "Chat #%id%"
+  messages_in: "Messages in Chat #%id%"
+  image: "Image"
+  send_message: "Send Message"
+  exit: "Exit Chat"
+

@@ -3,157 +3,89 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Чат</title>
+    <title>{{ 'chat.title'|trans }}</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f9f9f9;
-        }
-        h2, h3, h4 {
-            color: #333;
-        }
-        form {
-            background-color: #fff;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 6px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.1);
-        }
-        input[type=text], input[type=number], textarea {
-            width: 100%;
-            padding: 6px;
-            margin: 6px 0 12px 0;
-            box-sizing: border-box;
-        }
-        button {
-            padding: 8px 15px;
-            background-color: #4CAF50;
-            border: none;
-            color: #fff;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .chat-list li {
-            margin-bottom: 6px;
-        }
-        .chat-list a {
-            text-decoration: none;
-            color: #0066cc;
-        }
-        .chat-list a:hover {
-            text-decoration: underline;
-        }
-
-        .chat-box {
-            display: flex;
-            flex-direction: column-reverse; /* новые снизу */
-            border: 1px solid #ccc;
-            padding: 10px;
-            max-height: 400px;
-            overflow-y: auto;
-            background-color: #fff;
-            border-radius: 6px;
-            margin-bottom: 15px;
-        }
-
-        .chat-message {
-            margin-bottom: 12px;
-            padding: 8px;
-            background: #f2f2f2;
-            border-radius: 6px;
-        }
-
-        .chat-message strong {
-            display: block;
-            margin-bottom: 4px;
-            color: #333;
-        }
-
-        .chat-message em {
-            color: gray;
-            font-size: 0.8em;
-        }
-
-        .chat-box img {
-            max-width: 200px;
-            border-radius: 4px;
-            margin-top: 5px;
-            display: block;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f9f9f9; }
+        h2, h3, h4 { color: #333; }
+        form { background-color: #fff; padding: 15px; margin-bottom: 20px; border-radius: 6px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+        input[type=text], input[type=number], textarea { width: 100%; padding: 6px; margin: 6px 0 12px 0; box-sizing: border-box; }
+        button { padding: 8px 15px; background-color: #4CAF50; border: none; color: #fff; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        .chat-list li { margin-bottom: 6px; }
+        .chat-list a { text-decoration: none; color: #0066cc; }
+        .chat-list a:hover { text-decoration: underline; }
+        .chat-box { display: flex; flex-direction: column-reverse; border: 1px solid #ccc; padding: 10px; max-height: 400px; overflow-y: auto; background-color: #fff; border-radius: 6px; margin-bottom: 15px; }
+        .chat-message { margin-bottom: 12px; padding: 8px; background: #f2f2f2; border-radius: 6px; }
+        .chat-message strong { display: block; margin-bottom: 4px; color: #333; }
+        .chat-message em { color: gray; font-size: 0.8em; }
+        .chat-box img { max-width: 200px; border-radius: 4px; margin-top: 5px; display: block; }
     </style>
 </head>
 <body>
-    <h2>Входящие запросы</h2>
+    <h2>{{ 'chat.incoming_requests'|trans }}</h2>
     {% if chatRequests is not empty %}
         <ul>
             {% for req in chatRequests %}
                 <li>
-                    От пользователя #{{ req.requested_id }} — {{ req.status }}
+                    {{ 'chat.from_user'|trans({'%id%': req.requested_id}) }} — {{ req.status }}
                     {% if req.status == 'pending' %}
-                        <a href="{{ path('app_chat', {accept_request: req.requested_id}) }}">Принять</a>
-                        <a href="{{ path('app_chat', {cancel_request: req.requested_id}) }}" style="color:red;">Отменить</a>
+                        <a href="{{ path('app_chat', {accept_request: req.requested_id}) }}">{{ 'chat.accept'|trans }}</a>
+                        <a href="{{ path('app_chat', {cancel_request: req.requested_id}) }}" style="color:red;">{{ 'chat.cancel'|trans }}</a>
                     {% endif %}
                 </li>
             {% endfor %}
         </ul>
     {% else %}
-        <p>Запросов нет</p>
+        <p>{{ 'chat.no_requests'|trans }}</p>
     {% endif %}
 
-    <h2>Отправить запрос</h2>
+    <h2>{{ 'chat.send_request'|trans }}</h2>
     <form method="POST">
-        <input type="number" name="requested_id" placeholder="ID пользователя" required>
-        <button type="submit">Отправить</button>
+        <input type="number" name="requested_id" placeholder="{{ 'chat.user_id'|trans }}" required>
+        <button type="submit">{{ 'chat.send'|trans }}</button>
     </form>
 
-    <h2>Ваши чаты</h2>
+    <h2>{{ 'chat.your_chats'|trans }}</h2>
     <ul class="chat-list">
         {% for chat in chatRooms %}
             <li>
                 <a href="{{ path('app_chat', {chat_id: chat.id}) }}">
-                    Chat #{{ chat.id }}
+                    {{ 'chat.chat_id'|trans({'%id%': chat.id}) }}
                 </a>
             </li>
         {% endfor %}
     </ul>
 
     {% if selectedChatID %}
-        <h3>Сообщения в чате #{{ selectedChatID }}</h3>
+        <h3>{{ 'chat.messages_in'|trans({'%id%': selectedChatID}) }}</h3>
         <div class="chat-box">
+            {% for msg in messages|reverse %}
+            <div class="chat-message">
+                <strong>{{ msg.SenderName ?? ('User #' ~ msg.sender_id) }}</strong>
 
-		    {% for msg in messages|reverse %}
-			<div class="chat-message">
-			    <strong>{{ msg.SenderName ?? ('User #' ~ msg.sender_id) }}</strong>
+                {% if msg.is_image %}
+                    <img src="data:{{ msg.image_type }};base64,{{ msg.image_data }}" alt="{{ 'chat.image'|trans }}">
+                {% else %}
+                    {{ msg.text }}
+                {% endif %}
 
-			    {% if msg.is_image %}
-				<img src="data:{{ msg.image_type }};base64,{{ msg.image_data }}" alt="Изображение">
-			    {% else %}
-				{{ msg.text }}
-			    {% endif %}
-
-			    <em>{{ msg.created_at }}</em>
-			</div>
-
+                <em>{{ msg.created_at }}</em>
+            </div>
             {% endfor %}
         </div>
 
-	<h4>Отправить сообщение</h4>
-	<form method="POST" enctype="multipart/form-data">
-	    <input type="hidden" name="chat_room_id" value="{{ selectedChatID }}">
-	    <textarea name="message" rows="3" style="width:100%;"></textarea>
-	    <input type="file" name="file" accept="image/*">
-	    <button type="submit">Отправить</button>
-	</form>
+        <h4>{{ 'chat.send_message'|trans }}</h4>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="chat_room_id" value="{{ selectedChatID }}">
+            <textarea name="message" rows="3" style="width:100%;"></textarea>
+            <input type="file" name="file" accept="image/*">
+            <button type="submit">{{ 'chat.send'|trans }}</button>
+        </form>
 
         <form method="GET" style="margin-top:10px;">
             <input type="hidden" name="exit_chat_id" value="{{ selectedChatID }}">
-            <button type="submit" style="background:red; color:white;">Выйти из чата</button>
+            <button type="submit" style="background:red; color:white;">{{ 'chat.exit'|trans }}</button>
         </form>
     {% endif %}
 </body>
 </html>
-

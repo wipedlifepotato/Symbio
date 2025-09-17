@@ -1,40 +1,40 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Профиль{% endblock %}
+{% block title %}{{ 'profile.title'|trans }}{% endblock %}
 
 {% block body %}
-<h2>Профиль пользователя {{ username }}</h2>
+<h2>{{ 'profile.heading'|trans({'%username%': username}) }}</h2>
 
 {% if message %}
-    <p style="color:red">{{ message|raw }}</p>
+    <p style="color:red">{{ 'profile.error'|trans }}: {{ message|raw }}</p>
 {% endif %}
 
 {% if profile %}
     <form method="POST" enctype="multipart/form-data">
-        <label>Полное имя:<br>
+        <label>{{ 'profile.full_name'|trans }}:<br>
             <input type="text" name="full_name" value="{{ profile.full_name|default('') }}">
         </label><br><br>
 
-        <label>Bio:<br>
+        <label>{{ 'profile.bio'|trans }}:<br>
             <textarea name="bio">{{ profile.bio|default('') }}</textarea>
         </label><br><br>
 
-        <label>Навыки (через запятую):<br>
+        <label>{{ 'profile.skills'|trans }}:<br>
             <input type="text" name="skills" value="{{ profile.skills|default([])|join(',') }}">
         </label><br><br>
 
-        <label>Аватар:<br>
+        <label>{{ 'profile.avatar'|trans }}:<br>
             {% if profile.avatar %}
-                <img src="{{ profile.avatar }}" alt="Аватар" style="max-width:100px;"><br>
+                <img src="{{ profile.avatar }}" alt="{{ 'profile.avatar'|trans }}" style="max-width:100px;"><br>
             {% endif %}
             <input type="file" name="avatar">
             <input type="hidden" name="avatar_base64" value="{{ profile.avatar|default('') }}">
         </label><br><br>
 
-        <button type="submit">Сохранить профиль</button>
+        <button type="submit">{{ 'profile.save_button'|trans }}</button>
     </form>
 {% endif %}
 
-<p><a href="{{ path('app_dashboard') }}">Назад</a></p>
+<p><a href="{{ path('app_dashboard') }}">{{ 'profile.back'|trans }}</a></p>
 {% endblock %}
 

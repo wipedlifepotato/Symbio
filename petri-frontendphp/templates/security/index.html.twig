@@ -1,24 +1,29 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Вход в MFrelance{% endblock %}
+{% block title %}{{ 'login.title'|trans }}{% endblock %}
 
 {% block body %}
-
+<div class="language-switcher">
+    <a href="{{ path('app_set_locale', {'locale': 'ru'}) }}">RU</a> |
+    <a href="{{ path('app_set_locale', {'locale': 'en'}) }}">EN</a>
+</div>
 <form method="POST" action="{{ path('app_auth') }}">
-    <h2>Вход</h2>
-    Username: <input type="text" name="username" required><br>
-    Password: <input type="password" name="password" required><br>
+    <h2>{{ 'login.heading'|trans }}</h2>
+    {{ 'login.username'|trans }}: <input type="text" name="username" required><br>
+    {{ 'login.password'|trans }}: <input type="password" name="password" required><br>
     <img src="{{ captchaImage }}" alt="captcha"><br>
     <input type="hidden" name="captcha_id" value="{{ captchaId }}">
-    Введите капчу: <input type="text" name="captcha_answer" required><br>
-    <button type="submit">Войти</button>
+    {{ 'login.enter_captcha'|trans }}: <input type="text" name="captcha_answer" required><br>
+    <button type="submit">{{ 'login.submit'|trans }}</button>
 
     <div class="links">
-        <a href="{{ path('app_restore') }}">Восстановить аккаунт</a>
-        <a href="{{ path('app_register') }}">Регистрация</a>
+        <a href="{{ path('app_restore') }}">{{ 'login.restore'|trans }}</a>
+        <a href="{{ path('app_register') }}">{{ 'login.register'|trans }}</a>
     </div>
+
     {% if message is defined and message %}
-    	<h3 style="color:red">{{ message }}</h3>
+        <h3 style="color:red">{{ message }}</h3>
     {% endif %}
 </form>
 {% endblock %}
+

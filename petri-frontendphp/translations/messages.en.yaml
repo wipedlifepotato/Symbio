@@ -1,0 +1,127 @@
+# Общие
+project_name: "Project Name"
+bad_captcha: "bad captcha"
+invalidusernameopassword: "invalid username or password"
+passwordtoosmall: "Password too small"
+notFoundUser: "Not found user or mnemonic not correct"
+# Авторизация
+auth.jwt_missing: "JWT is missing. Please login."
+auth.error_jwt: "Error: JWT not received"
+auth.login_error: "Login error: %error%"
+auth.request_error: "Request error: %error%"
+
+# Восстановление аккаунта
+restore.captcha: "Captcha"
+restore.username: "Username"
+restore.mnemonic: "Mnemonic"
+restore.new_password: "New Password"
+restore.restore_button: "Restore Account"
+restore.success: "Account restored successfully"
+restore.error: "Restore error: %error%"
+
+# Регистрация
+register.username: "Username"
+register.password: "Password"
+register.captcha_answer: "Captcha Answer"
+register.register_button: "Register"
+register.success: "Registration successful"
+register.error: "Registration error: %error%"
+
+# Captcha
+captcha.answer_label: "Captcha Answer"
+captcha.refresh: "Refresh Captcha"
+
+# Формы
+form.submit: "Submit"
+form.cancel: "Cancel"
+
+dashboard:
+  title: "Dashboard"
+  heading: "User Dashboard"
+  wallet:
+    btc: "BTC Wallet"
+    address: "Address"
+    balance: "Balance"
+  send_btc: "Send BTC"
+  send_to: "To (address)"
+  send_amount: "Amount"
+  send_button: "Send"
+  send_result: "Send Result"
+  link:
+    profiles: "Profiles"
+    profile: "Profile"
+    tickets: "Tickets"
+    admin: "Admin"
+    admin_tickets: "Admin Tickets"
+    chats: "Chats"
+    back: "Back"
+login:
+  title: "Login to MFrelance"
+  heading: "Login"
+  username: "Username"
+  password: "Password"
+  enter_captcha: "Enter captcha"
+  submit: "Login"
+  restore: "Restore account"
+  register: "Register"
+
+register:
+  title: "Register"
+  heading: "Register"
+  username: "Username"
+  password: "Password"
+  enter_captcha: "Enter captcha"
+  submit: "Register"
+  back: "Back"
+  mnemonic_info: "Your mnemonic code"
+
+restore:
+  title: "Account Recovery"
+  heading: "Account Recovery"
+  username: "Username"
+  mnemonic: "Mnemonic"
+  new_password: "New Password"
+  enter_captcha: "Enter captcha"
+  submit: "Restore"
+  back: "Back"
+
+ticket:
+  title: "My Tickets"
+  heading: "My Tickets"
+  no_tickets: "No tickets."
+  create_ticket: "Create New Ticket"
+  subject: "Subject"
+  message: "Message"
+  or_file: "Or file"
+  submit_create: "Create Ticket"
+  chat_heading: "Ticket Chat ID %id%"
+  send_message: "Send Message"
+  submit_send: "Send"
+  close_ticket: "Close Ticket"
+  error: "Error"
+profiles:
+  title: "All Profiles"
+  heading: "All User Profiles"
+  userid: "UserID"
+  full_name: "Full Name"
+  bio: "Bio"
+  skills: "Skills"
+  avatar: "Avatar"
+  rating: "Rating"
+  completed_tasks: "Completed Tasks"
+  actions: "Actions"
+  request_chat: "Request Chat"
+  no_profiles: "No profiles."
+  back: "Back"
+  error: "Error"
+profile:
+  title: "Profile"
+  heading: "User Profile %username%"
+  full_name: "Full Name"
+  bio: "Bio"
+  skills: "Skills (comma separated)"
+  avatar: "Avatar"
+  save_button: "Save Profile"
+  back: "Back"
+  error: "Error"
+

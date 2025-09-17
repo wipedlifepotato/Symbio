@@ -1,10 +1,14 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}{{ 'dashboard.title'|trans }}{% endblock %}
 
 {% block body %}
+<div class="language-switcher">
+    <a href="{{ path('app_set_locale', {'locale': 'ru'}) }}">RU</a> |
+    <a href="{{ path('app_set_locale', {'locale': 'en'}) }}">EN</a>
+</div>
 <div class="dashboard-container">
-    <h2>Dashboard пользователя</h2>
+    <h2>{{ 'dashboard.heading'|trans }}</h2>
 
     {% if message %}
         <p style="color:red">{{ message }}</p>
@@ -12,37 +16,37 @@
 
     {% if walletInfo %}
         <div class="wallet-info">
-            <h3>Кошелек BTC:</h3>
-            <p>Адрес: {{ walletInfo.address|default('-') }}</p>
+            <h3>{{ 'dashboard.wallet.btc'|trans }}</h3>
+            <p>{{ 'dashboard.wallet.address'|trans }}: {{ walletInfo.address|default('-') }}</p>
             {% if walletInfo.balance is defined %}
-                <p>Баланс: {{ walletInfo.balance }}</p>
+                <p>{{ 'dashboard.wallet.balance'|trans }}: {{ walletInfo.balance }}</p>
             {% endif %}
         </div>
 
         <form method="POST">
-            <h3>Отправить BTC</h3>
-            <label>Кому (адрес): <input type="text" name="to" required></label><br>
-            <label>Сумма: <input type="text" name="amount" required></label><br>
-            <button type="submit">Отправить</button>
+            <h3>{{ 'dashboard.send_btc'|trans }}</h3>
+            <label>{{ 'dashboard.send_to'|trans }}: <input type="text" name="to" required></label><br>
+            <label>{{ 'dashboard.send_amount'|trans }}: <input type="text" name="amount" required></label><br>
+            <button type="submit">{{ 'dashboard.send_button'|trans }}</button>
         </form>
 
         {% if sendResult %}
-            <h4>Результат отправки:</h4>
+            <h4>{{ 'dashboard.send_result'|trans }}</h4>
             <pre>{{ sendResult }}</pre>
         {% endif %}
     {% endif %}
 
     <div class="links-block">
-        <a href="{{ path('app_profiles') }}">Профили</a>
-        <a href="{{ path('app_profile') }}">Профиль</a>
-        <a href="{{ path('app_ticket') }}">Тикеты</a>
-    {% if isAdmin %}
-        <a href="{{ path('app_admin') }}">Админка</a>
-        <a href="{{ path('app_admin_tickets') }}">Админ тикет</a>
-    {% endif %}
-        <a href="{{ path('app_chat') }}">Чаты</a>
-        <a href="{{ path('app_login') }}">Назад</a>
+        <a href="{{ path('app_profiles') }}">{{ 'dashboard.link.profiles'|trans }}</a>
+        <a href="{{ path('app_profile') }}">{{ 'dashboard.link.profile'|trans }}</a>
+        <a href="{{ path('app_ticket') }}">{{ 'dashboard.link.tickets'|trans }}</a>
+        {% if isAdmin %}
+            <a href="{{ path('app_admin') }}">{{ 'dashboard.link.admin'|trans }}</a>
+            <a href="{{ path('app_admin_tickets') }}">{{ 'dashboard.link.admin_tickets'|trans }}</a>
+        {% endif %}
+        <a href="{{ path('app_chat') }}">{{ 'dashboard.link.chats'|trans }}</a>
+        <a href="{{ path('app_login') }}">{{ 'dashboard.link.back'|trans }}</a>
     </div>
 </div>
-
 {% endblock %}
+

@@ -1,25 +1,25 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Все профили{% endblock %}
+{% block title %}{{ 'profiles.title'|trans }}{% endblock %}
 
 {% block body %}
-<h2>Все профили пользователей</h2>
+<h2>{{ 'profiles.heading'|trans }}</h2>
 
 {% if message %}
-    <p style="color:red">{{ message }}</p>
+    <p style="color:red">{{ 'profiles.error'|trans }}: {{ message }}</p>
 {% endif %}
 
 {% if profiles %}
     <table border="1" cellpadding="5">
         <tr>
-            <th>UserID</th>
-            <th>Full Name</th>
-            <th>Bio</th>
-            <th>Skills</th>
-            <th>Avatar</th>
-            <th>Rating</th>
-            <th>Completed Tasks</th>
-            <th>Actions</th>
+            <th>{{ 'profiles.userid'|trans }}</th>
+            <th>{{ 'profiles.full_name'|trans }}</th>
+            <th>{{ 'profiles.bio'|trans }}</th>
+            <th>{{ 'profiles.skills'|trans }}</th>
+            <th>{{ 'profiles.avatar'|trans }}</th>
+            <th>{{ 'profiles.rating'|trans }}</th>
+            <th>{{ 'profiles.completed_tasks'|trans }}</th>
+            <th>{{ 'profiles.actions'|trans }}</th>
         </tr>
         {% for p in profiles %}
             <tr>
@@ -29,7 +29,7 @@
                 <td>{{ p.skills|join(',') }}</td>
                 <td>
                     {% if p.avatar %}
-                        <img src="{{ p.avatar }}" alt="Avatar" style="max-width:50px;">
+                        <img src="{{ p.avatar }}" alt="{{ 'profiles.avatar'|trans }}" style="max-width:50px;">
                     {% endif %}
                 </td>
                 <td>{{ p.rating }}</td>
@@ -38,7 +38,7 @@
                     {% if p.user_id != userId %}
                         <form method="POST" style="margin:0;">
                             <input type="hidden" name="requested_id" value="{{ p.user_id }}">
-                            <button type="submit" name="create_chat_request">Запросить чат</button>
+                            <button type="submit" name="create_chat_request">{{ 'profiles.request_chat'|trans }}</button>
                         </form>
                     {% endif %}
                 </td>
@@ -46,8 +46,9 @@
         {% endfor %}
     </table>
 {% else %}
-    <p>Профили отсутствуют.</p>
+    <p>{{ 'profiles.no_profiles'|trans }}</p>
 {% endif %}
 
-<p><a href="{{ path('app_dashboard') }}">Назад</a></p>
+<p><a href="{{ path('app_dashboard') }}">{{ 'profiles.back'|trans }}</a></p>
 {% endblock %}
+

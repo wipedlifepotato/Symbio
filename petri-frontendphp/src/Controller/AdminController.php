@@ -2,43 +2,59 @@
 
 namespace App\Controller;
 
+use App\Service\MFrelance;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Annotation\Route;
-use App\Service\MFrelance;
 
 class AdminController extends AbstractController
 {
     private function isBase64Image(string $data): false|string
     {
         $decoded = base64_decode($data, true);
-        if (!$decoded) return false;
+        if (!$decoded) {
+            return false;
+        }
 
-        if (substr($decoded, 0, 8) === "\x89PNG\x0D\x0A\x1A\x0A") return 'png';
-        if (substr($decoded, 0, 3) === "\xFF\xD8\xFF") return 'jpeg';
-        if (substr($decoded, 0, 6) === "GIF87a" || substr($decoded, 0, 6) === "GIF89a") return 'gif';
+        if ("\x89PNG\x0D\x0A\x1A\x0A" === substr($decoded, 0, 8)) {
+            return 'png';
+        }
+        if ("\xFF\xD8\xFF" === substr($decoded, 0, 3)) {
+            return 'jpeg';
+        }
+        if ('GIF87a' === substr($decoded, 0, 6) || 'GIF89a' === substr($decoded, 0, 6)) {
+            return 'gif';
+        }
 
         return false;
     }
 
     private function usernameByID(MFrelance $mf, string $jwt, int $userId, array &$cache): string
     {
-        if ($userId <= 0) return 'Unknown';
-        if (isset($cache[$userId])) return $cache[$userId];
+        if ($userId <= 0) {
+            return 'Unknown';
+        }
+        if (isset($cache[$userId])) {
+            return $cache[$userId];
+        }
 
         $resp = $mf->doRequest("profile/by_id?user_id=$userId", $jwt, [], false);
-        if ($resp['httpCode'] === 200) {
+        if (200 === $resp['httpCode']) {
             $data = json_decode($resp['response'], true);
             $name = $data['username'] ?? '';
-            if ($name === '') $name = 'User ' . $userId;
+            if ('' === $name) {
+                $name = 'User '.$userId;
+            }
             $cache[$userId] = $name;
+
             return $name;
         }
 
-        return 'User ' . $userId;
+        return 'User '.$userId;
     }
+
     #[Route('/admin', name: 'app_admin')]
     public function admin(Request $request, MFrelance $mf, SessionInterface $session): Response
     {
@@ -50,25 +66,25 @@ class AdminController extends AbstractController
         $jwt = $session->get('jwt', '');
 
         if (!$jwt) {
-            $message = "JWT отсутствует. Пожалуйста, войдите в систему.";
+            $message = 'JWT отсутствует. Пожалуйста, войдите в систему.';
         } else {
             // Block / Unblock users
             if ($blockUserId = $request->request->getInt('block_user_id')) {
                 $res = $mf->doRequest('api/admin/block', $jwt, ['user_id' => $blockUserId], true);
-                $message = $res['httpCode'] === 200 ? "Пользователь заблокирован" : "Ошибка: ".$res['response'];
+                $message = 200 === $res['httpCode'] ? 'Пользователь заблокирован' : 'Ошибка: '.$res['response'];
             }
             if ($unblockUserId = $request->request->getInt('unblock_user_id')) {
                 $res = $mf->doRequest('api/admin/unblock', $jwt, ['user_id' => $unblockUserId], true);
-                $message = $res['httpCode'] === 200 ? "Пользователь разблокирован" : "Ошибка: ".$res['response'];
+                $message = 200 === $res['httpCode'] ? 'Пользователь разблокирован' : 'Ошибка: '.$res['response'];
             }
 
             // Get wallets
             if ($walletsUserId = $request->query->getInt('wallets_user_id')) {
-                $res = $mf->doRequest('api/admin/wallets?user_id=' . $walletsUserId, $jwt);
-                if ($res['httpCode'] === 200) {
+                $res = $mf->doRequest('api/admin/wallets?user_id='.$walletsUserId, $jwt);
+                if (200 === $res['httpCode']) {
                     $wallets = json_decode($res['response'], true);
                 } else {
-                    $message = "Ошибка при получении кошельков: " . $res['response'];
+                    $message = 'Ошибка при получении кошельков: '.$res['response'];
                 }
             }
 
@@ -77,9 +93,9 @@ class AdminController extends AbstractController
                 $newBalance = $request->request->get('new_balance');
                 $res = $mf->doRequest('api/admin/update_balance', $jwt, [
                     'user_id' => $updateWalletId,
-                    'balance' => $newBalance
+                    'balance' => $newBalance,
                 ], true);
-                $message = $res['httpCode'] === 200 ? "Баланс обновлён" : "Ошибка: ".$res['response'];
+                $message = 200 === $res['httpCode'] ? 'Баланс обновлён' : 'Ошибка: '.$res['response'];
             }
 
             // Transactions
@@ -89,21 +105,21 @@ class AdminController extends AbstractController
             $res = $mf->doRequest('api/admin/transactions', $jwt, [
                 'wallet_id' => $txWalletId,
                 'limit' => $txLimit,
-                'offset' => $txOffset
+                'offset' => $txOffset,
             ], true);
-            if ($res['httpCode'] === 200) {
+            if (200 === $res['httpCode']) {
                 $transactions = json_decode($res['response'], true);
             } else {
-                $message = "Ошибка при получении транзакций: " . $res['response'];
+                $message = 'Ошибка при получении транзакций: '.$res['response'];
             }
 
             // Random ticket
             if ($request->query->get('get_ticket')) {
                 $res = $mf->doRequest('api/admin/getRandomTicket', $jwt);
-                if ($res['httpCode'] === 200) {
+                if (200 === $res['httpCode']) {
                     $randomTicket = json_decode($res['response'], true);
                 } else {
-                    $message = "Ошибка получения тикета: " . $res['response'];
+                    $message = 'Ошибка получения тикета: '.$res['response'];
                 }
             }
 
@@ -112,10 +128,10 @@ class AdminController extends AbstractController
                 $chatID = $request->request->getInt('chat_id');
                 $userID = $request->request->getInt('user_id');
                 if ($chatID && $userID) {
-                    $res = $mf->doRequest('api/admin/addUserToChatRoom?chat_id=' . $chatID . '&user_id=' . $userID, $jwt, [], true);
-                    $message = $res['httpCode'] === 200 ? "Пользователь добавлен в чат" : "Ошибка: " . $res['response'];
+                    $res = $mf->doRequest('api/admin/addUserToChatRoom?chat_id='.$chatID.'&user_id='.$userID, $jwt, [], true);
+                    $message = 200 === $res['httpCode'] ? 'Пользователь добавлен в чат' : 'Ошибка: '.$res['response'];
                 } else {
-                    $message = "Неверные ID";
+                    $message = 'Неверные ID';
                 }
             }
         }
@@ -127,9 +143,10 @@ class AdminController extends AbstractController
             'randomTicket' => $randomTicket,
             'txWalletId' => $txWalletId,
             'txLimit' => $txLimit,
-            'txOffset' => $txOffset
+            'txOffset' => $txOffset,
         ]);
     }
+
     #[Route('/admin/tickets', name: 'app_admin_tickets')]
     public function tickets(Request $request, MFrelance $mf, SessionInterface $session): Response
     {
@@ -142,65 +159,64 @@ class AdminController extends AbstractController
         $usernameCache = [];
 
         if (!$jwt) {
-            $message = "JWT отсутствует. Пожалуйста, войдите в систему.";
+            $message = 'JWT отсутствует. Пожалуйста, войдите в систему.';
         } else {
             // Получаем все тикеты
-            $resTickets = $mf->doRequest("api/ticket/my", $jwt, [], false);
-            if ($resTickets['httpCode'] === 200) {
+            $resTickets = $mf->doRequest('api/ticket/my', $jwt, [], false);
+            if (200 === $resTickets['httpCode']) {
                 $allTickets = json_decode($resTickets['response'], true);
-		foreach ($allTickets as &$t) {
-		    $t['username'] = $this->usernameByID($mf, $jwt, $t['user_id'] ?? 0, $usernameCache);
-		}
-		unset($t);
+                foreach ($allTickets as &$t) {
+                    $t['username'] = $this->usernameByID($mf, $jwt, $t['user_id'] ?? 0, $usernameCache);
+                }
+                unset($t);
             }
 
-            // Случайный тикет
+            // Get random ticket
             if ($request->query->get('get_ticket')) {
                 $res = $mf->doRequest('api/admin/getRandomTicket', $jwt);
-                if ($res['httpCode'] === 200) {
+                if (200 === $res['httpCode']) {
                     $randomTicket = json_decode($res['response'], true);
                     if ($randomTicket) {
-			    $randomTicket['username'] = $this->usernameByID($mf, $jwt, $randomTicket['UserID'] ?? 0, $usernameCache);
-		    }
+                        $randomTicket['username'] = $this->usernameByID($mf, $jwt, $randomTicket['UserID'] ?? 0, $usernameCache);
+                    }
                 } else {
-                    $message = "Ошибка получения тикета: " . $res['response'];
+                    $message = 'Ошибка получения тикета: '.$res['response'];
                 }
             }
 
-	// Просмотр выбранного тикета
-	if ($ticketId = $request->query->getInt('ticket_id')) {
-	    $resp = $mf->doRequest("api/ticket/messages?ticket_id=$ticketId", $jwt, [], false);
-	    if ($resp['httpCode'] === 200) {
-		$ticketMessages = json_decode($resp['response'], true);
+            // See selected ticket
+            if ($ticketId = $request->query->getInt('ticket_id')) {
+                $resp = $mf->doRequest("api/ticket/messages?ticket_id=$ticketId", $jwt, [], false);
+                if (200 === $resp['httpCode']) {
+                    $ticketMessages = json_decode($resp['response'], true);
 
-		foreach ($ticketMessages as &$m) {
-		    $senderId = intval($m['SenderID'] ?? 0);
+                    foreach ($ticketMessages as &$m) {
+                        $senderId = intval($m['SenderID'] ?? 0);
 
-		    // Получаем имя отправителя из кеша или через функцию
-		    $m['SenderName'] = $usernameCache[$senderId] ?? $this->usernameByID($mf, $jwt, $senderId ?? 0, $usernameCache);
-		    $usernameCache[$senderId] = $m['SenderName']; // сохраняем в кеш
+                        // Получаем имя отправителя из кеша или через функцию
+                        $m['SenderName'] = $usernameCache[$senderId] ?? $this->usernameByID($mf, $jwt, $senderId ?? 0, $usernameCache);
+                        $usernameCache[$senderId] = $m['SenderName']; // сохраняем в кеш
 
-		    // Проверяем, является ли сообщение изображением
-		    $type = $this->isBase64Image($m['Message'] ?? '');
-		    if ($type) {
-		        $m['is_image'] = true;
-		        $m['image_type'] = $type;
-		        $m['image_data'] = $m['Message'];
-		    } else {
-		        $m['is_image'] = false;
-		        $m['text'] = $m['Message'] ?? '';
-		    }
-		}
-		unset($m);
+                        // Проверяем, является ли сообщение изображением
+                        $type = $this->isBase64Image($m['Message'] ?? '');
+                        if ($type) {
+                            $m['is_image'] = true;
+                            $m['image_type'] = $type;
+                            $m['image_data'] = $m['Message'];
+                        } else {
+                            $m['is_image'] = false;
+                            $m['text'] = $m['Message'] ?? '';
+                        }
+                    }
+                    unset($m);
 
-		$selectedTicket = $ticketId; // выбираем тикет
-	    } else {
-		$message = "Ошибка загрузки сообщений: " . $resp['response'];
-	    }
-	}
+                    $selectedTicket = $ticketId; // выбираем тикет
+                } else {
+                    $message = 'Ошибка загрузки сообщений: '.$resp['response'];
+                }
+            }
 
-
-            // Отправка сообщения
+            // Send message
             if ($request->isMethod('POST') && $request->request->get('send_message') && $ticketId = $request->request->getInt('ticket_id')) {
                 $msg = trim($request->request->get('message', ''));
 
@@ -211,31 +227,31 @@ class AdminController extends AbstractController
                     $msg = base64_encode($fileData);
                 }
 
-                $response = $mf->doRequest("api/ticket/write", $jwt, [
+                $response = $mf->doRequest('api/ticket/write', $jwt, [
                     'ticket_id' => $ticketId,
-                    'message' => $msg
+                    'message' => $msg,
                 ], true);
 
-                if ($response['httpCode'] === 200) {
+                if (200 === $response['httpCode']) {
                     $resp = $mf->doRequest("api/ticket/messages?ticket_id=$ticketId", $jwt, [], false);
-                    if ($resp['httpCode'] === 200) {
+                    if (200 === $resp['httpCode']) {
                         $ticketMessages = json_decode($resp['response'], true);
                         $selectedTicket = $ticketId;
                     }
                 } else {
-                    $message = "Ошибка отправки сообщения: " . $response['response'];
+                    $message = 'Ошибка отправки сообщения: '.$response['response'];
                 }
             }
 
-            // Закрытие тикета
+            // Close ticket
             if ($request->isMethod('POST') && $request->request->get('close_ticket') && $ticketId = $request->request->getInt('ticket_id')) {
-                $response = $mf->doRequest("api/ticket/close", $jwt, ['ticket_id' => $ticketId], true);
-                if ($response['httpCode'] === 200) {
-                    $message = "Тикет успешно закрыт.";
+                $response = $mf->doRequest('api/ticket/close', $jwt, ['ticket_id' => $ticketId], true);
+                if (200 === $response['httpCode']) {
+                    $message = 'Тикет успешно закрыт.';
                     $selectedTicket = null;
                     $ticketMessages = [];
                 } else {
-                    $message = "Ошибка закрытия тикета: " . $response['response'];
+                    $message = 'Ошибка закрытия тикета: '.$response['response'];
                 }
             }
         }
@@ -251,4 +267,3 @@ class AdminController extends AbstractController
         ]);
     }
 }
-

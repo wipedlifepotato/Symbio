@@ -29,7 +29,7 @@ services:
     ports:
       - "8585:80"
     volumes:
-      - ./frontendphp:/var/www/html
+      - ./petri-frontendphp:/var/www/html
     command: sh -c "apt-get update && apt-get install -y socat && socat TCP-LISTEN:9999,fork TCP:mfreelance-go:9999 & apache2-foreground"
       #- /usr/bin/sh -c "chown www-data -R /var/log/apache2"
       #- /proc/self/fd/1:/var/log/apache2/access.log
