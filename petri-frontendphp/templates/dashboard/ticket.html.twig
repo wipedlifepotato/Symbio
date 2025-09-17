@@ -1,0 +1,62 @@
+{% extends 'ticket_base.html.twig' %}
+
+{% block title %}Мои тикеты{% endblock %}
+
+{% block content %}
+<h2>Мои тикеты</h2>
+
+{% if message %}
+    <p class="error">{{ message }}</p>
+{% endif %}
+
+<h3>Список тикетов</h3>
+<ul class="ticket-list">
+{% for t in myTickets %}
+    <li><a href="?ticket_id={{ t.id }}">{{ t.subject }} ({{ t.status }})</a></li>
+{% else %}
+    <li>Тикетов нет.</li>
+{% endfor %}
+</ul>
+
+<h3>Создать новый тикет</h3>
+<form method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="create_ticket" value="1">
+    <label>Тема: <input type="text" name="subject" required></label><br>
+    <label>Сообщение: <textarea name="message"></textarea></label><br>
+    <label>Или файл: <input type="file" name="file"></label><br>
+    <button type="submit">Создать тикет</button>
+</form>
+
+{% if selectedTicket %}
+<h3>Чат тикета ID {{ selectedTicket }}</h3>
+<div class="chat-box">
+{% for m in ticketMessages|reverse %}
+    <p><strong>{{ m.SenderName }}:</strong><br>
+    {% if m.is_image %}
+        <img src="data:image/{{ m.image_type }};base64,{{ m.image_data }}"><br>
+    {% else %}
+        {{ m.text|nl2br }}
+    {% endif %}
+    </p>
+{% endfor %}
+</div>
+
+
+<h4>Отправить сообщение</h4>
+<form method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="ticket_id" value="{{ selectedTicket }}">
+    <input type="hidden" name="send_message" value="1">
+    <textarea name="message" required></textarea><br>
+    <label>Или файл: <input type="file" name="file"></label><br>
+    <button type="submit">Отправить</button>
+</form>
+
+<h4>Закрыть тикет</h4>
+<form method="POST">
+    <input type="hidden" name="ticket_id" value="{{ selectedTicket }}">
+    <input type="hidden" name="close_ticket" value="1">
+    <button type="submit" style="background:red; color:white;">Закрыть тикет</button>
+</form>
+{% endif %}
+{% endblock %}
+

@@ -124,7 +124,12 @@ func main() {
 
 	apiMux.Handle("/admin/make", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.MakeAdminHandler)))
 	apiMux.Handle("/admin/remove", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.RemoveAdminHandler)))
-	apiMux.Handle("/admin/check", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.IsAdminHandler)))
+	apiMux.Handle("/admin/check", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		serverhandlers.IsAdminHandler(w, r)
+	})))
+	apiMux.Handle("/admin/IIsAdmin", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		serverhandlers.IsIAdminHandler(w, r)
+	})))
 	apiMux.Handle("/admin/block", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.BlockUserHandler)))
 	apiMux.Handle("/admin/unblock", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.UnblockUserHandler)))
 	apiMux.Handle("/admin/transactions", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminTransactionsHandler)))

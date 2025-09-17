@@ -32,8 +32,8 @@ func AddUserToTicket(db *sqlx.DB, ticketID, userID int64) error {
 }
 
 // GetMessagesForTicket retrieves messages for a ticket
-func GetMessagesForTicket(db *sqlx.DB, ticketID, userID int64) ([]models.TicketMessage, error) {
-	return models.GetMessagesForTicket(db, ticketID, userID)
+func GetMessagesForTicket(db *sqlx.DB, ticketID, userID int64, limit, offset int) ([]models.TicketMessage, error) {
+	return models.GetMessagesForTicket(db, ticketID, userID, limit, offset)
 }
 
 // GetTicketsForUser retrieves tickets for a user

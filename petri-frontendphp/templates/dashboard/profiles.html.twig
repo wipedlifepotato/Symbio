@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Все профили{% endblock %}
+
+{% block body %}
+<h2>Все профили пользователей</h2>
+
+{% if message %}
+    <p style="color:red">{{ message }}</p>
+{% endif %}
+
+{% if profiles %}
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>UserID</th>
+            <th>Full Name</th>
+            <th>Bio</th>
+            <th>Skills</th>
+            <th>Avatar</th>
+            <th>Rating</th>
+            <th>Completed Tasks</th>
+            <th>Actions</th>
+        </tr>
+        {% for p in profiles %}
+            <tr>
+                <td>{{ p.user_id }}</td>
+                <td>{{ p.full_name }}</td>
+                <td>{{ p.bio }}</td>
+                <td>{{ p.skills|join(',') }}</td>
+                <td>
+                    {% if p.avatar %}
+                        <img src="{{ p.avatar }}" alt="Avatar" style="max-width:50px;">
+                    {% endif %}
+                </td>
+                <td>{{ p.rating }}</td>
+                <td>{{ p.completed_tasks }}</td>
+                <td>
+                    {% if p.user_id != userId %}
+                        <form method="POST" style="margin:0;">
+                            <input type="hidden" name="requested_id" value="{{ p.user_id }}">
+                            <button type="submit" name="create_chat_request">Запросить чат</button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p>Профили отсутствуют.</p>
+{% endif %}
+
+<p><a href="{{ path('app_dashboard') }}">Назад</a></p>
+{% endblock %}

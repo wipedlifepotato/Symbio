@@ -110,6 +110,30 @@ func IsAdminHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// IsIAdminHandler godoc
+// @Summary Check if user is admin
+// @Description Returns true/false if current user has admin privileges
+// @Tags admin
+// @Produce json
+// @Security BearerAuth
+// @Router /api/admin/IIsAdmin [get]
+func IsIAdminHandler(w http.ResponseWriter, r *http.Request) {
+	claims := server.GetUserFromContext(r)
+	if claims == nil {
+		server.WriteErrorJSON(w, "user not found in context", http.StatusUnauthorized)
+		return
+	}
+	isAdmin, err := db.IsAdmin(db.Postgres, claims.UserID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]any{
+		"user_id":  claims.UserID,
+		"is_admin": isAdmin,
+	})
+}
+
 // BlockUserHandler godoc
 // @Summary Block user
 // @Description Blocks a user by userID

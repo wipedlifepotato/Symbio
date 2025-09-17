@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block body %}
+<div class="dashboard-container">
+    <h2>Dashboard пользователя</h2>
+
+    {% if message %}
+        <p style="color:red">{{ message }}</p>
+    {% endif %}
+
+    {% if walletInfo %}
+        <div class="wallet-info">
+            <h3>Кошелек BTC:</h3>
+            <p>Адрес: {{ walletInfo.address|default('-') }}</p>
+            {% if walletInfo.balance is defined %}
+                <p>Баланс: {{ walletInfo.balance }}</p>
+            {% endif %}
+        </div>
+
+        <form method="POST">
+            <h3>Отправить BTC</h3>
+            <label>Кому (адрес): <input type="text" name="to" required></label><br>
+            <label>Сумма: <input type="text" name="amount" required></label><br>
+            <button type="submit">Отправить</button>
+        </form>
+
+        {% if sendResult %}
+            <h4>Результат отправки:</h4>
+            <pre>{{ sendResult }}</pre>
+        {% endif %}
+    {% endif %}
+
+    <div class="links-block">
+        <a href="{{ path('app_profiles') }}">Профили</a>
+        <a href="{{ path('app_profile') }}">Профиль</a>
+        <a href="{{ path('app_ticket') }}">Тикеты</a>
+    {% if isAdmin %}
+        <a href="{{ path('app_admin') }}">Админка</a>
+        <a href="{{ path('app_admin_tickets') }}">Админ тикет</a>
+    {% endif %}
+        <a href="{{ path('app_chat') }}">Чаты</a>
+        <a href="{{ path('app_login') }}">Назад</a>
+    </div>
+</div>
+
+{% endblock %}

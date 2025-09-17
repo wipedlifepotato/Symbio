@@ -111,7 +111,7 @@ func AddUserToTicket(db *sqlx.DB, ticketID, userID int64) error {
 	return nil
 }
 
-func GetMessagesForTicket(db *sqlx.DB, ticketID, userID int64) ([]TicketMessage, error) {
+func GetMessagesForTicket(db *sqlx.DB, ticketID, userID int64, limit, offset int) ([]TicketMessage, error) {
 	var ticket struct {
 		UserID          *int64        `db:"user_id"`
 		AdminID         *int64        `db:"admin_id"`
@@ -149,10 +149,15 @@ func GetMessagesForTicket(db *sqlx.DB, ticketID, userID int64) ([]TicketMessage,
         SELECT *
         FROM ticket_messages
         WHERE ticket_id = $1
-        ORDER BY created_at ASC
-    `, ticketID)
+        ORDER BY created_at DESC
+        LIMIT $2 OFFSET $3
+    `, ticketID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get messages: %w", err)
+	}
+
+	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+		messages[i], messages[j] = messages[j], messages[i]
 	}
 
 	return messages, nil

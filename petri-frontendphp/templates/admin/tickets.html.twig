@@ -1,0 +1,66 @@
+{# templates/admin/tickets.html.twig #}
+
+<h2>Admin Panel - Tickets</h2>
+
+{% if message %}
+    <p style="color:red;">{{ message }}</p>
+{% endif %}
+
+<h3>Все тикеты</h3>
+<ul>
+    {% for t in allTickets %}
+        <li>
+            <a href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'ticket_id': t.id})) }}">
+                {{ t.subject|e }} ({{ t.status }}) — {{ t.username|default('User #' ~ t.user_id) }}
+            </a>
+        </li>
+    {% endfor %}
+</ul>
+
+<h3>Случайный открытый тикет</h3>
+{% if randomTicket %}
+    <p>
+        <strong>ID:</strong> {{ randomTicket.ID }}<br>
+        <strong>User:</strong> {{ randomTicket.username|default('User #' ~ randomTicket.UserID) }}<br>
+        <strong>Subject:</strong> {{ randomTicket.Subject|e }}<br>
+        <strong>Status:</strong> {{ randomTicket.Status|e }}<br>
+        <a href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'ticket_id': randomTicket.ID})) }}">Открыть для ответа</a>
+    </p>
+{% else %}
+    <form method="GET">
+        <button type="submit" name="get_ticket" value="1">Получить случайный тикет</button>
+    </form>
+{% endif %}
+
+{% if selectedTicket %}
+    <h3>Чат тикета ID {{ selectedTicket }}</h3>
+    <div style="border:1px solid #ccc; padding:10px; max-height:300px; overflow-y:scroll;">
+        {% for m in ticketMessages %}
+            <p>
+                <strong>{{ m.SenderName|default('User #' ~ m.SenderID) }}:</strong><br>
+                {% if m.is_image %}
+                    <img src="data:image/{{ m.image_type }};base64,{{ m.image_data }}" style="max-width:200px;"><br>
+                {% else %}
+                    {{ m.text|nl2br }}
+                {% endif %}
+            </p>
+        {% endfor %}
+    </div>
+
+    <h4>Отправить сообщение</h4>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="ticket_id" value="{{ selectedTicket }}">
+        <input type="hidden" name="send_message" value="1">
+        <textarea name="message" required></textarea><br>
+        <label>Или файл: <input type="file" name="file"></label><br>
+        <button type="submit">Отправить</button>
+    </form>
+
+    <h4>Закрыть тикет</h4>
+    <form method="POST">
+        <input type="hidden" name="ticket_id" value="{{ selectedTicket }}">
+        <input type="hidden" name="close_ticket" value="1">
+        <button type="submit" style="background:red; color:white;">Закрыть тикет</button>
+    </form>
+{% endif %}
+

@@ -15,6 +15,7 @@ import (
     "mFrelance/db"
     "mFrelance/server"
 )
+import "unicode/utf8"
 
 type RegisterRequest struct {
     Username      string `json:"username"`
@@ -108,15 +109,37 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 // @Failure 400 {object} map[string]string
 // @Router /register [post]
 func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
+    log.Println("[RegisterHandler] Register Handler")
     var req RegisterRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
         server.WriteErrorJSON(w, "invalid json", http.StatusBadRequest)
+        log.Println("[RegisterHandler] invalid json")
         return
     }
-
+    if utf8.RuneCountInString(req.Password) > 128 {
+	    server.WriteErrorJSON(w, "password too long", http.StatusBadRequest)
+	    log.Println("[RegisterHandler] password too long")
+	    return
+    }
+    if utf8.RuneCountInString(req.Password) < 6 {
+	    server.WriteErrorJSON(w, "password too small", http.StatusBadRequest)
+	    log.Println("[RegisterHandler] password too small")
+	    return
+    }
+    if utf8.RuneCountInString(req.Username) < 2 {
+	    server.WriteErrorJSON(w, "Username too small", http.StatusBadRequest)
+	    log.Println("[RegisterHandler] username too small")
+	    return
+    }
+    if utf8.RuneCountInString(req.Username) > 128 {
+	    server.WriteErrorJSON(w, "Username too long", http.StatusBadRequest)
+	    log.Println("[RegisterHandler] username too long")
+	    return
+    }
     storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
     if err != nil || storedCaptcha != req.CaptchaAnswer {
         server.WriteErrorJSON(w, "invalid captcha", http.StatusBadRequest)
+        log.Println("[RegisterHandler] invalid captcha")
         return
     }
     rdb.Del(ctx, "captcha:"+req.CaptchaID)
@@ -126,7 +149,8 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
 
     err = db.CreateUser(db.Postgres, req.Username, passwordHash, mnemonic)
     if err != nil {
-        server.WriteErrorJSON(w, "failed to create user", http.StatusInternalServerError)
+        log.Println("[RegisterHandler] failed to create user")
+        server.WriteErrorJSON(w, "failed to create user, maybe user exists", http.StatusInternalServerError)
         return
     }
 
@@ -161,6 +185,16 @@ func RestoreHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
         server.WriteErrorJSON(w, "invalid json", http.StatusBadRequest)
         return
+    }
+    if utf8.RuneCountInString(req.NewPassword) > 128 {
+	    server.WriteErrorJSON(w, "password too long", http.StatusBadRequest)
+	    log.Println("[RegisterHandler] password too long")
+	    return
+    }
+    if utf8.RuneCountInString(req.NewPassword) < 6 {
+	    server.WriteErrorJSON(w, "password too small", http.StatusBadRequest)
+	    log.Println("[RegisterHandler] password too small")
+	    return
     }
     storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
     if err != nil || storedCaptcha != req.CaptchaAnswer {

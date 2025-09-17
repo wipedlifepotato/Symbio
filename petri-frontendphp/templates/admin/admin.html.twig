@@ -1,0 +1,113 @@
+{# templates/admin/admin.html.twig #}
+
+<h2>Admin Panel</h2>
+
+{% if message %}
+    <p style="color:red;">{{ message }}</p>
+{% endif %}
+
+<h3>User Management</h3>
+<form method="POST">
+    <input type="number" name="block_user_id" placeholder="User ID to Block">
+    <button type="submit">Block</button>
+</form>
+<form method="POST">
+    <input type="number" name="unblock_user_id" placeholder="User ID to Unblock">
+    <button type="submit">Unblock</button>
+</form>
+
+<h3>Get User Wallets</h3>
+<form method="GET">
+    <input type="number" name="wallets_user_id" placeholder="User ID">
+    <button type="submit">Get Wallets</button>
+</form>
+
+{% if wallets %}
+    <table border="1" cellpadding="5">
+        <tr><th>ID</th><th>Currency</th><th>Balance</th><th>Address</th></tr>
+        {% for w in wallets %}
+            <tr>
+                <td>{{ w.UserID }}</td>
+                <td>{{ w.Currency }}</td>
+                <td>{{ w.Balance }}</td>
+                <td>{{ w.Address }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endif %}
+
+<h3>Update Wallet Balance</h3>
+<form method="POST">
+    <input type="number" name="update_wallet_id" placeholder="Wallet ID">
+    <input type="text" name="new_balance" placeholder="New Balance">
+    <button type="submit">Set Balance</button>
+</form>
+
+<h3>Transactions</h3>
+<form method="GET">
+    <input type="number" name="tx_wallet_id" placeholder="Wallet ID (optional)" value="{{ txWalletId }}">
+    <input type="number" name="tx_limit" placeholder="Limit" value="{{ txLimit }}">
+    <input type="number" name="tx_offset" placeholder="Offset" value="{{ txOffset }}">
+    <button type="submit">Get Transactions</button>
+</form>
+
+{% if transactions %}
+    <table border="1" cellpadding="5">
+        <tr><th>ID</th><th>From</th><th>To</th><th>Amount</th><th>Currency</th><th>Created</th></tr>
+        {% for tx in transactions %}
+            <tr>
+                <td>{{ tx.ID }}</td>
+                <td>{{ tx.FromWalletID.Valid ? tx.FromWalletID.Int64 : '' }}</td>
+                <td>
+                    {{ tx.ToWalletID.Valid ? tx.ToWalletID.Int64 : '' }}
+                    ({{ tx.ToAddress.Valid ? tx.ToAddress.String : '' }})
+                </td>
+                <td>{{ tx.Amount }}</td>
+                <td>{{ tx.Currency }}</td>
+                <td>{{ tx.CreatedAt }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endif %}
+
+<h3>Get Random Ticket</h3>
+{% if randomTicket %}
+    <h4>Случайный открытый тикет</h4>
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>ID</th>
+            <th>User ID</th>
+            <th>Admin ID</th>
+            <th>Status</th>
+            <th>Subject</th>
+            <th>Created At</th>
+            <th>Updated At</th>
+        </tr>
+        <tr>
+            <td>{{ randomTicket.ID }}</td>
+            <td>{{ randomTicket.UserID }}</td>
+            <td>{{ randomTicket.AdminID.Valid ? randomTicket.AdminID.Int64 : '—' }}</td>
+            <td>{{ randomTicket.Status }}</td>
+            <td>{{ randomTicket.Subject }}</td>
+            <td>{{ randomTicket.CreatedAt }}</td>
+            <td>{{ randomTicket.UpdatedAt }}</td>
+        </tr>
+    </table>
+    <p>
+        <a href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'ticket_id': randomTicket.ID})) }}">
+            Открыть для ответа
+        </a>
+    </p>
+{% else %}
+    <form method="GET">
+        <button type="submit" name="get_ticket" value="1">Получить случайный тикет</button>
+    </form>
+{% endif %}
+
+<h3>Add User to Chat Room</h3>
+<form method="POST">
+    <input type="number" name="chat_id" placeholder="Chat ID" required>
+    <input type="number" name="user_id" placeholder="User ID" required>
+    <button type="submit" name="add_to_chat" value="1">Add User</button>
+</form>
+

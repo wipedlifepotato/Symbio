@@ -179,12 +179,14 @@ func ExitFromTicketHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetTicketMessagesHandler godoc
 // @Summary Get messages for a ticket
-// @Description Returns all messages for a given ticket if the user has access
+// @Description Returns messages for a given ticket if the user has access, supports limit/offset
 // @Tags ticket
 // @Produce json
 // @Param ticket_id query int true "Ticket ID"
+// @Param limit query int false "Number of messages to return (max 1000, default 100)"
+// @Param offset query int false "Offset for messages (default last messages)"
 // @Success 200 {array} models.TicketMessage "List of messages"
-// @Failure 400 {object} map[string]string "Invalid ticket_id"
+// @Failure 400 {object} map[string]string "Invalid parameters"
 // @Failure 401 {object} map[string]string "User not authenticated"
 // @Failure 403 {object} map[string]string "User does not have access"
 // @Router /api/ticket/messages [get]
@@ -192,9 +194,10 @@ func ExitFromTicketHandler(w http.ResponseWriter, r *http.Request) {
 func GetTicketMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	claims := server.GetUserFromContext(r)
 	if claims == nil {
-		server.WriteErrorJSON(w, "user not found in context", http.StatusUnauthorized)
+		server.WriteErrorJSON(w, "user not authenticated", http.StatusUnauthorized)
 		return
 	}
+
 	ticketIDStr := r.URL.Query().Get("ticket_id")
 	if ticketIDStr == "" {
 		server.WriteErrorJSON(w, "ticket_id is required", http.StatusBadRequest)
@@ -205,11 +208,38 @@ func GetTicketMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		server.WriteErrorJSON(w, "invalid ticket_id", http.StatusBadRequest)
 		return
 	}
-	messages, err := db.GetMessagesForTicket(db.Postgres, ticketID, claims.UserID)
+
+	limit := 100
+	offset := 0
+
+	if lStr := r.URL.Query().Get("limit"); lStr != "" {
+		l, err := strconv.Atoi(lStr)
+		if err != nil || l <= 0 {
+			server.WriteErrorJSON(w, "invalid limit", http.StatusBadRequest)
+			return
+		}
+		if l > 1000 {
+			server.WriteErrorJSON(w, "limit cannot exceed 1000", http.StatusBadRequest)
+			return
+		}
+		limit = l
+	}
+
+	if oStr := r.URL.Query().Get("offset"); oStr != "" {
+		o, err := strconv.Atoi(oStr)
+		if err != nil || o < 0 {
+			server.WriteErrorJSON(w, "invalid offset", http.StatusBadRequest)
+			return
+		}
+		offset = o
+	}
+
+	messages, err := db.GetMessagesForTicket(db.Postgres, ticketID, claims.UserID, limit, offset)
 	if err != nil {
 		server.WriteErrorJSON(w, err.Error(), http.StatusForbidden)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
 }

@@ -1,0 +1,92 @@
+{# templates/dashboard/ticket.html.twig #}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Мои тикеты{% endblock %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        h2, h3, h4 {
+            color: #333;
+        }
+        form {
+            background-color: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+        input[type=text], input[type=file], textarea {
+            width: 100%;
+            padding: 6px;
+            margin: 6px 0 12px 0;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            border: none;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .ticket-list li {
+            margin-bottom: 6px;
+        }
+        .ticket-list a {
+            text-decoration: none;
+            color: #0066cc;
+        }
+        .ticket-list a:hover {
+            text-decoration: underline;
+        }
+	.chat-box {
+	    display: flex;
+	    flex-direction: column-reverse;
+	    border: 1px solid #ccc;
+	    padding: 10px;
+	    max-height: 300px;
+	    overflow-y: auto;
+	    background-color: #fff;
+	    border-radius: 6px;
+	    margin-bottom: 15px;
+	}
+
+	.chat-box p {
+	    margin-bottom: 12px;
+	}
+
+	.chat-box img {
+	    max-width: 200px;
+	    border-radius: 4px;
+	    margin-top: 5px;
+	}
+
+        .chat-box p {
+            margin-bottom: 12px;
+        }
+        .chat-box img {
+            max-width: 200px;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    {% block content %}{% endblock %}
+</body>
+</html>
+

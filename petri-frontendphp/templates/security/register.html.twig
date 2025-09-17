@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block body %}
+<div class="dashboard-container">
+    <h2>Регистрация</h2>
+
+    {% if message %}
+        <p style="color:red">{{ message }}</p>
+    {% endif %}
+
+    {% if mnemonic %}
+        <p>Сохраните свою мнемонику: <b>{{ mnemonic }}</b></p>
+    {% endif %}
+
+    <form method="POST">
+        Username: <input type="text" name="username" required><br>
+        Password: <input type="password" name="password" required><br>
+        <img src="{{ captchaImage }}" alt="captcha"><br>
+        <input type="hidden" name="captcha_id" value="{{ captchaId }}">
+        Введите капчу: <input type="text" name="captcha_answer" required><br>
+        <button type="submit">Зарегистрироваться</button>
+    </form>
+
+    <div class="links-block">
+        <a href="{{ path('app_login') }}">Вход</a>
+    </div>
+</div>
+{% endblock %}
+
