@@ -98,3 +98,20 @@
     ```bash
     docker-compose logs -f
     ```
+
+## License
+
+Petri is released under two types of licenses:
+
+### Non-Commercial License
+Petri is free to use for **personal, educational, or research purposes only**.  
+Commercial use is **not allowed** without a separate commercial license.  
+
+See [LICENSE](./LICENSE) for full details.
+
+### Commercial License
+For **commercial use** of Petri, please contact:
+
+**Email:** existentialglue@proton.me  
+
+See [LICENSE_COMMERCIAL.txt](./LICENSE_COMMERCIAL.txt) for more information.

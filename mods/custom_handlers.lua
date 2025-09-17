@@ -103,6 +103,10 @@ register_handler("/mywallet", function(req)
     return '{"user_id":'..user_id..', "username":" '..username..'"}'
 end)
 
+register_handler("/hello_handler", function(req)
+	return '{"msg":"hello"}'
+end)
+
 --local test_user_id = 5
 --local currency = "BTC"
 --local bal, err = get_balance(test_user_id, currency)

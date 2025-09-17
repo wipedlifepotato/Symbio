@@ -210,6 +210,17 @@ info:
   title: mFrelance API
   version: "1.0"
 paths:
+  /api/admin/IIsAdmin:
+    get:
+      description: Returns true/false if current user has admin privileges
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Check if user is admin
+      tags:
+      - admin
   /api/admin/block:
     post:
       consumes:
@@ -567,12 +578,21 @@ paths:
       - ticket
   /api/ticket/messages:
     get:
-      description: Returns all messages for a given ticket if the user has access
+      description: Returns messages for a given ticket if the user has access, supports
+        limit/offset
       parameters:
       - description: Ticket ID
         in: query
         name: ticket_id
         required: true
+        type: integer
+      - description: Number of messages to return (max 1000, default 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for messages (default last messages)
+        in: query
+        name: offset
         type: integer
       produces:
       - application/json
@@ -584,7 +604,7 @@ paths:
               $ref: '#/definitions/models.TicketMessage'
             type: array
         "400":
-          description: Invalid ticket_id
+          description: Invalid parameters
           schema:
             additionalProperties:
               type: string

@@ -15,6 +15,24 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/IIsAdmin": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns true/false if current user has admin privileges",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Check if user is admin",
+                "responses": {}
+            }
+        },
         "/api/admin/block": {
             "post": {
                 "security": [
@@ -582,7 +600,7 @@ const docTemplate = `{
                         "bearerAuth": []
                     }
                 ],
-                "description": "Returns all messages for a given ticket if the user has access",
+                "description": "Returns messages for a given ticket if the user has access, supports limit/offset",
                 "produces": [
                     "application/json"
                 ],
@@ -597,6 +615,18 @@ const docTemplate = `{
                         "name": "ticket_id",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of messages to return (max 1000, default 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset for messages (default last messages)",
+                        "name": "offset",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -610,7 +640,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid ticket_id",
+                        "description": "Invalid parameters",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
