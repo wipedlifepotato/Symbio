@@ -22,6 +22,7 @@ RUN rm -rf Electrum-${ELECTRUM_VERSION} Electrum-${ELECTRUM_VERSION}.tar.gz
 EXPOSE ${ELECTRUM_PORT}
 EXPOSE ${ELECTRUM_EXTPORT}
 # ELECTRUM_NETWORK
-RUN electrum --offline create
+#RUN electrum --offline $( [ "$ELECTRUM_TESTNET" = "true" ] && echo "--testnet" ) create
 
-CMD electrum daemon $( [ "$ELECTRUM_TESTNET" = "true" ] && echo "--testnet" ) --rpchost 0.0.0.0 --rpcport ${ELECTRUM_PORT} --rpcuser Electrum --rpcpassword Electrum
+CMD electrum daemon $( [ "$ELECTRUM_TESTNET" = "true" ] && echo "--testnet" ) --rpchost 0.0.0.0 --rpcport ${ELECTRUM_PORT} --rpcuser Electrum --rpcpassword Electrum 
+#|| electrum  $( [ "$ELECTRUM_TESTNET" = "true" ] && echo "--testnet" ) create --rpcuser Electrum --rpcpassword Electrum

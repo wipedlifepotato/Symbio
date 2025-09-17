@@ -28,9 +28,9 @@ services:
     restart: unless-stopped
     ports:
       - "8585:80"
-    volumes:
-      - ./petri-frontendphp:/var/www/html
-    command: sh -c "apt-get update && apt-get install -y socat && socat TCP-LISTEN:9999,fork TCP:mfreelance-go:9999 & apache2-foreground"
+    #volumes:
+      #- ./petri-frontendphp:/var/www/html
+    command: sh -c "apt-get update && apt-get install -y socat && socat TCP-LISTEN:9999,fork TCP:mfreelance-go:9999 & a2enmod rewrite & apache2-foreground"
       #- /usr/bin/sh -c "chown www-data -R /var/log/apache2"
       #- /proc/self/fd/1:/var/log/apache2/access.log
       #- /proc/self/fd/1:/var/log/apache2/error.log
@@ -41,8 +41,10 @@ services:
     ports:
       - "127.0.0.1:${ELECTRUM_PORT}:${ELECTRUM_PORT}"
     environment:
-      - ELECTRUM_NETWORK=testnet
+      #- ELECTRUM_NETWORK=testnet
+      - ELECTRUM_TESTNET=true
     restart: unless-stopped
+    #command: sh -c "electrum --offline $( [ "$ELECTRUM_TESTNET" = "true" ] && echo "--testnet" ) create || true"
   go-server:
     build:
       context: .
