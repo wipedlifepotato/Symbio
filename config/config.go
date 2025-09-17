@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"strconv"
+	"time"
 )
 
 type Config struct {
@@ -39,6 +40,10 @@ type Config struct {
 	MaxProfiles     int64
 	MaxAvatarSize   int64
 	MaxAddrPerBlock int64
+	
+        WalletSyncInterval   time.Duration
+        TxBlockInterval      time.Duration
+        TxPoolFlushInterval  time.Duration
 }
 
 var AppConfig Config
@@ -62,14 +67,19 @@ func Init() {
     pflag.String("monero.password", "", "Monero RPC password")
 
     pflag.String("postgres.host", "localhost", "Postgres host")
-	pflag.String("postgres.port", "5432", "Postgres port")
-	pflag.String("postgres.user", "user", "Postgres user")
-	pflag.String("postgres.password", "password", "Postgres password")
-	pflag.String("postgres.db", "db", "Postgres database")
+    pflag.String("postgres.port", "5432", "Postgres port")
+    pflag.String("postgres.user", "user", "Postgres user")
+    pflag.String("postgres.password", "password", "Postgres password")
+    pflag.String("postgres.db", "db", "Postgres database")
 
-	pflag.String("redis.host", "localhost", "Redis host")
-	pflag.String("redis.port", "6379", "Redis port")
-	pflag.String("redis.password", "", "Redis password")
+    pflag.String("redis.host", "localhost", "Redis host")
+    pflag.String("redis.port", "6379", "Redis port")
+    pflag.String("redis.password", "", "Redis password")
+    viper.SetDefault("wallet_sync_interval", "30s")
+    viper.SetDefault("tx_block_interval", "1h")
+    viper.SetDefault("tx_pool_flush_interval", "15s")
+    viper.SetDefault("max_addr_per_block", 100)
+
     pflag.Parse()
     _ = viper.BindPFlags(pflag.CommandLine)
 
@@ -157,6 +167,10 @@ func Init() {
         MaxProfiles:       viper.GetInt64("max.profiles"),
         MaxAvatarSize:     viper.GetInt64("max.avatar_size_mb"),
         MaxAddrPerBlock:   viper.GetInt64("max.addr_per_block"),
+        
+        WalletSyncInterval:   viper.GetDuration("wallet_sync_interval"),
+        TxBlockInterval:      viper.GetDuration("tx_block_interval"),
+        TxPoolFlushInterval:  viper.GetDuration("tx_pool_flush_interval"),
     }
 
     log.Println("Loaded commissions:", "BTC:", AppConfig.BitcoinCommission, "XMR:", AppConfig.MoneroCommission)

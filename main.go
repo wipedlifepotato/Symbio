@@ -16,7 +16,6 @@ import (
 	"gitlab.com/moneropay/go-monero/walletrpc"
 	"context"
 	_ "mFrelance/docs"
-	"time"
         "github.com/spf13/viper"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -192,10 +191,10 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go server.StartWalletSync(ctx, electrumClient, moneroClient, 30*time.Second)
-	go server.StartTxBlockTransactions(ctx, electrumClient, 15*time.Second)
+	go server.StartWalletSync(ctx, electrumClient, moneroClient, config.AppConfig.WalletSyncInterval)
+	go server.StartTxBlockTransactions(ctx, electrumClient, config.AppConfig.TxBlockInterval)
 
-	server.StartTxPoolFlusher(electrumClient, 15*time.Second, int(config.AppConfig.MaxAddrPerBlock))
+	server.StartTxPoolFlusher(electrumClient, config.AppConfig.TxPoolFlushInterval, int(config.AppConfig.MaxAddrPerBlock))
 	server.SetTxPoolBlocked(false)
 	log.Println("Starting server on " + config.AppConfig.ListenAddr + ":" + config.AppConfig.Port)
 	if err := s.Start(config.AppConfig.ListenAddr, config.AppConfig.Port); err != nil {

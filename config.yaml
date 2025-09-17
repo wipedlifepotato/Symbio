@@ -1,3 +1,7 @@
+wallet_sync_interval: 30s
+tx_block_interval: 1h
+tx_pool_flush_interval: 15s
+
 postgres:
   host: localhost
   port: 5432
