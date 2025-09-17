@@ -466,7 +466,8 @@ class DashboardController extends AbstractController
             if ($selectedChatID) {
                 $res = $mfrelance->doRequest("api/chat/getChatMessages?chat_room_id=$selectedChatID", $jwt);
                 if (200 === $res['httpCode']) {
-                    $messages = json_decode($res['response'], true);
+		    $messages = json_decode($res['response'], true);
+		    if($messages)
                     foreach ($messages as &$m) {
                         $senderId = intval($m['sender_id'] ?? 0);
                         $m['SenderName'] = $usernameCache[$senderId] ?? $getUsernameByID($senderId);
