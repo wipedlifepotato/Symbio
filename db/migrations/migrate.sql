@@ -45,6 +45,18 @@ CREATE TABLE IF NOT EXISTS ticket_messages (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS wallet_transactions (
+    txid text NOT NULL,
+    wallet_id integer,
+    amount numeric(20,8),
+    currency text,
+    confirmed boolean,
+    created_at timestamp without time zone DEFAULT now(),
+    CONSTRAINT wallet_transactions_pkey PRIMARY KEY (txid),
+    CONSTRAINT wallet_transactions_txid_unique UNIQUE (txid)
+);
+
+
 CREATE TABLE IF NOT EXISTS transactions (
     id SERIAL PRIMARY KEY,
     from_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
