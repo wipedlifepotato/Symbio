@@ -1,9 +1,9 @@
 package auth
 
 import (
-	"time"
-	Config "mFrelance/config"
 	"github.com/golang-jwt/jwt/v5"
+	Config "mFrelance/config"
+	"time"
 )
 
 var jwtSecret = []byte(Config.AppConfig.JWTToken)

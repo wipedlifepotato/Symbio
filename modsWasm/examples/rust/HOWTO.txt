@@ -1,0 +1,3 @@
+rustc --target wasm32-unknown-unknown -O hello.rs -o hello.wasm
+mv hello.wasm ../../ # to modsWas
+cp example.lua ../../../mods

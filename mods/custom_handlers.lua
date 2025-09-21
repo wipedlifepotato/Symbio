@@ -129,3 +129,5 @@ end)
 --else
 --    print("Failed to subtract balance:", err)
 --end
+--local x = plugin_hello("52525")
+--print("X:",x) -- => WASM[hello.wasm]: 10

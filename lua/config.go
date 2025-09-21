@@ -1,8 +1,8 @@
 package lua
 
 import (
-	"mFrelance/config"
 	"github.com/yuin/gopher-lua"
+	"mFrelance/config"
 )
 
 func RegisterConfigGlobals(L *lua.LState) {
@@ -44,9 +44,8 @@ func RegisterConfigGlobals(L *lua.LState) {
 	L.SetField(cfg, "BitcoinCommission", lua.LNumber(config.AppConfig.BitcoinCommission))
 	// Constants
 	L.SetField(cfg, "MaxProfiles", lua.LNumber(config.AppConfig.MaxProfiles))
-	L.SetField(cfg, "MaxAvatarSize", lua.LNumber(config.AppConfig.MaxAvatarSize))	
-	L.SetField(cfg, "MaxAddrPerBlock", lua.LNumber(config.AppConfig.MaxAddrPerBlock))	
+	L.SetField(cfg, "MaxAvatarSize", lua.LNumber(config.AppConfig.MaxAvatarSize))
+	L.SetField(cfg, "MaxAddrPerBlock", lua.LNumber(config.AppConfig.MaxAddrPerBlock))
 
 	L.SetGlobal("config", cfg)
 }
-
