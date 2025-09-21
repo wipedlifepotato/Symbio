@@ -40,22 +40,21 @@ class SecurityController extends AbstractController
                 }
                 $message = $translator->trans('auth.error_jwt');
             } else {
-
                 $json = json_decode($result['response'], true);
-                if ($json['error'] == 'invalid captcha')
-                	$json['error'] = $translator->trans('bad_captcha', []);
-                else if($json['error'] == 'invalid username or password')
-                	$json['error'] = $translator->trans('invalidusernameopassword', []);
+                if ('invalid captcha' == $json['error']) {
+                    $json['error'] = $translator->trans('bad_captcha', []);
+                } elseif ('invalid username or password' == $json['error']) {
+                    $json['error'] = $translator->trans('invalidusernameopassword', []);
+                }
                 if (isset($json['error'])) {
-                     $message = $translator->trans('auth.login_error', ['%error%' => $json['error'] ?? $result['response']]);
+                    $message = $translator->trans('auth.login_error', ['%error%' => $json['error'] ?? $result['response']]);
                 } else {
-                     $message = $translator->trans('auth.login_error', ['%error%' => $json['error'] ?? $result['response']]);
+                    $message = $translator->trans('auth.login_error', ['%error%' => $json['error'] ?? $result['response']]);
                 }
             }
         } catch (\Exception $e) {
-	    $message = $translator->trans('auth.request_error', ['%error%' => $e->getMessage()]);
+            $message = $translator->trans('auth.request_error', ['%error%' => $e->getMessage()]);
         }
-
 
         $captcha = $mfrelance->getCaptcha();
         $captchaId = $captcha['captchaID'] ?? '';
@@ -75,7 +74,6 @@ class SecurityController extends AbstractController
     {
         $message = '';
         $jwt = $session->get('jwt', '');
-
 
         $captcha = $mfrelance->getCaptcha();
         $captchaId = $captcha['captchaID'] ?? '';
@@ -109,15 +107,12 @@ class SecurityController extends AbstractController
                     }
                 } else {
                     $json = json_decode($response['response'], true);
-                    if ($json['error']=='password too small')
-                    {
-                    	$json['error'] = $translator->trans('passwordtoosmall', []);;
-                    } else if($json['error'] == 'invalid captcha')
-                    {
-                    	$json['error'] = $translator->trans('bad_captcha', []);;
-                    } else if($json['error'] == 'failed to found user') 
-                    {
-                    	$json['error'] = $translator->trans('notFoundUser', []);;
+                    if ('password too small' == $json['error']) {
+                        $json['error'] = $translator->trans('passwordtoosmall', []);
+                    } elseif ('invalid captcha' == $json['error']) {
+                        $json['error'] = $translator->trans('bad_captcha', []);
+                    } elseif ('failed to found user' == $json['error']) {
+                        $json['error'] = $translator->trans('notFoundUser', []);
                     }
                     $message = $translator->trans('restore.error', ['%error%' => $json['error']]);
                 }
@@ -136,71 +131,71 @@ class SecurityController extends AbstractController
         ]);
     }
 
-#[Route('/register', name: 'app_register')]
-public function register(MFrelance $mfrelance, Request $request, TranslatorInterface $translator): Response
-{
-    $message = '';
-    $mnemonic = '';
+    #[Route('/register', name: 'app_register')]
+    public function register(MFrelance $mfrelance, Request $request, TranslatorInterface $translator): Response
+    {
+        $message = '';
+        $mnemonic = '';
 
-    // Получаем капчу
-    if (!$request->isMethod('POST')) {
-        $captcha = $mfrelance->getCaptcha();
-        $captchaId = $captcha['captchaID'] ?? '';
-        $captchaImage = $captcha['captchaImg'] ?? '';
-    } else {
-        $captchaId = $request->request->get('captcha_id', '');
-        $captchaImage = '';
-    }
-
-    if ($request->isMethod('POST')) {
-        $username = $request->request->get('username', '');
-        $password = $request->request->get('password', '');
-        $captchaAnswer = $request->request->get('captcha_answer', '');
-
-        $data = [
-            'username' => $username,
-            'password' => $password,
-            'captcha_id' => $captchaId,
-            'captcha_answer' => $captchaAnswer,
-        ];
-
-        try {
-            $result = $mfrelance->doRequest('register', false, $data, true);
-            $json = json_decode($result['response'], true);
-
-            if (200 === $result['httpCode']) {
-                $message = $translator->trans('register.success', [], null);
-                $mnemonic = $json['encrypted'] ?? '';
-            } elseif (400 === $result['httpCode']) {
-                $errorMsg = $json['error'] ?? $result['response'];
-                if ($errorMsg === 'password too small') {
-                	$errorMsg = $translator->trans('passwordtoosmall', []);
-                } else if ($errorMsg == 'invalid captcha' ){
-                	$errorMsg = $translator->trans('bad_captcha', []);
-                }
-                $message = $translator->trans('register.error', ['%error%' => $errorMsg], null);
-            } else {
-                $message = $translator->trans('register.error', ['%error%' => $result['response']], null);
-            }
-        } catch (\Exception $e) {
-            $message = $translator->trans('register.error', ['%error%' => $e->getMessage()], null);
+        // Получаем капчу
+        if (!$request->isMethod('POST')) {
+            $captcha = $mfrelance->getCaptcha();
+            $captchaId = $captcha['captchaID'] ?? '';
+            $captchaImage = $captcha['captchaImg'] ?? '';
+        } else {
+            $captchaId = $request->request->get('captcha_id', '');
+            $captchaImage = '';
         }
 
-        $captcha = $mfrelance->getCaptcha();
-        $captchaId = $captcha['captchaID'] ?? '';
-        $captchaImage = $captcha['captchaImg'] ?? '';
+        if ($request->isMethod('POST')) {
+            $username = $request->request->get('username', '');
+            $password = $request->request->get('password', '');
+            $captchaAnswer = $request->request->get('captcha_answer', '');
+
+            $data = [
+                'username' => $username,
+                'password' => $password,
+                'captcha_id' => $captchaId,
+                'captcha_answer' => $captchaAnswer,
+            ];
+
+            try {
+                $result = $mfrelance->doRequest('register', false, $data, true);
+                $json = json_decode($result['response'], true);
+
+                if (200 === $result['httpCode']) {
+                    $message = $translator->trans('register.success', [], null);
+                    $mnemonic = $json['encrypted'] ?? '';
+                } elseif (400 === $result['httpCode']) {
+                    $errorMsg = $json['error'] ?? $result['response'];
+                    if ('password too small' === $errorMsg) {
+                        $errorMsg = $translator->trans('passwordtoosmall', []);
+                    } elseif ('invalid captcha' == $errorMsg) {
+                        $errorMsg = $translator->trans('bad_captcha', []);
+                    }
+                    $message = $translator->trans('register.error', ['%error%' => $errorMsg], null);
+                } else {
+                    $message = $translator->trans('register.error', ['%error%' => $result['response']], null);
+                }
+            } catch (\Exception $e) {
+                $message = $translator->trans('register.error', ['%error%' => $e->getMessage()], null);
+            }
+
+            $captcha = $mfrelance->getCaptcha();
+            $captchaId = $captcha['captchaID'] ?? '';
+            $captchaImage = $captcha['captchaImg'] ?? '';
+        }
+
+        $projectName = $this->getParameter('project_name');
+
+        return $this->render('security/register.html.twig', [
+            'projectName' => $projectName,
+            'captchaId' => $captchaId,
+            'captchaImage' => $captchaImage,
+            'message' => $message,
+            'mnemonic' => $mnemonic,
+        ]);
     }
-
-    $projectName = $this->getParameter('project_name');
-
-    return $this->render('security/register.html.twig', [
-        'projectName' => $projectName,
-        'captchaId' => $captchaId,
-        'captchaImage' => $captchaImage,
-        'message' => $message,
-        'mnemonic' => $mnemonic,
-    ]);
-}
 
     #[Route('/', name: 'app_login')]
     public function index(MFrelance $mfrelance, SessionInterface $session, TranslatorInterface $translator): Response

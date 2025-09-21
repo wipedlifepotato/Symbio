@@ -1,0 +1,195 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ task.title }} - mFrelance{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Информация о задаче -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4>{{ task.title }}</h4>
+                    <span class="badge bg-{{ task.status == 'open' ? 'success' : (task.status == 'in_progress' ? 'warning' : 'secondary') }} fs-6">
+                        {{ task.status }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ task.description }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Категория:</strong> {{ task.category }}<br>
+                            <strong>Бюджет:</strong> {{ task.budget }} {{ task.currency }}<br>
+                            <strong>Срок:</strong> {{ task.deadline|date('d.m.Y H:i') }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Создано:</strong> {{ task.created_at|date('d.m.Y H:i') }}<br>
+                            <strong>ID задачи:</strong> {{ task.id }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Предложения -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-hand-thumbs-up"></i> Предложения ({{ offers|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if offers is empty %}
+                        <p class="text-muted">Пока нет предложений</p>
+                    {% else %}
+                        {% for offer in offers %}
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="card-title">
+                                                Предложение #{{ offer.id }} от {{ offer.freelancer }}
+                                                {% if offer.accepted %}
+                                                    <span class="badge bg-success">Принято</span>
+                                                {% endif %}
+                                            </h6>
+                                            <p class="card-text">{{ offer.message }}</p>
+                                            <small class="text-muted">
+                                                Цена: {{ offer.price }} {{ task.currency }} |
+                                                Дата: {{ offer.created_at|date('d.m.Y H:i') }}
+                                            </small>
+                                        </div>
+                                        <div>
+                                            {% if task.is_own %}
+                                            {% if task.status == 'open' and not offer.accepted %}
+                                                <form method="POST" style="display: inline;">
+                                                    <input type="hidden" name="action" value="accept_offer">
+                                                    <input type="hidden" name="offer_id" value="{{ offer.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-success">
+                                                        <i class="bi bi-check"></i> Принять
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Действия -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-gear"></i> Действия</h5>
+                </div>
+                <div class="card-body">
+                    {% if task.status == 'in_progress' %}
+                    	{% if task.is_own %}
+                        <button class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#completeModal">
+                            <i class="bi bi-check-circle"></i> Отметить как выполненную
+                        </button>
+                        {% endif %}
+                        
+                        <button class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#disputeModal">
+                            <i class="bi bi-exclamation-triangle"></i> Открыть диспут
+                        </button>
+                    {% endif %}
+                    
+                    {% if task.status == 'open' and not task.is_own %}
+                        <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#offerModal">
+                            <i class="bi bi-hand-thumbs-up"></i> Подать предложение
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Информация о заказчике -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-person"></i> Заказчик</h5>
+                </div>
+                <div class="card-body">
+                    <p>ID: {{ task.client_id }}</p>
+                    <a href="{{ path('review_user', {'userId': task.client_id}) }}" 
+                       class="btn btn-sm btn-outline-primary">Посмотреть отзывы</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для создания предложения -->
+<div class="modal fade" id="offerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подать предложение</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="create_offer">
+                    
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Ваша цена</label>
+                        <input type="number" class="form-control" id="price" name="price" 
+                               step="0.00000001" min="0" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Сообщение</label>
+                        <textarea class="form-control" id="message" name="message" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Отправить предложение</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для завершения задачи -->
+<div class="modal fade" id="completeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Завершить задачу</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите отметить эту задачу как выполненную?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <form method="POST" style="display: inline;">
+                    <input type="hidden" name="action" value="complete_task">
+                    <button type="submit" class="btn btn-success">Да, завершить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для создания диспута -->
+<div class="modal fade" id="disputeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Создать диспут</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите создать диспут по этой задаче? Администратор рассмотрит вашу жалобу.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <a href="{{ path('dispute_create', {'taskId': task.id}) }}" class="btn btn-warning">Создать диспут</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

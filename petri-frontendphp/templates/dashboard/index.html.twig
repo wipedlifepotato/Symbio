@@ -36,6 +36,37 @@
         {% endif %}
     {% endif %}
 
+    <!-- Система фриланса -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="bi bi-briefcase"></i> Система фриланса</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <a href="{{ path('tasks') }}" class="btn btn-primary w-100">
+                        <i class="bi bi-list-task"></i> Все задачи
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="{{ path('tasks', {'status': 'open'}) }}" class="btn btn-success w-100">
+                        <i class="bi bi-search"></i> Найти работу
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="{{ path('task_create') }}" class="btn btn-info w-100">
+                        <i class="bi bi-plus-circle"></i> Создать задачу
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="{{ path('disputes') }}" class="btn btn-warning w-100">
+                        <i class="bi bi-exclamation-triangle"></i> Диспуты
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="links-block">
         <a href="{{ path('app_profiles') }}">{{ 'dashboard.link.profiles'|trans }}</a>
         <a href="{{ path('app_profile') }}">{{ 'dashboard.link.profile'|trans }}</a>
@@ -43,6 +74,7 @@
         {% if isAdmin %}
             <a href="{{ path('app_admin') }}">{{ 'dashboard.link.admin'|trans }}</a>
             <a href="{{ path('app_admin_tickets') }}">{{ 'dashboard.link.admin_tickets'|trans }}</a>
+            <a href="{{ path('admin_disputes') }}">Управление диспутами</a>
         {% endif %}
         <a href="{{ path('app_chat') }}">{{ 'dashboard.link.chats'|trans }}</a>
         <a href="{{ path('app_login') }}">{{ 'dashboard.link.back'|trans }}</a>

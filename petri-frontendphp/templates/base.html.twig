@@ -1,21 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}{{ projectName }}{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}mFrelance{% endblock %}</title>
+    <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/bootstrap-icons.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
 <body>
-    <header>
-        <h1>{% block header %}{{ projectName }}{% endblock %}</h1>
-    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ path('app_dashboard') }}">
+                <i class="bi bi-briefcase"></i> mFrelance
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ path('app_dashboard') }}">
+                    <i class="bi bi-house"></i> Дашборд
+                </a>
+                <a class="nav-link" href="{{ path('tasks') }}">
+                    <i class="bi bi-list-task"></i> Задачи
+                </a>
+                <a class="nav-link" href="{{ path('disputes') }}">
+                    <i class="bi bi-exclamation-triangle"></i> Диспуты
+                </a>
+                <a class="nav-link" href="{{ path('app_profile') }}">
+                    <i class="bi bi-person"></i> Профиль
+                </a>
+                <a class="nav-link" href="{{ path('app_login') }}">
+                    <i class="bi bi-box-arrow-right"></i> Выход
+                </a>
+            </div>
+        </div>
+    </nav>
 
     <main>
+        {% for message in app.flashes('success') %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+        
+        {% for message in app.flashes('error') %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+        
         {% block body %}{% endblock %}
     </main>
 
-    <footer>
-        <p>© {{ "now"|date("Y") }} {{ projectName }}</p>
+    <footer class="bg-dark text-light text-center py-3 mt-5">
+        <p class="mb-0">© {{ "now"|date("Y") }} mFrelance - Система фриланса на криптовалютах</p>
     </footer>
+
+    <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
 </body>
 </html>

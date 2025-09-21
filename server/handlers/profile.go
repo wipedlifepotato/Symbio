@@ -12,6 +12,18 @@ import (
 	"mFrelance/server"
 )
 
+func OwnIdHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims := server.GetUserFromContext(r)
+		if claims == nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]int64{"user_id": claims.UserID})
+	}
+}
+
 // ProfileHandler godoc
 // @Summary Get or update profile
 // @Description Get current user profile (GET) or update profile (POST)

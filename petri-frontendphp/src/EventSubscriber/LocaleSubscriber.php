@@ -1,5 +1,7 @@
 <?php
+
 // src/EventSubscriber/LocaleSubscriber.php
+
 namespace App\EventSubscriber;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -25,4 +27,3 @@ class LocaleSubscriber implements EventSubscriberInterface
         ];
     }
 }
-

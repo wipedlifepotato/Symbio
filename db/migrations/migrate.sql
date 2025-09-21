@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     description TEXT NOT NULL,
     category VARCHAR(50),
     budget NUMERIC(20,8),
-    currency VARCHAR(10) DEFAULT 'USD',
+    currency VARCHAR(10) DEFAULT 'BTC',
     status VARCHAR(20) DEFAULT 'open',
     created_at TIMESTAMP DEFAULT NOW(),
     deadline TIMESTAMP
@@ -87,10 +87,45 @@ CREATE TABLE IF NOT EXISTS task_offers (
     freelancer_id INT REFERENCES users(id) ON DELETE CASCADE,
     price NUMERIC(20,8),
     message TEXT,
-    status VARCHAR(20) DEFAULT 'pending', 
+    created_at TIMESTAMP DEFAULT NOW(),
+    accepted BOOLEAN DEFAULT FALSE -- заказчик выбрал исполнителя
+);
+CREATE TABLE IF NOT EXISTS escrow_balances (
+    id SERIAL PRIMARY KEY,
+    task_id INT REFERENCES tasks(id) ON DELETE CASCADE,
+    client_id INT REFERENCES users(id),
+    freelancer_id INT REFERENCES users(id),
+    amount NUMERIC(30,12) DEFAULT 0,
+    currency VARCHAR(10) DEFAULT 'BTC',
+    status VARCHAR(20) DEFAULT 'pending', -- pending, released, refunded
     created_at TIMESTAMP DEFAULT NOW()
 );
-
+CREATE TABLE IF NOT EXISTS disputes (
+    id SERIAL PRIMARY KEY,
+    task_id INT REFERENCES tasks(id) ON DELETE CASCADE,
+    opened_by INT REFERENCES users(id),
+    assigned_admin INT REFERENCES users(id) ON DELETE SET NULL,
+    status VARCHAR(20) DEFAULT 'open', -- open, resolved
+    resolution VARCHAR(20), -- client_won, freelancer_won
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS dispute_messages (
+    id SERIAL PRIMARY KEY,
+    dispute_id INT REFERENCES disputes(id) ON DELETE CASCADE,
+    sender_id INT REFERENCES users(id),
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS reviews (
+    id SERIAL PRIMARY KEY,
+    task_id INT REFERENCES tasks(id) ON DELETE CASCADE,
+    reviewer_id INT REFERENCES users(id),
+    reviewed_id INT REFERENCES users(id), -- к кому отзыв
+    rating INT CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
 CREATE INDEX IF NOT EXISTS idx_task_offers_task_id ON task_offers (task_id);
 CREATE INDEX IF NOT EXISTS idx_task_offers_freelancer_id ON task_offers (freelancer_id);
 

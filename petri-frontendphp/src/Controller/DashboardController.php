@@ -44,9 +44,8 @@ class DashboardController extends AbstractController
         $jwt = $session->get('jwt', '');
 
         if (!$jwt) {
-            $message = $translator->trans('auth.jwt_missing');;
+            $message = $translator->trans('auth.jwt_missing');
         } else {
-
             try {
                 $isAdminResponse = $mfrelance->doRequest('api/admin/IIsAdmin', $jwt);
                 // var_dump($isAdminResponse);
@@ -104,7 +103,7 @@ class DashboardController extends AbstractController
         $jwt = $session->get('jwt', '');
 
         if (!$jwt) {
-            $message = $translator->trans('auth.jwt_missing');;
+            $message = $translator->trans('auth.jwt_missing');
         } else {
             $offset = (int) $request->query->get('offset', 0);
             $limit = (int) $request->query->get('limit', 50);
@@ -156,7 +155,7 @@ class DashboardController extends AbstractController
         $jwt = $session->get('jwt', '');
 
         if (!$jwt) {
-            $message = $translator->trans('auth.jwt_missing');;
+            $message = $translator->trans('auth.jwt_missing');
         } else {
             // Получаем текущий профиль
             try {
@@ -236,7 +235,7 @@ class DashboardController extends AbstractController
 
         $jwt = $session->get('jwt', '');
         if (!$jwt) {
-            $message = $translator->trans('auth.jwt_missing');;
+            $message = $translator->trans('auth.jwt_missing');
         } else {
             $getUsernameByID = function ($userId) use ($mfrelance, $jwt, &$usernameCache) {
                 $uid = intval($userId);
@@ -367,7 +366,7 @@ class DashboardController extends AbstractController
 
         $jwt = $session->get('jwt', '');
         if (!$jwt) {
-            $message = $translator->trans('auth.jwt_missing');;
+            $message = $translator->trans('auth.jwt_missing');
         } else {
             $getUsernameByID = function ($userId) use ($mfrelance, $jwt, &$usernameCache) {
                 $uid = intval($userId);
@@ -466,21 +465,22 @@ class DashboardController extends AbstractController
             if ($selectedChatID) {
                 $res = $mfrelance->doRequest("api/chat/getChatMessages?chat_room_id=$selectedChatID", $jwt);
                 if (200 === $res['httpCode']) {
-		    $messages = json_decode($res['response'], true);
-		    if($messages)
-                    foreach ($messages as &$m) {
-                        $senderId = intval($m['sender_id'] ?? 0);
-                        $m['SenderName'] = $usernameCache[$senderId] ?? $getUsernameByID($senderId);
-                        $type = isBase64Image($m['message'] ?? '');
-                        $m['raw_message'] = $m['message'] ?? '';
+                    $messages = json_decode($res['response'], true);
+                    if ($messages) {
+                        foreach ($messages as &$m) {
+                            $senderId = intval($m['sender_id'] ?? 0);
+                            $m['SenderName'] = $usernameCache[$senderId] ?? $getUsernameByID($senderId);
+                            $type = isBase64Image($m['message'] ?? '');
+                            $m['raw_message'] = $m['message'] ?? '';
 
-                        if ($type) {
-                            $m['is_image'] = true;
-                            $m['image_type'] = $type;
-                            $m['image_data'] = $m['message'];
-                        } else {
-                            $m['is_image'] = false;
-                            $m['text'] = $m['message'] ?? '';
+                            if ($type) {
+                                $m['is_image'] = true;
+                                $m['image_type'] = $type;
+                                $m['image_data'] = $m['message'];
+                            } else {
+                                $m['is_image'] = false;
+                                $m['text'] = $m['message'] ?? '';
+                            }
                         }
                     }
                     unset($m);

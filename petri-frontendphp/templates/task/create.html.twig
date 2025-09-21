@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Создать задачу - mFrelance{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="bi bi-plus-circle"></i> Создать новую задачу</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Название задачи *</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Описание *</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Категория *</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">Выберите категорию</option>
+                                <option value="web_development">Веб-разработка</option>
+                                <option value="mobile_development">Мобильная разработка</option>
+                                <option value="design">Дизайн</option>
+                                <option value="writing">Копирайтинг</option>
+                                <option value="translation">Переводы</option>
+                                <option value="marketing">Маркетинг</option>
+                                <option value="other">Другое</option>
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="budget" class="form-label">Бюджет *</label>
+                                    <input type="number" class="form-control" id="budget" name="budget" 
+                                           step="0.00000001" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="currency" class="form-label">Валюта</label>
+                                    <select class="form-select" id="currency" name="currency">
+                                        <option value="BTC">Bitcoin (BTC)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="deadline" class="form-label">Срок выполнения *</label>
+                            <input type="datetime-local" class="form-control" id="deadline" name="deadline" required>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ path('tasks') }}" class="btn btn-secondary me-md-2">Отмена</a>
+                            <button type="submit" class="btn btn-primary">Создать задачу</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

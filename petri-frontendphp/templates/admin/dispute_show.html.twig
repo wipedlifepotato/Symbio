@@ -1,0 +1,178 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Диспут #{{ dispute.id }} - mFrelance Admin{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Информация о диспуте -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4><i class="bi bi-exclamation-triangle"></i> Диспут #{{ dispute.id }}</h4>
+                    <span class="badge bg-{{ dispute.status == 'open' ? 'warning' : 'success' }}">
+                        {{ dispute.status }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Задача:</strong> 
+                            <a href="{{ path('task_show', {'id': dispute.task_id}) }}">
+                                #{{ dispute.task_id }}
+                            </a><br>
+                            <strong>Открыл:</strong> Пользователь #{{ dispute.opened_by }}<br>
+                            <strong>Статус:</strong> {{ dispute.status }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Создан:</strong> {{ dispute.created_at|date('d.m.Y H:i') }}<br>
+                            {% if dispute.assigned_admin %}
+                                <strong>Назначен:</strong> Админ #{{ dispute.assigned_admin }}
+                            {% else %}
+                                <strong>Назначен:</strong> <span class="text-muted">Не назначен</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Информация о задаче -->
+            {% if task %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="bi bi-info-circle"></i> Информация о задаче</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Название:</strong> {{ task.title }}<br>
+                                <strong>Бюджет:</strong> {{ task.budget }} {{ task.currency }}<br>
+                                <strong>Заказчик:</strong> #{{ task.client_id }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Статус:</strong> {{ task.status }}<br>
+                                <strong>Создано:</strong> {{ task.created_at|date('d.m.Y H:i') }}<br>
+                                <strong>Срок:</strong> {{ task.deadline|date('d.m.Y H:i') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Информация об escrow -->
+            {% if escrow %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="bi bi-lock"></i> Escrow баланс</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Сумма:</strong> {{ escrow.amount }} {{ escrow.currency }}<br>
+                                <strong>Статус:</strong> {{ escrow.status }}<br>
+                                <strong>Заказчик:</strong> #{{ escrow.client_id }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Исполнитель:</strong> #{{ escrow.freelancer_id }}<br>
+                                <strong>Создан:</strong> {{ escrow.created_at|date('d.m.Y H:i') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Сообщения диспута -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-chat"></i> Сообщения диспута</h5>
+                </div>
+                <div class="card-body">
+                    <div class="messages-container" style="max-height: 400px; overflow-y: auto;">
+                        {% if messages is empty %}
+                            <p class="text-muted">Пока нет сообщений</p>
+                        {% else %}
+                            {% for message in messages %}
+                                <div class="card mb-2">
+                                    <div class="card-body">
+                                        <p class="card-text">{{ message.message }}</p>
+                                        <small class="text-muted">
+                                            От: Пользователь #{{ message.sender_id }} | 
+                                            {{ message.created_at|date('d.m.Y H:i') }}
+                                        </small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Действия администратора -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-gear"></i> Действия администратора</h5>
+                </div>
+                <div class="card-body">
+                    {% if dispute.status == 'open' %}
+                        {% if not dispute.assigned_admin %}
+                            <form method="POST" class="mb-3">
+                                <input type="hidden" name="action" value="assign">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-person-plus"></i> Назначить себе
+                                </button>
+                            </form>
+                        {% endif %}
+                        
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Разрешение диспута</strong><br>
+                            Выберите, кто прав в этом споре:
+                        </div>
+                        
+                        <form method="POST" class="mb-2">
+                            <input type="hidden" name="action" value="resolve">
+                            <input type="hidden" name="resolution" value="client_won">
+                            <button type="submit" class="btn btn-danger w-100" 
+                                    onclick="return confirm('Вы уверены, что заказчик прав?')">
+                                <i class="bi bi-person-check"></i> Заказчик прав
+                            </button>
+                        </form>
+                        
+                        <form method="POST">
+                            <input type="hidden" name="action" value="resolve">
+                            <input type="hidden" name="resolution" value="freelancer_won">
+                            <button type="submit" class="btn btn-success w-100"
+                                    onclick="return confirm('Вы уверены, что исполнитель прав?')">
+                                <i class="bi bi-person-check"></i> Исполнитель прав
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i>
+                            Диспут уже разрешен
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Навигация -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-list"></i> Навигация</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ path('admin_disputes') }}" class="btn btn-secondary w-100 mb-2">
+                        <i class="bi bi-arrow-left"></i> Назад к списку
+                    </a>
+                    <a href="{{ path('task_show', {'id': dispute.task_id}) }}" 
+                       class="btn btn-outline-primary w-100">
+                        <i class="bi bi-eye"></i> Посмотреть задачу
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
