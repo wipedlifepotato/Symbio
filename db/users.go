@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-        _ "github.com/lib/pq" 
-        "github.com/lib/pq"
+	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 func BlockUser(db *sqlx.DB, userID int64) error {
@@ -130,19 +130,19 @@ func CreateUser(db *sqlx.DB, username, passwordHash, mnemonic string) error {
 	//if userID, _, errFoundUser := GetUserByUsername(db, username); errFoundUser == nil && userID != 0 {
 	//	return errors.New("User exists")
 	//}
-    _, err := db.Exec(`
+	_, err := db.Exec(`
         INSERT INTO users (username, password_hash, mnemonic, created_at)
         VALUES ($1, $2, $3, $4)
     `, username, passwordHash, mnemonic, time.Now())
-    if err != nil {
+	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
-		    if pqErr.Code == "23505" {
-		        return errors.New("User exists")
-		    }
+			if pqErr.Code == "23505" {
+				return errors.New("User exists")
+			}
 		}
 		return err
-    }
-    return err
+	}
+	return err
 }
 
 func GetUserByUsername(db *sqlx.DB, username string) (int64, string, error) {

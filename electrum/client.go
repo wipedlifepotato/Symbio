@@ -1,67 +1,67 @@
 package electrum
 
 import (
-    "bytes"
-    "encoding/json"
-    "fmt"
-    "io/ioutil"
-    "net/http"
-    "log"
-    "strconv"
-    "time"
-    "strings"
-    "errors"
-
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
 )
+
 type PaymentRecord struct {
-    Time        string      `json:"time"`
-    Outputs     [][2]string `json:"outputs"`
-    FeeBTC      float64     `json:"fee_btc"`
-    RawTx       string      `json:"raw_tx,omitempty"`
-    Broadcasted bool        `json:"broadcasted"`
-    Error       string      `json:"error,omitempty"`
+	Time        string      `json:"time"`
+	Outputs     [][2]string `json:"outputs"`
+	FeeBTC      float64     `json:"fee_btc"`
+	RawTx       string      `json:"raw_tx,omitempty"`
+	Broadcasted bool        `json:"broadcasted"`
+	Error       string      `json:"error,omitempty"`
 }
 
 func savePaymentRecord(record PaymentRecord) error {
-    fileName := "payments_log.json"
+	fileName := "payments_log.json"
 
-    var records []PaymentRecord
+	var records []PaymentRecord
 
-    data, err := ioutil.ReadFile(fileName)
-    if err == nil {
-        json.Unmarshal(data, &records)
-    }
+	data, err := ioutil.ReadFile(fileName)
+	if err == nil {
+		json.Unmarshal(data, &records)
+	}
 
-    records = append(records, record)
+	records = append(records, record)
 
-    newData, _ := json.MarshalIndent(records, "", "  ")
-    return ioutil.WriteFile(fileName, newData, 0644)
+	newData, _ := json.MarshalIndent(records, "", "  ")
+	return ioutil.WriteFile(fileName, newData, 0644)
 }
 
 type Client struct {
-    URL      string
-    User     string
-    Password string
+	URL      string
+	User     string
+	Password string
 }
 
 func NewClient(user, password, host string, port int) *Client {
-    return &Client{
-        URL:      fmt.Sprintf("http://%s:%d", host, port),
-        User:     user,
-        Password: password,
-    }
+	return &Client{
+		URL:      fmt.Sprintf("http://%s:%d", host, port),
+		User:     user,
+		Password: password,
+	}
 }
 
 type RPCResponse struct {
-    JSONRPC string          `json:"jsonrpc"`
-    ID      string          `json:"id"`
-    Result  json.RawMessage `json:"result"`
-    Error   interface{}     `json:"error"`
+	JSONRPC string          `json:"jsonrpc"`
+	ID      string          `json:"id"`
+	Result  json.RawMessage `json:"result"`
+	Error   interface{}     `json:"error"`
 }
 
 func (c *Client) LoadWallet() error {
-    _, err := c.call("load_wallet")
-    return err
+	_, err := c.call("load_wallet")
+	return err
 }
 
 type txStatusResponse struct {
@@ -87,68 +87,68 @@ func (c *Client) Get_tx_status(txId string) (int64, error) {
 }
 
 func (c *Client) call(method string, params ...interface{}) (json.RawMessage, error) {
-    reqBody := map[string]interface{}{
-        "jsonrpc": "2.0",
-        "id":      "1",
-        "method":  method,
-    }
+	reqBody := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      "1",
+		"method":  method,
+	}
 
-    if len(params) > 0 {
-        reqBody["params"] = params
-    }
-    log.Print(reqBody)
-    bodyBytes, err := json.Marshal(reqBody)
-    if err != nil {
-        return nil, err
-    }
-    log.Println(string(bodyBytes))
-    req, err := http.NewRequest("POST", c.URL, bytes.NewReader(bodyBytes))
-    if err != nil {
-        return nil, err
-    }
+	if len(params) > 0 {
+		reqBody["params"] = params
+	}
+	log.Print(reqBody)
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(string(bodyBytes))
+	req, err := http.NewRequest("POST", c.URL, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
 
-    req.SetBasicAuth(c.User, c.Password)
-    req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(c.User, c.Password)
+	req.Header.Set("Content-Type", "application/json")
 
-    resp, err := http.DefaultClient.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
-    data, err := ioutil.ReadAll(resp.Body)
-    if err != nil {
-        return nil, err
-    }
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
-    var rpcResp RPCResponse
-    //log.Print(string(data))
-    if err := json.Unmarshal(data, &rpcResp); err != nil {
-        return nil, err
-    }
+	var rpcResp RPCResponse
+	//log.Print(string(data))
+	if err := json.Unmarshal(data, &rpcResp); err != nil {
+		return nil, err
+	}
 
-    if rpcResp.Error != nil {
-        return nil, fmt.Errorf("RPC error: %v", rpcResp.Error)
-    }
+	if rpcResp.Error != nil {
+		return nil, fmt.Errorf("RPC error: %v", rpcResp.Error)
+	}
 
-    return rpcResp.Result, nil
+	return rpcResp.Result, nil
 }
-
 
 func (c *Client) PayTo(destination string, amount string) (string, error) {
 
-    res, err := c.call("payto", destination, amount)
-    if err != nil {
-        return "", fmt.Errorf("failed to create transaction: %v", err)
-    }
-    log.Print(string(res))
-    resBroadcast, err := c.call("broadcast", res)
-    if err != nil {
-        return "", fmt.Errorf("failed to broadcast transaction: %v", err)
-    }
+	res, err := c.call("payto", destination, amount)
+	if err != nil {
+		return "", fmt.Errorf("failed to create transaction: %v", err)
+	}
+	log.Print(string(res))
+	resBroadcast, err := c.call("broadcast", res)
+	if err != nil {
+		return "", fmt.Errorf("failed to broadcast transaction: %v", err)
+	}
 
-    return string(resBroadcast), nil
+	return string(resBroadcast), nil
 }
+
 // Comission sometimes is 0?
 // TODO: fee
 func (c *Client) PayToMany(outputs [][2]string) (string, error) {
@@ -294,22 +294,20 @@ func parseRPCError(err interface{}) string {
 	return fmt.Sprintf("%v", err)
 }
 
-
 type Transaction struct {
-    Txid   string  `json:"tx_hash"`
-    Amount float64 `json:"amount"`
-    Confirmations int `json:"confirmations"`
+	Txid          string  `json:"tx_hash"`
+	Amount        float64 `json:"amount"`
+	Confirmations int     `json:"confirmations"`
 }
 
 func (c *Client) ListTransactions(address string) ([]Transaction, error) {
-    res, err := c.call("getaddresshistory", address)
-    if err != nil {
-        return nil, err
-    }
-    var txs []Transaction
-    if err := json.Unmarshal(res, &txs); err != nil {
-        return nil, err
-    }
-    return txs, nil
+	res, err := c.call("getaddresshistory", address)
+	if err != nil {
+		return nil, err
+	}
+	var txs []Transaction
+	if err := json.Unmarshal(res, &txs); err != nil {
+		return nil, err
+	}
+	return txs, nil
 }
-

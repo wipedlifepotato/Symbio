@@ -1,10 +1,17 @@
 package main
 
 import (
+	"context"
+	"github.com/gabstv/httpdigest"
+	"github.com/spf13/viper"
+	httpSwagger "github.com/swaggo/http-swagger"
+	"github.com/tetratelabs/wazero"
+	"gitlab.com/moneropay/go-monero/walletrpc"
 	"io/ioutil"
 	"log"
 	"mFrelance/config"
 	"mFrelance/db"
+	_ "mFrelance/docs"
 	"mFrelance/electrum"
 	"mFrelance/lua"
 	"mFrelance/server"
@@ -12,12 +19,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"github.com/gabstv/httpdigest"
-	"gitlab.com/moneropay/go-monero/walletrpc"
-	"context"
-	_ "mFrelance/docs"
-        "github.com/spf13/viper"
-	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // @title mFrelance API
@@ -28,6 +29,10 @@ import (
 // @in header
 // @name Authorization
 func main() {
+	var useWasm bool
+	useWasm = true
+
+	ctxWasm := context.Background()
 	config.Init()
 
 	electrumClient := electrum.NewClient(
@@ -61,6 +66,27 @@ func main() {
 	L := lua.NewState(db.RedisClient, db.Postgres, electrumClient, moneroClient)
 	defer lua.L.Close()
 
+	wazeroRuntime := wazero.NewRuntime(ctxWasm)
+	defer wazeroRuntime.Close(ctxWasm)
+	files, err := ioutil.ReadDir("modsWasm")
+	if err != nil {
+		useWasm = false
+	}
+	if useWasm {
+		for _, f := range files {
+			if filepath.Ext(f.Name()) != ".wasm" {
+				continue
+			}
+
+			wasmPath := filepath.Join("modsWasm", f.Name())
+			err = lua.LoadWasmModule(L, wasmPath)
+			if err != nil {
+				log.Fatal(err.Error())
+			}
+
+			log.Printf("Loaded WASM mod: %s", f.Name())
+		}
+	}
 	if err := L.DoString(`
         print("Lua says hi")
         local result = helloGo("Alice")
@@ -72,7 +98,7 @@ func main() {
 	s := server.New()
 	lua.RegisterHttpHandler(lua.L, s.GetMux())
 
-	files, err := ioutil.ReadDir("mods")
+	files, err = ioutil.ReadDir("mods")
 	if err != nil {
 		log.Fatal("Failed to read mods directory:", err)
 	}

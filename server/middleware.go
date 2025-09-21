@@ -8,7 +8,6 @@ import (
 	"mFrelance/auth"
 )
 
-
 type contextKey string
 
 const userContextKey = contextKey("user")

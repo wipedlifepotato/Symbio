@@ -1,25 +1,25 @@
 package server
+
 import (
-    	"mFrelance/electrum"
-    	"mFrelance/config"
-    	"gitlab.com/moneropay/go-monero/walletrpc"
-    	"time"
-    	"context"
 	"bytes"
+	"context"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
-	"math/big"
-	"mFrelance/db"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"sync"
+	"gitlab.com/moneropay/go-monero/walletrpc"
+	"log"
+	"mFrelance/config"
+	"mFrelance/db"
+	"mFrelance/electrum"
+	"math/big"
 	"os"
-	"encoding/json"
-	"errors"
 	"strings"
-
+	"sync"
+	"time"
 )
 
 var txPool = struct {
@@ -27,7 +27,6 @@ var txPool = struct {
 	outputs map[string]*big.Float
 }{outputs: make(map[string]*big.Float)}
 var lastTx string
-
 
 func ProcessTxElectrum(client *electrum.Client, address string, txHash string) (*big.Float, error) {
 
@@ -39,12 +38,11 @@ func ProcessTxElectrum(client *electrum.Client, address string, txHash string) (
 	if confirmations < 1 {
 		return nil, errors.New("транзакция ещё не подтверждена")
 	}
-	
+
 	txHexRaw, err := client.GetTransaction(txHash)
 	if err != nil {
 		return nil, err
 	}
-
 
 	rawTx, err := hex.DecodeString(txHexRaw)
 	if err != nil {
@@ -78,20 +76,20 @@ func ProcessTxElectrum(client *electrum.Client, address string, txHash string) (
 }
 
 func StartWalletSync(ctx context.Context, eClient *electrum.Client, mClient *walletrpc.Client, interval time.Duration) {
-    go func() {
-        ticker := time.NewTicker(interval)
-        defer ticker.Stop()
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
 
-        for {
-            select {
-            case <-ctx.Done():
-                log.Println("Wallet sync stopped")
-                return
-            case <-ticker.C:
-                syncAllWallets(eClient, mClient)
-            }
-        }
-    }()
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("Wallet sync stopped")
+				return
+			case <-ticker.C:
+				syncAllWallets(eClient, mClient)
+			}
+		}
+	}()
 }
 
 func syncAllWallets(eClient *electrum.Client, mClient *walletrpc.Client) {
@@ -143,12 +141,12 @@ func syncAllWallets(eClient *electrum.Client, mClient *walletrpc.Client) {
 					log.Print(walletID)
 					newBalance.Add(newBalance, amt)
 					//func SaveTransaction(txid string, walletID int, amount decimal.Decimal, currency string, confirmed bool) error {
-					SaveTransaction(tx.Txid,walletID, amt, currency, true)
+					SaveTransaction(tx.Txid, walletID, amt, currency, true)
 				}
 			}
 
 		case "XMR":
-			// TODO: 
+			// TODO:
 			log.Printf("XMR wallet sync not implemented yet (wallet %d)", walletID)
 		default:
 			log.Printf("Unknown currency %s for wallet %d", currency, walletID)
@@ -165,27 +163,26 @@ func syncAllWallets(eClient *electrum.Client, mClient *walletrpc.Client) {
 }
 
 func isTxProcessed(txid string) bool {
-    var exists bool
-    err := db.Postgres.QueryRow(`
+	var exists bool
+	err := db.Postgres.QueryRow(`
         SELECT EXISTS(SELECT 1 FROM wallet_transactions WHERE txid = $1)
     `, txid).Scan(&exists)
-    if err != nil {
-        log.Printf("isTxProcessed error: %v", err)
-        return false
-    }
-    return exists
+	if err != nil {
+		log.Printf("isTxProcessed error: %v", err)
+		return false
+	}
+	return exists
 }
 
 func SaveTransaction(txid string, walletID int, amount *big.Float, currency string, confirmed bool) error {
-    amountStr := amount.Text('f', 12)
-    _, err := db.Postgres.Exec(`
+	amountStr := amount.Text('f', 12)
+	_, err := db.Postgres.Exec(`
         INSERT INTO wallet_transactions (txid, wallet_id, amount, currency, confirmed, created_at)
         VALUES ($1, $2, $3, $4, $5, NOW())
         ON CONFLICT (txid) DO NOTHING
     `, txid, walletID, amountStr, currency, confirmed)
-    return err
+	return err
 }
-
 
 func savePendingPayment(record PaymentRecord) error {
 	paymentMu.Lock()
@@ -205,10 +202,10 @@ func savePendingPayment(record PaymentRecord) error {
 }
 
 type PaymentRecord struct {
-    Time    string     `json:"time"`
-    Outputs [][2]string `json:"outputs"`
-    FeeBTC  float64    `json:"fee_btc"`
-    Error   string     `json:"error"`
+	Time    string      `json:"time"`
+	Outputs [][2]string `json:"outputs"`
+	FeeBTC  float64     `json:"fee_btc"`
+	Error   string      `json:"error"`
 }
 
 var paymentMu sync.Mutex
@@ -313,4 +310,3 @@ func StartTxPoolFlusher(client *electrum.Client, interval time.Duration, maxBatc
 		}
 	}()
 }
-

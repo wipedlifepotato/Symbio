@@ -56,7 +56,7 @@ func RegisterMoneroLua(L *lua.LState, mClient *walletrpc.Client) {
 
 		req := &walletrpc.TransferRequest{
 			Destinations: []walletrpc.Destination{
-				{Address: dest, Amount: uint64(amount * 1e12)}, 
+				{Address: dest, Amount: uint64(amount * 1e12)},
 			},
 			AccountIndex: 0,
 		}
@@ -94,7 +94,7 @@ func RegisterMoneroLua(L *lua.LState, mClient *walletrpc.Client) {
 		unlocked, _ := strconv.ParseFloat(walletrpc.XMRToDecimal(subBal.UnlockedBalance), 64)
 
 		addrResp, err := mClient.GetAddress(context.Background(), &walletrpc.GetAddressRequest{
-			AccountIndex: account, 
+			AccountIndex: account,
 		})
 		if err != nil || len(addrResp.Addresses) <= int(sub) {
 			L.RaiseError("Monero GetAddress error: %v", err)
@@ -110,31 +110,30 @@ func RegisterMoneroLua(L *lua.LState, mClient *walletrpc.Client) {
 	}))
 
 	L.SetGlobal("monero_get_subaddress_balance", L.NewFunction(func(L *lua.LState) int {
-	    account := uint64(L.ToInt(1))
-	    sub := uint64(L.ToInt(2))
+		account := uint64(L.ToInt(1))
+		sub := uint64(L.ToInt(2))
 
-	    resp, err := mClient.GetBalance(context.Background(), &walletrpc.GetBalanceRequest{
-		AccountIndex:   account,
-		AddressIndices: []uint64{sub},
-	    })
-	    if err != nil {
-		L.RaiseError("Monero GetBalance error: %v", err)
-		return 0
-	    }
+		resp, err := mClient.GetBalance(context.Background(), &walletrpc.GetBalanceRequest{
+			AccountIndex:   account,
+			AddressIndices: []uint64{sub},
+		})
+		if err != nil {
+			L.RaiseError("Monero GetBalance error: %v", err)
+			return 0
+		}
 
-	    if len(resp.PerSubaddress) == 0 {
-		L.Push(lua.LNumber(0))
-		L.Push(lua.LNumber(0))
+		if len(resp.PerSubaddress) == 0 {
+			L.Push(lua.LNumber(0))
+			L.Push(lua.LNumber(0))
+			return 2
+		}
+
+		subBal := resp.PerSubaddress[0]
+		total, _ := strconv.ParseFloat(walletrpc.XMRToDecimal(subBal.Balance), 64)
+		unlocked, _ := strconv.ParseFloat(walletrpc.XMRToDecimal(subBal.UnlockedBalance), 64)
+
+		L.Push(lua.LNumber(total))
+		L.Push(lua.LNumber(unlocked))
 		return 2
-	    }
-
-	    subBal := resp.PerSubaddress[0]
-	    total, _ := strconv.ParseFloat(walletrpc.XMRToDecimal(subBal.Balance), 64)
-	    unlocked, _ := strconv.ParseFloat(walletrpc.XMRToDecimal(subBal.UnlockedBalance), 64)
-
-	    L.Push(lua.LNumber(total))
-	    L.Push(lua.LNumber(unlocked))
-	    return 2
 	}))
 }
-
