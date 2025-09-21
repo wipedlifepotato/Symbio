@@ -313,7 +313,15 @@ func CompleteTaskHandler() http.HandlerFunc {
 			http.Error(w, "Failed to update task status", http.StatusInternalServerError)
 			return
 		}
-
+		_, err = db.Postgres.Exec(`
+		    UPDATE profiles
+		    SET completed_tasks = completed_tasks + 1
+		    WHERE user_id = $1
+		`, acceptedOffer.FreelancerID)
+		if err != nil {
+		    http.Error(w, "Failed to update freelancer completed tasks", http.StatusInternalServerError)
+		    return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
