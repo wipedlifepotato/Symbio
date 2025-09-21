@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Задачи - mFrelance{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h2><i class="bi bi-list-task"></i> Задачи</h2>
+            
+            <!-- Фильтры -->
+            <div class="mb-3">
+                <div class="btn-group" role="group">
+                    <a href="{{ path('tasks', {'status': 'all'}) }}" 
+                       class="btn {{ currentStatus == 'all' ? 'btn-primary' : 'btn-outline-primary' }}">
+                        Все
+                    </a>
+                    <a href="{{ path('tasks', {'status': 'open'}) }}" 
+                       class="btn {{ currentStatus == 'open' ? 'btn-primary' : 'btn-outline-primary' }}">
+                        Открытые
+                    </a>
+                    <a href="{{ path('tasks', {'status': 'in_progress'}) }}" 
+                       class="btn {{ currentStatus == 'in_progress' ? 'btn-primary' : 'btn-outline-primary' }}">
+                        В работе
+                    </a>
+                    <a href="{{ path('tasks', {'status': 'completed'}) }}" 
+                       class="btn {{ currentStatus == 'completed' ? 'btn-primary' : 'btn-outline-primary' }}">
+                        Завершенные
+                    </a>
+                </div>
+            </div>
+
+            <!-- Список задач -->
+            <div id="tasksList">
+                {% if tasks is empty %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox fs-1 text-muted"></i>
+                        <h4 class="text-muted mt-3">Нет задач</h4>
+                        <p class="text-muted">Создайте первую задачу или измените фильтр</p>
+                    </div>
+                {% else %}
+                    {% for task in tasks %}
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h5 class="card-title">{{ task.title }}</h5>
+                                        <p class="card-text">{{ task.description }}</p>
+                                        <small class="text-muted">
+                                            Категория: {{ task.category }} | 
+                                            Бюджет: {{ task.budget }} {{ task.currency }} |
+                                            Статус: 
+                                            <span class="badge bg-{{ task.status == 'open' ? 'success' : (task.status == 'in_progress' ? 'warning' : 'secondary') }}">
+                                                {{ task.status }}
+                                            </span>
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <a href="{{ path('task_show', {'id': task.id}) }}" 
+                                           class="btn btn-sm btn-primary">Подробнее</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Создание новой задачи -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-plus-circle"></i> Создать задачу</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ path('task_create') }}" class="btn btn-primary w-100">
+                        <i class="bi bi-plus"></i> Новая задача
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

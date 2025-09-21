@@ -235,28 +235,27 @@ class AdminController extends AbstractController
                 if (200 === $response['httpCode']) {
                     $resp = $mf->doRequest("api/ticket/messages?ticket_id=$ticketId", $jwt, [], false);
                     if (200 === $resp['httpCode']) {
-			    $ticketMessages = json_decode($resp['response'], true);
+                        $ticketMessages = json_decode($resp['response'], true);
 
-                    foreach ($ticketMessages as &$m) {
-                        $senderId = intval($m['SenderID'] ?? 0);
+                        foreach ($ticketMessages as &$m) {
+                            $senderId = intval($m['SenderID'] ?? 0);
 
-                        // Получаем имя отправителя из кеша или через функцию
-                        $m['SenderName'] = $usernameCache[$senderId] ?? $this->usernameByID($mf, $jwt, $senderId ?? 0, $usernameCache);
-                        $usernameCache[$senderId] = $m['SenderName']; // сохраняем в кеш
+                            // Получаем имя отправителя из кеша или через функцию
+                            $m['SenderName'] = $usernameCache[$senderId] ?? $this->usernameByID($mf, $jwt, $senderId ?? 0, $usernameCache);
+                            $usernameCache[$senderId] = $m['SenderName']; // сохраняем в кеш
 
-                        // Проверяем, является ли сообщение изображением
-                        $type = $this->isBase64Image($m['Message'] ?? '');
-                        if ($type) {
-                            $m['is_image'] = true;
-                            $m['image_type'] = $type;
-                            $m['image_data'] = $m['Message'];
-                        } else {
-                            $m['is_image'] = false;
-                            $m['text'] = $m['Message'] ?? '';
+                            // Проверяем, является ли сообщение изображением
+                            $type = $this->isBase64Image($m['Message'] ?? '');
+                            if ($type) {
+                                $m['is_image'] = true;
+                                $m['image_type'] = $type;
+                                $m['image_data'] = $m['Message'];
+                            } else {
+                                $m['is_image'] = false;
+                                $m['text'] = $m['Message'] ?? '';
+                            }
                         }
-                    }
-                    unset($m);
-
+                        unset($m);
 
                         $selectedTicket = $ticketId;
                     }

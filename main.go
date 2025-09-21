@@ -133,6 +133,8 @@ func main() {
 
 	apiMux := http.NewServeMux()
 	apiMux.Handle("/test", server.AuthMiddleware(http.HandlerFunc(serverhandlers.TestHandler)))
+	apiMux.Handle("/ownID", server.AuthMiddleware(http.HandlerFunc(serverhandlers.OwnIdHandler())))
+
 	apiMux.Handle("/wallet", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		serverhandlers.WalletHandler(w, r, moneroClient, electrumClient)
 	})))
@@ -163,6 +165,37 @@ func main() {
 	apiMux.Handle("/admin/getRandomTicket", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminGetRandomTicketHandler)))
 	apiMux.Handle("/admin/addUserToChatRoom", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminAddUserToChatRoom)))
 	apiMux.Handle("/admin/deleteChatRoom", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.DeleteChatRoom)))
+
+	// Task management routes
+	apiMux.Handle("/tasks/create", server.AuthMiddleware(serverhandlers.CreateTaskHandler()))
+	apiMux.Handle("/tasks", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetTasksHandler())))
+	apiMux.Handle("/tasks/get", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetTaskHandler())))
+	apiMux.Handle("/tasks/update", server.AuthMiddleware(http.HandlerFunc(serverhandlers.UpdateTaskHandler())))
+	apiMux.Handle("/tasks/delete", server.AuthMiddleware(http.HandlerFunc(serverhandlers.DeleteTaskHandler())))
+
+	// Task offers routes
+	apiMux.Handle("/offers/create", server.AuthMiddleware(http.HandlerFunc(serverhandlers.CreateTaskOfferHandler())))
+	apiMux.Handle("/offers", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetTaskOffersHandler())))
+	apiMux.Handle("/offers/accept", server.AuthMiddleware(http.HandlerFunc(serverhandlers.AcceptTaskOfferHandler())))
+	apiMux.Handle("/tasks/complete", server.AuthMiddleware(http.HandlerFunc(serverhandlers.CompleteTaskHandler())))
+
+	// Dispute routes
+	apiMux.Handle("/disputes/create", server.AuthMiddleware(http.HandlerFunc(serverhandlers.CreateDisputeHandler())))
+	apiMux.Handle("/disputes/get", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetDisputeHandler())))
+	apiMux.Handle("/disputes/message", server.AuthMiddleware(http.HandlerFunc(serverhandlers.SendDisputeMessageHandler())))
+	apiMux.Handle("/disputes/my", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetUserDisputesHandler())))
+
+	// Review routes
+	apiMux.Handle("/reviews/create", server.AuthMiddleware(http.HandlerFunc(serverhandlers.CreateReviewHandler())))
+	apiMux.Handle("/reviews/user", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetReviewsByUserHandler())))
+	apiMux.Handle("/reviews/task", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetReviewsByTaskHandler())))
+	apiMux.Handle("/reviews/rating", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetUserRatingHandler())))
+
+	// Admin dispute routes
+	apiMux.Handle("/admin/disputes", server.AuthMiddleware(serverhandlers.RequireAdmin(http.HandlerFunc(serverhandlers.GetOpenDisputesHandler()))))
+	apiMux.Handle("/admin/disputes/assign", server.AuthMiddleware(serverhandlers.RequireAdmin(http.HandlerFunc(serverhandlers.AssignDisputeHandler()))))
+	apiMux.Handle("/admin/disputes/resolve", server.AuthMiddleware(serverhandlers.RequireAdmin(http.HandlerFunc(serverhandlers.ResolveDisputeHandler()))))
+	apiMux.Handle("/admin/disputes/details", server.AuthMiddleware(serverhandlers.RequireAdmin(http.HandlerFunc(serverhandlers.GetDisputeDetailsHandler()))))
 
 	apiMux.Handle("/ticket/my", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetMyTicketsHandler)))
 	apiMux.Handle("/ticket/messages", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetTicketMessagesHandler)))
