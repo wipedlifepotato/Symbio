@@ -11,6 +11,32 @@ import (
 	"time"
 )
 
+type CreateTaskOfferRequest struct {
+	TaskID int64   `json:"task_id"`
+	Price  float64 `json:"price"`
+}
+
+type AcceptTaskOfferRequest struct {
+	OfferID int64 `json:"offer_id"`
+}
+
+type CompleteTaskRequest struct {
+	TaskID int64 `json:"task_id"`
+}
+// CreateTaskOfferHandler godoc
+// @Summary Create a task offer
+// @Description Allows a freelancer to make an offer on an open task
+// @Tags offers
+// @Accept json
+// @Produce json
+// @Param body body CreateTaskOfferRequest true "Offer payload"
+// @Success 200 {object} map[string]interface{} "success flag and created offer"
+// @Failure 400 {string} string "Invalid JSON or bad request"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 404 {string} string "Task not found"
+// @Failure 500 {string} string "Failed to create offer"
+// @Router /api/offers [post]
+// @Security BearerAuth
 func CreateTaskOfferHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -63,6 +89,20 @@ func CreateTaskOfferHandler() http.HandlerFunc {
 		})
 	}
 }
+// GetTaskOffersHandler godoc
+// @Summary Get task offers
+// @Description Returns list of offers for a task. Freelancers can only see their own offers
+// @Tags offers
+// @Produce json
+// @Param task_id query int true "Task ID"
+// @Success 200 {object} map[string]interface{} "success flag and offers list"
+// @Failure 400 {string} string "Invalid task ID"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 403 {string} string "Forbidden"
+// @Failure 404 {string} string "Task not found"
+// @Failure 500 {string} string "Failed to get offers"
+// @Router /api/offers [get]
+// @Security BearerAuth
 
 func GetTaskOffersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -126,6 +166,21 @@ func GetTaskOffersHandler() http.HandlerFunc {
 		})
 	}
 }
+// AcceptTaskOfferHandler godoc
+// @Summary Accept a task offer
+// @Description Allows the task owner to accept a freelancer's offer, debit wallet, and put funds in escrow
+// @Tags offers
+// @Accept json
+// @Produce json
+// @Param body body AcceptTaskOfferRequest true "Offer acceptance payload"
+// @Success 200 {object} map[string]interface{} "success flag and message"
+// @Failure 400 {string} string "Invalid JSON, insufficient balance or bad request"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 403 {string} string "Forbidden"
+// @Failure 404 {string} string "Offer or task not found"
+// @Failure 500 {string} string "Failed to accept offer"
+// @Router /api/offers/accept [post]
+// @Security BearerAuth
 
 func AcceptTaskOfferHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -226,6 +281,21 @@ func AcceptTaskOfferHandler() http.HandlerFunc {
 		})
 	}
 }
+// CompleteTaskHandler godoc
+// @Summary Complete a task
+// @Description Allows the client to confirm completion of a task and release escrow to the freelancer
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param body body CompleteTaskRequest true "Task completion payload"
+// @Success 200 {object} map[string]interface{} "success flag and message"
+// @Failure 400 {string} string "Invalid JSON or bad request"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 403 {string} string "Forbidden"
+// @Failure 404 {string} string "Task or escrow not found"
+// @Failure 500 {string} string "Failed to complete task"
+// @Router /api/tasks/complete [post]
+// @Security BearerAuth
 
 func CompleteTaskHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

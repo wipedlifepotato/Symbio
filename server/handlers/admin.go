@@ -337,6 +337,19 @@ func AdminGetRandomTicketHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ticket)
 }
+// AdminAddUserToChatRoom godoc
+// @Summary Add user to chat room
+// @Description Allows an admin to add a user to an existing chat room
+// @Tags chats
+// @Produce json
+// @Param chat_id query int true "Chat room ID"
+// @Param user_id query int true "User ID to add"
+// @Success 200 {object} map[string]string "Result message"
+// @Failure 400 {object} map[string]string "Bad chat_id or user_id"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/chats/add_user [post]
+// @Security BearerAuth
 
 func AdminAddUserToChatRoom(w http.ResponseWriter, r *http.Request) {
 	claims := server.GetUserFromContext(r)
@@ -365,7 +378,18 @@ func AdminAddUserToChatRoom(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{\"res\":\"user added to chat room\"}"))
 }
-
+// DeleteChatRoom godoc
+// @Summary Delete chat room
+// @Description Allows an admin to delete a chat room by ID
+// @Tags chats
+// @Produce json
+// @Param chat_id query int true "Chat room ID"
+// @Success 200 {object} map[string]string "Result message"
+// @Failure 400 {object} map[string]string "Bad chat_id"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/chats/delete [delete]
+// @Security BearerAuth
 func DeleteChatRoom(w http.ResponseWriter, r *http.Request) {
 	claims := server.GetUserFromContext(r)
 	if claims == nil {

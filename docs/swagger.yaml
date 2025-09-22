@@ -28,6 +28,11 @@ definitions:
       user_id:
         type: integer
     type: object
+  handlers.AssignDisputeRequest:
+    properties:
+      dispute_id:
+        type: integer
+    type: object
   handlers.AuthRequest:
     properties:
       captcha_answer:
@@ -46,6 +51,27 @@ definitions:
       token:
         type: string
     type: object
+  handlers.CreateTaskOfferRequest:
+    properties:
+      price:
+        type: number
+      task_id:
+        type: integer
+    type: object
+  handlers.CreateTaskRequest:
+    properties:
+      currency:
+        type: string
+      deadline:
+        description: ISO8601
+        type: string
+      description:
+        type: string
+      price:
+        type: number
+      title:
+        type: string
+    type: object
   handlers.RegisterRequest:
     properties:
       captcha_answer:
@@ -55,6 +81,14 @@ definitions:
       password:
         type: string
       username:
+        type: string
+    type: object
+  handlers.ResolveDisputeRequest:
+    properties:
+      dispute_id:
+        type: integer
+      resolution:
+        description: '"client_won" или "freelancer_won"'
         type: string
     type: object
   handlers.Response:
@@ -77,6 +111,13 @@ definitions:
       username:
         type: string
     type: object
+  handlers.SendDisputeMessageRequest:
+    properties:
+      dispute_id:
+        type: integer
+      message:
+        type: string
+    type: object
   handlers.TicketCreateAnswer:
     properties:
       ticket_id:
@@ -93,6 +134,21 @@ definitions:
     properties:
       ticket_id:
         type: integer
+    type: object
+  handlers.UpdateTaskRequest:
+    properties:
+      currency:
+        type: string
+      deadline:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      price:
+        type: number
+      title:
+        type: string
     type: object
   handlers.WriteTicketRequest:
     properties:
@@ -210,6 +266,49 @@ info:
   title: mFrelance API
   version: "1.0"
 paths:
+  /admin/disputes/assign:
+    post:
+      consumes:
+      - application/json
+      description: Assign a dispute to the current admin
+      parameters:
+      - description: Dispute ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.AssignDisputeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Assign dispute
+      tags:
+      - disputes
   /api/admin/IIsAdmin:
     get:
       description: Returns true/false if current user has admin privileges
@@ -496,6 +595,524 @@ paths:
       summary: Get user wallets
       tags:
       - admin
+  /api/chats/delete:
+    delete:
+      description: Allows an admin to delete a chat room by ID
+      parameters:
+      - description: Chat room ID
+        in: query
+        name: chat_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Result message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad chat_id
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete chat room
+      tags:
+      - chats
+  /api/disputes/create:
+    post:
+      consumes:
+      - application/json
+      description: Opens a new dispute for a task (only client or accepted freelancer
+        can open)
+      parameters:
+      - description: Resolution payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ResolveDisputeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dispute created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or dispute already exists
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Create dispute
+      tags:
+      - disputes
+  /api/disputes/details:
+    get:
+      description: Returns dispute info, related task, escrow balance and messages
+      parameters:
+      - description: Dispute ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success flag and dispute details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid dispute ID
+          schema:
+            type: string
+        "404":
+          description: Dispute, task or escrow not found
+          schema:
+            type: string
+        "500":
+          description: Failed to get messages
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get dispute details
+      tags:
+      - disputes
+  /api/disputes/get:
+    get:
+      description: Returns details and messages for a specific dispute
+      parameters:
+      - description: Dispute ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dispute details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid dispute ID
+          schema:
+            type: string
+        "404":
+          description: Dispute not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get dispute details
+      tags:
+      - disputes
+  /api/disputes/message:
+    post:
+      consumes:
+      - application/json
+      description: Allows client, freelancer or assigned admin to send a message in
+        a dispute
+      parameters:
+      - description: Dispute message
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SendDisputeMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Message sent
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid JSON or request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "404":
+          description: Dispute not found
+          schema:
+            type: string
+        "500":
+          description: Failed to send message
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Send dispute message
+      tags:
+      - disputes
+  /api/disputes/my:
+    get:
+      description: Returns all disputes where the user is a client or accepted freelancer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User disputes list
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get user disputes
+      tags:
+      - disputes
+  /api/disputes/open:
+    get:
+      description: Returns a list of disputes with status "open"
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success flag and disputes list
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Failed to get disputes
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get all open disputes
+      tags:
+      - disputes
+  /api/disputes/resolve:
+    post:
+      consumes:
+      - application/json
+      description: Allows an assigned admin to resolve a dispute and release funds
+        from escrow
+      parameters:
+      - description: Resolution payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ResolveDisputeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success flag and message
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid JSON or invalid resolution
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Dispute not assigned to you
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Dispute or task not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Failed to resolve dispute
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Resolve dispute
+      tags:
+      - disputes
+  /api/offers:
+    post:
+      consumes:
+      - application/json
+      description: Allows a freelancer to make an offer on an open task
+      parameters:
+      - description: Offer payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateTaskOfferRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success flag and created offer
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid JSON or bad request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+        "500":
+          description: Failed to create offer
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Create a task offer
+      tags:
+      - offers
+  /api/tasks:
+    delete:
+      description: Allows the task owner to delete a task
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success flag
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid task ID
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+        "500":
+          description: Failed to delete task
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Delete a task
+      tags:
+      - tasks
+    get:
+      description: Returns list of tasks. Use query param `status=open` to get only
+        open tasks
+      parameters:
+      - description: Filter tasks by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success flag and tasks list
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Failed to get tasks
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get tasks
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Allows a user to create a new task
+      parameters:
+      - description: Task payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success flag and created task
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid JSON
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Failed to create task
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Create a new task
+      tags:
+      - tasks
+    put:
+      consumes:
+      - application/json
+      description: Allows the task owner to update a task
+      parameters:
+      - description: Updated task payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success flag and updated task
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid JSON
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+        "500":
+          description: Failed to update task
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Update a task
+      tags:
+      - tasks
+  /api/tasks/detail:
+    get:
+      description: Returns details of a single task
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success flag and task
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid task ID
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get task details
+      tags:
+      - tasks
   /api/ticket/createTicket:
     post:
       consumes:

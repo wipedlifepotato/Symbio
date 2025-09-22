@@ -9,7 +9,15 @@ import (
 	"net/http"
 	"strconv"
 )
-
+// GetOpenDisputesHandler godoc
+// @Summary Get all open disputes
+// @Description Returns a list of disputes with status "open"
+// @Tags disputes
+// @Produce json
+// @Success 200 {object} map[string]interface{} "success flag and disputes list"
+// @Failure 500 {string} string "Failed to get disputes"
+// @Router /api/disputes/open [get]
+// @Security BearerAuth
 func GetOpenDisputesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -31,6 +39,21 @@ func GetOpenDisputesHandler() http.HandlerFunc {
 	}
 }
 
+type AssignDisputeRequest struct {
+    DisputeID int64 `json:"dispute_id"`
+}
+// @Summary Assign dispute
+// @Description Assign a dispute to the current admin
+// @Tags disputes
+// @Accept json
+// @Produce json
+// @Param body body AssignDisputeRequest true "Dispute ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /admin/disputes/assign [post]
 func AssignDisputeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -73,6 +96,26 @@ func AssignDisputeHandler() http.HandlerFunc {
 	}
 }
 
+
+type ResolveDisputeRequest struct {
+    DisputeID  int64  `json:"dispute_id"`
+    Resolution string `json:"resolution"` // "client_won" или "freelancer_won"
+}
+// ResolveDisputeHandler godoc
+// @Summary Resolve dispute
+// @Description Allows an assigned admin to resolve a dispute and release funds from escrow
+// @Tags disputes
+// @Accept json
+// @Produce json
+// @Param body body ResolveDisputeRequest true "Resolution payload"
+// @Success 200 {object} map[string]interface{} "Success flag and message"
+// @Failure 400 {object} map[string]interface{} "Invalid JSON or invalid resolution"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Dispute not assigned to you"
+// @Failure 404 {object} map[string]interface{} "Dispute or task not found"
+// @Failure 500 {object} map[string]interface{} "Failed to resolve dispute"
+// @Router /api/disputes/resolve [post]
+// @Security BearerAuth
 func ResolveDisputeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -173,7 +216,18 @@ func ResolveDisputeHandler() http.HandlerFunc {
 		})
 	}
 }
-
+// GetDisputeDetailsHandler godoc
+// @Summary Get dispute details
+// @Description Returns dispute info, related task, escrow balance and messages
+// @Tags disputes
+// @Produce json
+// @Param id query int true "Dispute ID"
+// @Success 200 {object} map[string]interface{} "success flag and dispute details"
+// @Failure 400 {string} string "Invalid dispute ID"
+// @Failure 404 {string} string "Dispute, task or escrow not found"
+// @Failure 500 {string} string "Failed to get messages"
+// @Router /api/disputes/details [get]
+// @Security BearerAuth
 func GetDisputeDetailsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {

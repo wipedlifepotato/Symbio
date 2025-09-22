@@ -124,7 +124,7 @@ func syncAllWallets(eClient *electrum.Client, mClient *walletrpc.Client) {
 			}
 
 			for _, tx := range txs {
-				if isTxProcessed(tx.Txid) {
+				if IsTxProcessed(tx.Txid) {
 					continue
 				}
 
@@ -162,7 +162,7 @@ func syncAllWallets(eClient *electrum.Client, mClient *walletrpc.Client) {
 	}
 }
 
-func isTxProcessed(txid string) bool {
+func IsTxProcessed(txid string) bool {
 	var exists bool
 	err := db.Postgres.QueryRow(`
         SELECT EXISTS(SELECT 1 FROM wallet_transactions WHERE txid = $1)

@@ -59,6 +59,27 @@ func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Cl
 				return
 			}
 			address = addr
+			txs, err := eClient.ListTransactions(address)
+			if err != nil {
+				http.Error(w, "Electrum ListTransactions error for new wallet", http.StatusInternalServerError)
+				return
+			}
+			for _, tx := range txs {
+				if server.IsTxProcessed(tx.Txid) {
+					continue
+				}
+				//amt, err := server.ProcessTxElectrum(eClient, address, tx.Txid)
+				//if err != nil {
+				//		http.Error(w,"Failer to process tx",  http.StatusInternalServerError)
+				//		continue
+				//}
+				err = server.SaveTransaction(tx.Txid, -1, big.NewFloat(0), currency, true)
+				if err != nil {
+					http.Error(w, "Failer to save transaction", http.StatusInternalServerError)
+					return
+				}
+			}
+
 		default:
 			http.Error(w, "Unsupported currency", http.StatusBadRequest)
 			return

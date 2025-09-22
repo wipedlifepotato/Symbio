@@ -79,6 +79,174 @@ func WatchLuaFile(L *lua.LState, path string) {
 		}
 	}()
 }
+func RegisterLuaDisputes(L *lua.LState) {
+	L.SetGlobal("create_dispute", L.NewFunction(func(L *lua.LState) int {
+		taskID := L.CheckInt64(1)
+		openedBy := L.CheckInt64(2)
+		dispute := &models.Dispute{
+			TaskID:    taskID,
+			OpenedBy:  openedBy,
+			Status:    "open",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		if err := db.CreateDispute(dispute); err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LNumber(dispute.ID))
+		return 1
+	}))
+
+	L.SetGlobal("get_dispute", L.NewFunction(func(L *lua.LState) int {
+		id := L.CheckInt64(1)
+		dispute, err := db.GetDisputeByID(id)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tbl := L.NewTable()
+		tbl.RawSetString("id", lua.LNumber(dispute.ID))
+		tbl.RawSetString("task_id", lua.LNumber(dispute.TaskID))
+		tbl.RawSetString("opened_by", lua.LNumber(dispute.OpenedBy))
+		if dispute.AssignedAdmin != nil {
+		    tbl.RawSetString("assigned_admin", lua.LNumber(*dispute.AssignedAdmin))
+		} else {
+		    tbl.RawSetString("assigned_admin", lua.LNil)
+		}
+		tbl.RawSetString("status", lua.LString(dispute.Status))
+		if dispute.Resolution != nil {
+			tbl.RawSetString("resolution", lua.LString(*dispute.Resolution))
+		} else {
+			tbl.RawSetString("resolution", lua.LNil)
+		}
+		L.Push(tbl)
+		return 1
+	}))
+
+	L.SetGlobal("update_dispute_status", L.NewFunction(func(L *lua.LState) int {
+		id := L.CheckInt64(1)
+		status := L.CheckString(2)
+		var resolution *string
+		if L.Get(3) != lua.LNil {
+		    r := L.CheckString(3)
+		    resolution = &r
+		}
+		if err := db.UpdateDisputeStatus(id, status, resolution); err != nil {
+			L.Push(lua.LFalse)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LTrue)
+		return 1
+	}))
+}
+
+func RegisterLuaEscrow(L *lua.LState) {
+	L.SetGlobal("create_escrow", L.NewFunction(func(L *lua.LState) int {
+		taskID := L.CheckInt64(1)
+		clientID := L.CheckInt64(2)
+		freelancerID := L.CheckInt64(3)
+		amount := L.CheckString(4)
+		currency := L.CheckString(5)
+
+		amt, ok := new(big.Float).SetString(amount)
+		if !ok {
+		    L.Push(lua.LNil)
+		    L.Push(lua.LString("invalid amount"))
+		    return 2
+		}
+		f, _ := amt.Float64()
+		escrow := &models.EscrowBalance{
+		    TaskID: taskID,
+		    ClientID: clientID,
+		    FreelancerID: freelancerID,
+		    Amount: f,
+		    Currency: currency,
+		    Status: "pending",
+		    CreatedAt: time.Now(),
+		}
+		if err := db.CreateEscrowBalance(escrow); err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LNumber(escrow.ID))
+		return 1
+	}))
+
+	L.SetGlobal("get_escrow_by_task", L.NewFunction(func(L *lua.LState) int {
+		taskID := L.CheckInt64(1)
+		escrow, err := db.GetEscrowBalanceByTaskID(taskID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tbl := L.NewTable()
+		tbl.RawSetString("id", lua.LNumber(escrow.ID))
+		tbl.RawSetString("task_id", lua.LNumber(escrow.TaskID))
+		tbl.RawSetString("client_id", lua.LNumber(escrow.ClientID))
+		tbl.RawSetString("freelancer_id", lua.LNumber(escrow.FreelancerID))
+		tbl.RawSetString("amount", lua.LString(fmt.Sprintf("%f", escrow.Amount)))
+		tbl.RawSetString("currency", lua.LString(escrow.Currency))
+		tbl.RawSetString("status", lua.LString(escrow.Status))
+		L.Push(tbl)
+		return 1
+	}))
+}
+
+func RegisterLuaReviews(L *lua.LState) {
+	L.SetGlobal("create_review", L.NewFunction(func(L *lua.LState) int {
+		taskID := L.CheckInt64(1)
+		reviewerID := L.CheckInt64(2)
+		reviewedID := L.CheckInt64(3)
+		rating := L.CheckInt(4)
+		comment := L.CheckString(5)
+
+		review := &models.Review{
+			TaskID:     taskID,
+			ReviewerID: reviewerID,
+			ReviewedID: reviewedID,
+			Rating:     rating,
+			Comment:    comment,
+			CreatedAt:  time.Now(),
+		}
+		if err := db.CreateReview(review); err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LNumber(review.ID))
+		return 1
+	}))
+
+	L.SetGlobal("get_reviews_by_user", L.NewFunction(func(L *lua.LState) int {
+		userID := L.CheckInt64(1)
+		reviews, err := db.GetReviewsByUserID(userID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tbl := L.NewTable()
+		for _, r := range reviews {
+			rTbl := L.NewTable()
+			rTbl.RawSetString("id", lua.LNumber(r.ID))
+			rTbl.RawSetString("task_id", lua.LNumber(r.TaskID))
+			rTbl.RawSetString("reviewer_id", lua.LNumber(r.ReviewerID))
+			rTbl.RawSetString("reviewed_id", lua.LNumber(r.ReviewedID))
+			rTbl.RawSetString("rating", lua.LNumber(r.Rating))
+			rTbl.RawSetString("comment", lua.LString(r.Comment))
+			rTbl.RawSetString("created_at", lua.LString(r.CreatedAt.Format(time.RFC3339)))
+			tbl.Append(rTbl)
+		}
+		L.Push(tbl)
+		return 1
+	}))
+}
 
 func RegisterJWTLua(L *lua.LState) {
 	L.SetGlobal("get_user_from_jwt", L.NewFunction(func(L *lua.LState) int {
@@ -784,6 +952,9 @@ func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.
 	RegisterElectrumLua(l, eClient)
 	RegisterJWTLua(l)
 	RegisterMoneroLua(l, mClient)
+RegisterLuaDisputes(l)
+RegisterLuaEscrow(l)
+RegisterLuaReviews(l)
 	return
 }
 

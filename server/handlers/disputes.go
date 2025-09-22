@@ -9,7 +9,21 @@ import (
 	"strconv"
 	"time"
 )
-
+// CreateDisputeHandler godoc
+// @Summary Create dispute
+// @Description Opens a new dispute for a task (only client or accepted freelancer can open)
+// @Tags disputes
+// @Accept json
+// @Produce json
+// @Param body body ResolveDisputeRequest true "Resolution payload"
+// @Success 200 {object} map[string]interface{} "Dispute created successfully"
+// @Failure 400 {string} string "Invalid request or dispute already exists"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 403 {string} string "Forbidden"
+// @Failure 404 {string} string "Task not found"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/disputes/create [post]
+// @Security BearerAuth
 func CreateDisputeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -104,7 +118,18 @@ func CreateDisputeHandler() http.HandlerFunc {
 		})
 	}
 }
-
+// GetDisputeHandler godoc
+// @Summary Get dispute details
+// @Description Returns details and messages for a specific dispute
+// @Tags disputes
+// @Produce json
+// @Param id query int true "Dispute ID"
+// @Success 200 {object} map[string]interface{} "Dispute details"
+// @Failure 400 {string} string "Invalid dispute ID"
+// @Failure 404 {string} string "Dispute not found"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/disputes/get [get]
+// @Security BearerAuth
 func GetDisputeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -139,7 +164,25 @@ func GetDisputeHandler() http.HandlerFunc {
 		})
 	}
 }
-
+type SendDisputeMessageRequest struct {
+    DisputeID int64  `json:"dispute_id"`
+    Message   string `json:"message"`
+}
+// SendDisputeMessageHandler godoc
+// @Summary Send dispute message
+// @Description Allows client, freelancer or assigned admin to send a message in a dispute
+// @Tags disputes
+// @Accept json
+// @Produce json
+// @Param body body SendDisputeMessageRequest true "Dispute message"
+// @Success 200 {object} map[string]interface{} "Message sent"
+// @Failure 400 {string} string "Invalid JSON or request"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 403 {string} string "Forbidden"
+// @Failure 404 {string} string "Dispute not found"
+// @Failure 500 {string} string "Failed to send message"
+// @Router /api/disputes/message [post]
+// @Security BearerAuth
 func SendDisputeMessageHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -219,7 +262,16 @@ func SendDisputeMessageHandler() http.HandlerFunc {
 		})
 	}
 }
-
+// GetUserDisputesHandler godoc
+// @Summary Get user disputes
+// @Description Returns all disputes where the user is a client or accepted freelancer
+// @Tags disputes
+// @Produce json
+// @Success 200 {object} map[string]interface{} "User disputes list"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/disputes/my [get]
+// @Security BearerAuth
 func GetUserDisputesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {

@@ -12,6 +12,36 @@ import (
 	"mFrelance/server"
 )
 
+type CreateTaskRequest struct {
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	Currency    string  `json:"currency"`
+	Deadline    string  `json:"deadline"` // ISO8601
+}
+
+type UpdateTaskRequest struct {
+	ID          int64   `json:"id"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	Currency    string  `json:"currency"`
+	Deadline    string  `json:"deadline"`
+}
+
+// CreateTaskHandler godoc
+// @Summary Create a new task
+// @Description Allows a user to create a new task
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param body body CreateTaskRequest true "Task payload"
+// @Success 200 {object} map[string]interface{} "success flag and created task"
+// @Failure 400 {string} string "Invalid JSON"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 500 {string} string "Failed to create task"
+// @Router /api/tasks [post]
+// @Security BearerAuth
 func CreateTaskHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[CreateTaskHandler] Starting task creation request")
@@ -63,7 +93,17 @@ func CreateTaskHandler() http.HandlerFunc {
 		})
 	}
 }
-
+// GetTasksHandler godoc
+// @Summary Get tasks
+// @Description Returns list of tasks. Use query param `status=open` to get only open tasks
+// @Tags tasks
+// @Produce json
+// @Param status query string false "Filter tasks by status"
+// @Success 200 {object} map[string]interface{} "success flag and tasks list"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 500 {string} string "Failed to get tasks"
+// @Router /api/tasks [get]
+// @Security BearerAuth
 func GetTasksHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -110,7 +150,17 @@ func GetTasksHandler() http.HandlerFunc {
 		})
 	}
 }
-
+// GetTaskHandler godoc
+// @Summary Get task details
+// @Description Returns details of a single task
+// @Tags tasks
+// @Produce json
+// @Param id query int true "Task ID"
+// @Success 200 {object} map[string]interface{} "success flag and task"
+// @Failure 400 {string} string "Invalid task ID"
+// @Failure 404 {string} string "Task not found"
+// @Router /api/tasks/detail [get]
+// @Security BearerAuth
 func GetTaskHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -138,7 +188,21 @@ func GetTaskHandler() http.HandlerFunc {
 		})
 	}
 }
-
+// UpdateTaskHandler godoc
+// @Summary Update a task
+// @Description Allows the task owner to update a task
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param body body UpdateTaskRequest true "Updated task payload"
+// @Success 200 {object} map[string]interface{} "success flag and updated task"
+// @Failure 400 {string} string "Invalid JSON"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 403 {string} string "Forbidden"
+// @Failure 404 {string} string "Task not found"
+// @Failure 500 {string} string "Failed to update task"
+// @Router /api/tasks [put]
+// @Security BearerAuth
 func UpdateTaskHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
@@ -182,7 +246,20 @@ func UpdateTaskHandler() http.HandlerFunc {
 		})
 	}
 }
-
+// DeleteTaskHandler godoc
+// @Summary Delete a task
+// @Description Allows the task owner to delete a task
+// @Tags tasks
+// @Produce json
+// @Param id query int true "Task ID"
+// @Success 200 {object} map[string]interface{} "success flag"
+// @Failure 400 {string} string "Invalid task ID"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 403 {string} string "Forbidden"
+// @Failure 404 {string} string "Task not found"
+// @Failure 500 {string} string "Failed to delete task"
+// @Router /api/tasks [delete]
+// @Security BearerAuth
 func DeleteTaskHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
