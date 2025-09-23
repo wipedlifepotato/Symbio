@@ -237,3 +237,11 @@ flash.task_delete_error: "Task delete error"
 flash.admin_user_tasks_deleted: "All user's tasks deleted"
 flash.admin_user_tasks_delete_error: "Delete user tasks error"
 
+reviews:
+  about_user: "Reviews about %username% (#%id%)"
+  no_reviews: "No have reviews"
+  no_reviews_description: "This user does not have reviews"
+  title: "Reviews (%count%)"
+  no_reviews_task: "No reviews"
+  leave: "Add reviews"
+  from: "Review by %reviewer%"

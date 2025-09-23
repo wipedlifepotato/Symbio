@@ -85,6 +85,39 @@
                     {% endif %}
                 </div>
             </div>
+
+            <!-- Отзывы -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-star"></i> {{ 'reviews.title'|trans({'%count%': reviews|length}) }}</h5>
+                </div>
+                <div class="card-body">
+                    {% if reviews is empty %}
+                        <p class="text-muted">{{ 'reviews.no_reviews_task'|trans }}</p>
+                    {% else %}
+                        {% for review in reviews %}
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title">{{ 'reviews.from'|trans({'%reviewer%': review.reviewer_name}) }}</h6>
+                                        <div class="text-warning">
+                                            {% for i in 1..5 %}
+                                                <i class="bi bi-star{{ i <= review.rating ? '-fill' : '' }}"></i>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% if review.comment %}
+                                        <p class="card-text">{{ review.comment }}</p>
+                                    {% endif %}
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i> {{ review.created_at|date('d.m.Y H:i') }}
+                                    </small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <div class="col-md-4">
@@ -98,6 +131,12 @@
                         <button class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#completeModal">
                             <i class="bi bi-check-circle"></i> {{ 'actions.complete'|trans }}
                         </button>
+                    {% endif %}
+
+                    {% if canReview %}
+                        <a href="{{ path('review_create', {'taskId': task.id}) }}" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-star"></i> {{ 'reviews.leave'|trans }}
+                        </a>
                     {% endif %}
 
                     {% if task.status == 'in_progress' %}

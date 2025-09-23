@@ -161,6 +161,35 @@ class TaskController extends AbstractController
             }
         }
 
+        $response = $this->mfrelance->doRequest("api/reviews/task?task_id={$id}", $jwt);
+        $reviews = [];
+        if (200 === $response['httpCode']) {
+            $data = json_decode($response['response'], true);
+            $reviews = $data['reviews'] ?? [];
+            foreach ($reviews as &$review) {
+                $review['reviewer_name'] = $getUsernameByID($review['reviewer_id']);
+            }
+            unset($review);
+        }
+
+        $canReview = false;
+        if ($task['status'] === 'completed') {
+            $responseID = $this->mfrelance->doRequest('api/ownID', $jwt);
+            if (200 === $responseID['httpCode']) {
+                $userId = (int) (json_decode($responseID['response'], true)['user_id'] ?? 0);
+                if ($task['client_id'] == $userId) {
+                    $canReview = true;
+                } else {
+                    foreach ($offers as $offer) {
+                        if ($offer['accepted'] && $offer['freelancer_id'] == $userId) {
+                            $canReview = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         if ($request->isMethod('POST')) {
             $action = $request->request->get('action');
             switch ($action) {
@@ -226,6 +255,8 @@ class TaskController extends AbstractController
             'offers' => $offers,
             'myOffer' => $myOffer,
             'isAdmin' => $isAdmin,
+            'reviews' => $reviews,
+            'canReview' => $canReview,
         ]);
     }
 }
