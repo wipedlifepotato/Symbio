@@ -1052,6 +1052,7 @@ func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.
 	RegisterLuaDisputes(l)
 	RegisterLuaEscrow(l)
 	RegisterLuaReviews(l)
+	RegisterBigMath(l)
 	RegisterLuaTasks(l, psql)
 	return
 }

@@ -3,49 +3,53 @@ package lua
 import (
 	"github.com/yuin/gopher-lua"
 	"mFrelance/config"
+	"math/big"
 )
 
 func RegisterConfigGlobals(L *lua.LState) {
 	cfg := L.NewTable()
 
-	// Postgres
-	L.SetField(cfg, "PostgresHost", lua.LString(config.AppConfig.PostgresHost))
-	L.SetField(cfg, "PostgresPort", lua.LString(config.AppConfig.PostgresPort))
-	L.SetField(cfg, "PostgresUser", lua.LString(config.AppConfig.PostgresUser))
-	L.SetField(cfg, "PostgresPassword", lua.LString(config.AppConfig.PostgresPassword))
-	L.SetField(cfg, "PostgresDB", lua.LString(config.AppConfig.PostgresDB))
+	stringFields := map[string]string{
+		"PostgresHost":     config.AppConfig.PostgresHost,
+		"PostgresPort":     config.AppConfig.PostgresPort,
+		"PostgresUser":     config.AppConfig.PostgresUser,
+		"PostgresPassword": config.AppConfig.PostgresPassword,
+		"PostgresDB":       config.AppConfig.PostgresDB,
+		"RedisHost":        config.AppConfig.RedisHost,
+		"RedisPort":        config.AppConfig.RedisPort,
+		"RedisPassword":    config.AppConfig.RedisPassword,
+		"Port":             config.AppConfig.Port,
+		"JWTToken":         config.AppConfig.JWTToken,
+		"ListenAddr":       config.AppConfig.ListenAddr,
+		"ElectrumHost":     config.AppConfig.ElectrumHost,
+		"ElectrumPort":     config.AppConfig.ElectrumPort,
+		"ElectrumUser":     config.AppConfig.ElectrumUser,
+		"ElectrumPassword": config.AppConfig.ElectrumPassword,
+		"MoneroHost":       config.AppConfig.MoneroHost,
+		"MoneroPort":       config.AppConfig.MoneroPort,
+		"MoneroUser":       config.AppConfig.MoneroUser,
+		"MoneroPassword":   config.AppConfig.MoneroPassword,
+		"MoneroAddress":    config.AppConfig.MoneroAddress,
+		"BitcoinAddress":   config.AppConfig.BitcoinAddress,
+	}
 
-	// Redis
-	L.SetField(cfg, "RedisHost", lua.LString(config.AppConfig.RedisHost))
-	L.SetField(cfg, "RedisPort", lua.LString(config.AppConfig.RedisPort))
-	L.SetField(cfg, "RedisPassword", lua.LString(config.AppConfig.RedisPassword))
+	for k, v := range stringFields {
+		L.SetField(cfg, k, lua.LString(v))
+	}
 
-	// Server
-	L.SetField(cfg, "Port", lua.LString(config.AppConfig.Port))
-	L.SetField(cfg, "JWTToken", lua.LString(config.AppConfig.JWTToken))
-	L.SetField(cfg, "ListenAddr", lua.LString(config.AppConfig.ListenAddr))
+	floatFields := map[string]*big.Float{
+		"MoneroCommission":  big.NewFloat(config.AppConfig.MoneroCommission),
+		"BitcoinCommission": big.NewFloat(config.AppConfig.BitcoinCommission),
+		"MaxProfiles":       big.NewFloat(float64(config.AppConfig.MaxProfiles)),
+		"MaxAvatarSize":     big.NewFloat(float64(config.AppConfig.MaxAvatarSize)),
+		"MaxAddrPerBlock":   big.NewFloat(float64(config.AppConfig.MaxAddrPerBlock)),
+	}
 
-	// Electrum
-	L.SetField(cfg, "ElectrumHost", lua.LString(config.AppConfig.ElectrumHost))
-	L.SetField(cfg, "ElectrumPort", lua.LString(config.AppConfig.ElectrumPort))
-	L.SetField(cfg, "ElectrumUser", lua.LString(config.AppConfig.ElectrumUser))
-	L.SetField(cfg, "ElectrumPassword", lua.LString(config.AppConfig.ElectrumPassword))
-
-	// Monero
-	L.SetField(cfg, "MoneroHost", lua.LString(config.AppConfig.MoneroHost))
-	L.SetField(cfg, "MoneroPort", lua.LString(config.AppConfig.MoneroPort))
-	L.SetField(cfg, "MoneroUser", lua.LString(config.AppConfig.MoneroUser))
-	L.SetField(cfg, "MoneroPassword", lua.LString(config.AppConfig.MoneroPassword))
-	L.SetField(cfg, "MoneroAddress", lua.LString(config.AppConfig.MoneroAddress))
-	L.SetField(cfg, "MoneroCommission", lua.LNumber(config.AppConfig.MoneroCommission))
-
-	// Bitcoin
-	L.SetField(cfg, "BitcoinAddress", lua.LString(config.AppConfig.BitcoinAddress))
-	L.SetField(cfg, "BitcoinCommission", lua.LNumber(config.AppConfig.BitcoinCommission))
-	// Constants
-	L.SetField(cfg, "MaxProfiles", lua.LNumber(config.AppConfig.MaxProfiles))
-	L.SetField(cfg, "MaxAvatarSize", lua.LNumber(config.AppConfig.MaxAvatarSize))
-	L.SetField(cfg, "MaxAddrPerBlock", lua.LNumber(config.AppConfig.MaxAddrPerBlock))
+	for k, v := range floatFields {
+		f, _ := v.Float64()
+		L.SetField(cfg, k, lua.LNumber(f))
+	}
 
 	L.SetGlobal("config", cfg)
 }
+
