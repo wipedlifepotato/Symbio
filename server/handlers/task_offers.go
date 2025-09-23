@@ -30,11 +30,11 @@ type CompleteTaskRequest struct {
 // @Accept json
 // @Produce json
 // @Param body body CreateTaskOfferRequest true "Offer payload"
-// @Success 200 {object} map[string]interface{} "success flag and created offer"
-// @Failure 400 {string} string "Invalid JSON or bad request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Task not found"
-// @Failure 500 {string} string "Failed to create offer"
+// @Success 200 {object} map[string]interface{} "Example: {\"success\": true, \"offer\": {\"id\": 123, \"task_id\": 456, \"freelancer_id\": 78, \"price\": 50.0, \"message\": \"I can do this\", \"accepted\": false, \"created_at\": \"2023-12-01T10:00:00Z\"}}"
+// @Failure 400 {string} string "Example: \"Invalid JSON\""
+// @Failure 401 {string} string "Example: \"Unauthorized\""
+// @Failure 404 {string} string "Example: \"Task not found\""
+// @Failure 500 {string} string "Example: \"Failed to create offer\""
 // @Router /api/offers [post]
 // @Security BearerAuth
 func CreateTaskOfferHandler() http.HandlerFunc {
@@ -186,13 +186,13 @@ func UpdateTaskOfferHandler() http.HandlerFunc {
 // @Tags offers
 // @Produce json
 // @Param id query int true "Offer ID"
-// @Success 200 {object} map[string]bool "success"
-// @Failure 400 {object} map[string]string "Invalid offer ID or accepted offer cannot be deleted"
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden (not owner or admin)"
-// @Failure 404 {object} map[string]string "Offer not found"
-// @Failure 405 {object} map[string]string "Method not allowed"
-// @Failure 500 {object} map[string]string "Failed to delete offer"
+// @Success 200 {object} map[string]interface{} "Example: {\"success\": true}"
+// @Failure 400 {object} map[string]string "Example: {\"error\": \"Invalid offer ID\"}"
+// @Failure 401 {object} map[string]string "Example: {\"error\": \"Unauthorized\"}"
+// @Failure 403 {object} map[string]string "Example: {\"error\": \"Forbidden\"}"
+// @Failure 404 {object} map[string]string "Example: {\"error\": \"Offer not found\"}"
+// @Failure 405 {object} map[string]string "Example: {\"error\": \"Method not allowed\"}"
+// @Failure 500 {object} map[string]string "Example: {\"error\": \"Failed to delete offer\"}"
 // @Router /api/offers/delete [delete]
 // @Security BearerAuth
 func DeleteTaskOfferHandler() http.HandlerFunc {

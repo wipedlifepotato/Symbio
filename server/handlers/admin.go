@@ -67,11 +67,11 @@ func MakeAdminHandler(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body AdminRequest true "User ID to demote from admin"
-// @Success 200 {string} string "User admin privileges successfully revoked"
-// @Failure 400 {string} string "Invalid JSON payload or user ID"
-// @Failure 401 {string} string "Authentication required"
-// @Failure 403 {string} string "Admin privileges required for this operation"
-// @Failure 500 {string} string "Database error during privilege update"
+// @Success 200 {string} string "Example: \"user admin removed\""
+// @Failure 400 {string} string "Example: \"invalid request body\""
+// @Failure 401 {string} string "Example: \"unauthorized\""
+// @Failure 403 {string} string "Example: \"admin rights required\""
+// @Failure 500 {string} string "Example: \"internal server error\""
 // @Security BearerAuth
 // @Router /api/admin/remove [post]
 func RemoveAdminHandler(w http.ResponseWriter, r *http.Request) {
@@ -91,8 +91,11 @@ func RemoveAdminHandler(w http.ResponseWriter, r *http.Request) {
 // IsAdminHandler godoc
 // @Summary Check if user is admin
 // @Description Returns true/false if current user has admin privileges
-// @Tags admin
+// @Tags administration
 // @Produce json
+// @Success 200 {object} map[string]interface{} "Example: {\"user_id\": 123, \"is_admin\": true}"
+// @Failure 400 {string} string "Example: \"invalid request body\""
+// @Failure 500 {string} string "Example: \"internal server error\""
 // @Security BearerAuth
 // @Router /api/admin/check [get]
 func IsAdminHandler(w http.ResponseWriter, r *http.Request) {
@@ -113,10 +116,13 @@ func IsAdminHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // IsIAdminHandler godoc
-// @Summary Check if user is admin
-// @Description Returns true/false if current user has admin privileges
-// @Tags admin
+// @Summary Check if current user is admin
+// @Description Returns true/false if the authenticated user has admin privileges
+// @Tags administration
 // @Produce json
+// @Success 200 {object} map[string]interface{} "Example: {\"user_id\": 123, \"is_admin\": true}"
+// @Failure 401 {string} string "Example: \"user not found in context\""
+// @Failure 500 {string} string "Example: \"internal server error\""
 // @Security BearerAuth
 // @Router /api/admin/IIsAdmin [get]
 func IsIAdminHandler(w http.ResponseWriter, r *http.Request) {
@@ -137,15 +143,15 @@ func IsIAdminHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // BlockUserHandler godoc
-// @Summary Block user
-// @Description Blocks a user by userID
-// @Tags admin
+// @Summary Block User Account
+// @Description Blocks a user account by user ID, preventing them from accessing the system
+// @Tags administration
 // @Accept json
 // @Produce json
-// @Param request body AdminRequest true "UserID payload"
-// @Success 200 {string} string "user blocked"
-// @Failure 400 {string} string
-// @Failure 500 {string} string
+// @Param request body AdminRequest true "User ID to block"
+// @Success 200 {string} string "Example: \"user blocked\""
+// @Failure 400 {string} string "Example: \"invalid request body\""
+// @Failure 500 {string} string "Example: \"internal server error\""
 // @Security BearerAuth
 // @Router /api/admin/block [post]
 func BlockUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -169,16 +175,15 @@ type AdminTransactionsRequest struct {
 }
 
 // AdminTransactionsHandler godoc
-// @Summary Admin: View transactions
+// @Summary Admin: View Transactions
 // @Description Allows admin to view transactions by wallet or all transactions with pagination
-// @Tags admin
+// @Tags administration
 // @Accept json
 // @Produce json
-// @Param request body AdminTransactionsRequest true "Request payload"
-// @Success 200 {array} object
-// @Success 200 {array} object "id:int, from_wallet_id:int, to_wallet_id:int, to_address:string, task_id:int, amount:string, currency:string, confirmed:bool, created_at:string"
-// @Failure 400 {string} string
-// @Failure 500 {string} string
+// @Param request body AdminTransactionsRequest true "Request payload with optional wallet_id, limit, offset"
+// @Success 200 {array} object "Example: [{\"id\": 123, \"from_wallet_id\": 456, \"to_wallet_id\": 789, \"to_address\": \"1ABC...\", \"task_id\": 101, \"amount\": \"0.5\", \"currency\": \"BTC\", \"confirmed\": true, \"created_at\": \"2023-12-01T10:00:00Z\"}]"
+// @Failure 400 {string} string "Example: \"invalid request body\""
+// @Failure 500 {string} string "Example: \"DB error\""
 // @Security BearerAuth
 // @Router /api/admin/transactions [post]
 func AdminTransactionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -211,15 +216,15 @@ func AdminTransactionsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // UnblockUserHandler godoc
-// @Summary Unblock user
-// @Description Unblocks a user by userID
-// @Tags admin
+// @Summary Unblock User Account
+// @Description Unblocks a previously blocked user account, restoring their access to the system
+// @Tags administration
 // @Accept json
 // @Produce json
-// @Param request body AdminRequest true "UserID payload"
-// @Success 200 {string} string "user unblocked"
-// @Failure 400 {string} string
-// @Failure 500 {string} string
+// @Param request body AdminRequest true "User ID to unblock"
+// @Success 200 {string} string "Example: \"user unblocked\""
+// @Failure 400 {string} string "Example: \"invalid request body\""
+// @Failure 500 {string} string "Example: \"internal server error\""
 // @Security BearerAuth
 // @Router /api/admin/unblock [post]
 func UnblockUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -237,15 +242,14 @@ func UnblockUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // AdminWalletsHandler godoc
-// @Summary Get user wallets
-// @Description Returns all wallets for a given user
-// @Tags admin
-// @Accept json
+// @Summary Get User Wallets
+// @Description Returns all cryptocurrency wallets for a given user
+// @Tags administration
 // @Produce json
 // @Param user_id query int true "User ID"
-// @Success 200 {array} models.Wallet
-// @Failure 400 {string} string
-// @Failure 500 {string} string
+// @Success 200 {array} models.Wallet "Example: [{\"id\": 123, \"user_id\": 456, \"currency\": \"BTC\", \"address\": \"1ABC...\", \"balance\": \"0.5\", \"created_at\": \"2023-12-01T10:00:00Z\"}]"
+// @Failure 400 {string} string "Example: \"user_id required\""
+// @Failure 500 {string} string "Example: \"DB error\""
 // @Security BearerAuth
 // @Router /api/admin/wallets [get]
 func AdminWalletsHandler(w http.ResponseWriter, r *http.Request) {
@@ -274,15 +278,15 @@ type AdminUpdateBalanceRequest struct {
 }
 
 // AdminUpdateBalanceHandler godoc
-// @Summary Update wallet balance
-// @Description Allows admin to set a new balance for a wallet
-// @Tags admin
+// @Summary Update Wallet Balance
+// @Description Allows admin to manually set a new balance for a user's wallet
+// @Tags administration
 // @Accept json
 // @Produce json
-// @Param request body AdminUpdateBalanceRequest true "Wallet balance payload"
-// @Success 200 {string} string "balance updated"
-// @Failure 400 {string} string
-// @Failure 500 {string} string
+// @Param request body AdminUpdateBalanceRequest true "Wallet balance payload with user_id and balance"
+// @Success 200 {string} string "Example: \"balance updated\""
+// @Failure 400 {string} string "Example: \"invalid balance format\""
+// @Failure 500 {string} string "Example: \"DB error\""
 // @Security BearerAuth
 // @Router /api/admin/update_balance [post]
 func AdminUpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
@@ -305,17 +309,16 @@ func AdminUpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("balance updated"))
 }
 
-// AdminGetRandomTicketHandler assigns a random open ticket to the current admin
 // AdminGetRandomTicketHandler godoc
-// @Summary Get random opened ticket (admin)
-// @Description Set ticket to admin (random)
-// @Tags admin
+// @Summary Assign Random Open Ticket
+// @Description Assigns a random open support ticket to the current admin user for handling
+// @Tags administration
 // @Produce json
-// @Success 200 {object} models.TicketDoc
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
+// @Success 200 {object} models.TicketDoc "Example: {\"id\": 123, \"user_id\": 456, \"admin_id\": 789, \"subject\": \"Login issue\", \"status\": \"pending\", \"created_at\": \"2023-12-01T10:00:00Z\"}"
+// @Failure 400 {object} map[string]string "Example: {\"error\": \"no open tickets available\"}"
+// @Failure 401 {object} map[string]string "Example: {\"error\": \"user not found in context\"}"
+// @Security BearerAuth
 // @Router /api/admin/getRandomTicket [get]
-// @Security bearerAuth
 func AdminGetRandomTicketHandler(w http.ResponseWriter, r *http.Request) {
 	claims := server.GetUserFromContext(r)
 	if claims == nil {
@@ -415,18 +418,18 @@ func DeleteChatRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 // AdminDeleteUserTasksHandler godoc
-// @Summary Delete all tasks of a specific user
-// @Description Allows an admin to delete all tasks belonging to a user by their ID
-// @Tags admin
+// @Summary Delete All User Tasks
+// @Description Allows an admin to delete all tasks belonging to a specific user by their ID
+// @Tags administration
 // @Produce json
-// @Param user_id query int true "User ID"
-// @Success 200 {object} map[string]interface{} "success and deleted count"
-// @Failure 400 {object} map[string]string "Invalid user_id"
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Admin rights required"
-// @Failure 405 {object} map[string]string "Method not allowed"
-// @Failure 500 {object} map[string]string "Failed to delete tasks"
-// @Router /admin/delete-user-tasks [post]
+// @Param user_id query int true "User ID whose tasks to delete"
+// @Success 200 {object} map[string]interface{} "Example: {\"success\": true, \"deleted\": 5}"
+// @Failure 400 {object} map[string]string "Example: {\"error\": \"Invalid user_id\"}"
+// @Failure 401 {object} map[string]string "Example: {\"error\": \"Unauthorized\"}"
+// @Failure 403 {object} map[string]string "Example: {\"error\": \"admin rights required\"}"
+// @Failure 405 {object} map[string]string "Example: {\"error\": \"Method not allowed\"}"
+// @Failure 500 {object} map[string]string "Example: {\"error\": \"Failed to delete tasks\"}"
+// @Router /api/admin/delete_user_tasks [post]
 // @Security BearerAuth
 func AdminDeleteUserTasksHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

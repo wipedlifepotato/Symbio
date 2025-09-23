@@ -15,86 +15,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/admin/delete-user-tasks": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Allows an admin to delete all tasks belonging to a user by their ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "Delete all tasks of a specific user",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "user_id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "success and deleted count",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid user_id",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Admin rights required",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "405": {
-                        "description": "Method not allowed",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to delete tasks",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/admin/disputes/assign": {
             "post": {
                 "description": "Assign a dispute to the current admin",
@@ -165,15 +85,35 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns true/false if current user has admin privileges",
+                "description": "Returns true/false if the authenticated user has admin privileges",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "administration"
                 ],
-                "summary": "Check if user is admin",
-                "responses": {}
+                "summary": "Check if current user is admin",
+                "responses": {
+                    "200": {
+                        "description": "Example: {\\\"user_id\\\": 123, \\\"is_admin\\\": true}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Example: \\\"user not found in context\\",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Example: \\\"internal server error\\",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/api/admin/block": {
@@ -183,7 +123,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Blocks a user by userID",
+                "description": "Blocks a user account by user ID, preventing them from accessing the system",
                 "consumes": [
                     "application/json"
                 ],
@@ -191,12 +131,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "administration"
                 ],
-                "summary": "Block user",
+                "summary": "Block User Account",
                 "parameters": [
                     {
-                        "description": "UserID payload",
+                        "description": "User ID to block",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -207,19 +147,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "user blocked",
+                        "description": "Example: \\\"user blocked\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Example: \\\"invalid request body\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Example: \\\"internal server error\\",
                         "schema": {
                             "type": "string"
                         }
@@ -239,10 +179,110 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "administration"
                 ],
                 "summary": "Check if user is admin",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Example: {\\\"user_id\\\": 123, \\\"is_admin\\\": true}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Example: \\\"invalid request body\\",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Example: \\\"internal server error\\",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/delete_user_tasks": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows an admin to delete all tasks belonging to a specific user by their ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "administration"
+                ],
+                "summary": "Delete All User Tasks",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID whose tasks to delete",
+                        "name": "user_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Example: {\\\"success\\\": true, \\\"deleted\\\": 5}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Example: {\\\"error\\\": \\\"Invalid user_id\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Example: {\\\"error\\\": \\\"Unauthorized\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Example: {\\\"error\\\": \\\"admin rights required\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Example: {\\\"error\\\": \\\"Method not allowed\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Example: {\\\"error\\\": \\\"Failed to delete tasks\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/admin/disputes": {
@@ -293,26 +333,26 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "bearerAuth": []
+                        "BearerAuth": []
                     }
                 ],
-                "description": "Set ticket to admin (random)",
+                "description": "Assigns a random open support ticket to the current admin user for handling",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "administration"
                 ],
-                "summary": "Get random opened ticket (admin)",
+                "summary": "Assign Random Open Ticket",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Example: {\\\"id\\\": 123, \\\"user_id\\\": 456, \\\"admin_id\\\": 789, \\\"subject\\\": \\\"Login issue\\\", \\\"status\\\": \\\"pending\\\", \\\"created_at\\\": \\\"2023-12-01T10:00:00Z\\\"}",
                         "schema": {
                             "$ref": "#/definitions/models.TicketDoc"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Example: {\\\"error\\\": \\\"no open tickets available\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -321,7 +361,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Example: {\\\"error\\\": \\\"user not found in context\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -363,31 +403,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "User successfully granted admin rights",
+                        "description": "Example: \\\"user is now admin\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Invalid JSON payload or user ID",
+                        "description": "Example: \\\"invalid request body\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "401": {
-                        "description": "Authentication required",
+                        "description": "Example: \\\"unauthorized\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "403": {
-                        "description": "Admin privileges required for this operation",
+                        "description": "Example: \\\"admin rights required\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Database error during privilege update",
+                        "description": "Example: \\\"internal server error\\",
                         "schema": {
                             "type": "string"
                         }
@@ -426,31 +466,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "User admin privileges successfully revoked",
+                        "description": "Example: \\\"user admin removed\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Invalid JSON payload or user ID",
+                        "description": "Example: \\\"invalid request body\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "401": {
-                        "description": "Authentication required",
+                        "description": "Example: \\\"unauthorized\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "403": {
-                        "description": "Admin privileges required for this operation",
+                        "description": "Example: \\\"admin rights required\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Database error during privilege update",
+                        "description": "Example: \\\"internal server error\\",
                         "schema": {
                             "type": "string"
                         }
@@ -473,12 +513,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "administration"
                 ],
-                "summary": "Admin: View transactions",
+                "summary": "Admin: View Transactions",
                 "parameters": [
                     {
-                        "description": "Request payload",
+                        "description": "Request payload with optional wallet_id, limit, offset",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -489,7 +529,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "id:int, from_wallet_id:int, to_wallet_id:int, to_address:string, task_id:int, amount:string, currency:string, confirmed:bool, created_at:string",
+                        "description": "Example: [{\\\"id\\\": 123, \\\"from_wallet_id\\\": 456, \\\"to_wallet_id\\\": 789, \\\"to_address\\\": \\\"1ABC...\\\", \\\"task_id\\\": 101, \\\"amount\\\": \\\"0.5\\\", \\\"currency\\\": \\\"BTC\\\", \\\"confirmed\\\": true, \\\"created_at\\\": \\\"2023-12-01T10:00:00Z\\\"}]",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -498,13 +538,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Example: \\\"invalid request body\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Example: \\\"DB error\\",
                         "schema": {
                             "type": "string"
                         }
@@ -519,7 +559,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Unblocks a user by userID",
+                "description": "Unblocks a previously blocked user account, restoring their access to the system",
                 "consumes": [
                     "application/json"
                 ],
@@ -527,12 +567,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "administration"
                 ],
-                "summary": "Unblock user",
+                "summary": "Unblock User Account",
                 "parameters": [
                     {
-                        "description": "UserID payload",
+                        "description": "User ID to unblock",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -543,19 +583,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "user unblocked",
+                        "description": "Example: \\\"user unblocked\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Example: \\\"invalid request body\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Example: \\\"internal server error\\",
                         "schema": {
                             "type": "string"
                         }
@@ -570,7 +610,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Allows admin to set a new balance for a wallet",
+                "description": "Allows admin to manually set a new balance for a user's wallet",
                 "consumes": [
                     "application/json"
                 ],
@@ -578,12 +618,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "administration"
                 ],
-                "summary": "Update wallet balance",
+                "summary": "Update Wallet Balance",
                 "parameters": [
                     {
-                        "description": "Wallet balance payload",
+                        "description": "Wallet balance payload with user_id and balance",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -594,19 +634,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "balance updated",
+                        "description": "Example: \\\"balance updated\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Example: \\\"invalid balance format\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Example: \\\"DB error\\",
                         "schema": {
                             "type": "string"
                         }
@@ -621,17 +661,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all wallets for a given user",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Returns all cryptocurrency wallets for a given user",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "administration"
                 ],
-                "summary": "Get user wallets",
+                "summary": "Get User Wallets",
                 "parameters": [
                     {
                         "type": "integer",
@@ -643,7 +680,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Example: [{\\\"id\\\": 123, \\\"user_id\\\": 456, \\\"currency\\\": \\\"BTC\\\", \\\"address\\\": \\\"1ABC...\\\", \\\"balance\\\": \\\"0.5\\\", \\\"created_at\\\": \\\"2023-12-01T10:00:00Z\\\"}]",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -652,13 +689,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Example: \\\"user_id required\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Example: \\\"DB error\\",
                         "schema": {
                             "type": "string"
                         }
@@ -1120,32 +1157,32 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "success flag and created offer",
+                        "description": "Example: {\\\"success\\\": true, \\\"offer\\\": {\\\"id\\\": 123, \\\"task_id\\\": 456, \\\"freelancer_id\\\": 78, \\\"price\\\": 50.0, \\\"message\\\": \\\"I can do this\\\", \\\"accepted\\\": false, \\\"created_at\\\": \\\"2023-12-01T10:00:00Z\\\"}}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid JSON or bad request",
+                        "description": "Example: \\\"Invalid JSON\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Example: \\\"Unauthorized\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "404": {
-                        "description": "Task not found",
+                        "description": "Example: \\\"Task not found\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Failed to create offer",
+                        "description": "Example: \\\"Failed to create offer\\",
                         "schema": {
                             "type": "string"
                         }
@@ -1179,16 +1216,14 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "success",
+                        "description": "Example: {\\\"success\\\": true}",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "boolean"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid offer ID or accepted offer cannot be deleted",
+                        "description": "Example: {\\\"error\\\": \\\"Invalid offer ID\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1197,7 +1232,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Example: {\\\"error\\\": \\\"Unauthorized\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1206,7 +1241,7 @@ const docTemplate = `{
                         }
                     },
                     "403": {
-                        "description": "Forbidden (not owner or admin)",
+                        "description": "Example: {\\\"error\\\": \\\"Forbidden\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1215,7 +1250,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Offer not found",
+                        "description": "Example: {\\\"error\\\": \\\"Offer not found\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1224,7 +1259,7 @@ const docTemplate = `{
                         }
                     },
                     "405": {
-                        "description": "Method not allowed",
+                        "description": "Example: {\\\"error\\\": \\\"Method not allowed\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1233,7 +1268,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Failed to delete offer",
+                        "description": "Example: {\\\"error\\\": \\\"Failed to delete offer\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1725,26 +1760,26 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "success flag and created task",
+                        "description": "Example: {\\\"success\\\": true, \\\"task\\\": {\\\"id\\\": 123, \\\"title\\\": \\\"Website Design\\\", \\\"description\\\": \\\"Need a modern website\\\", \\\"price\\\": 500.0, \\\"currency\\\": \\\"USD\\\", \\\"deadline\\\": \\\"2023-12-31T23:59:59Z\\\", \\\"client_id\\\": 456, \\\"status\\\": \\\"open\\\", \\\"created_at\\\": \\\"2023-12-01T10:00:00Z\\\"}}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid JSON",
+                        "description": "Example: \\\"Invalid JSON\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Example: \\\"Unauthorized\\",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Failed to create task",
+                        "description": "Example: \\\"Failed to create task\\",
                         "schema": {
                             "type": "string"
                         }

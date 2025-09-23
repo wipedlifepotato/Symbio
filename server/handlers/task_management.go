@@ -37,10 +37,10 @@ type UpdateTaskRequest struct {
 // @Accept json
 // @Produce json
 // @Param body body CreateTaskRequest true "Task payload"
-// @Success 200 {object} map[string]interface{} "success flag and created task"
-// @Failure 400 {string} string "Invalid JSON"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 500 {string} string "Failed to create task"
+// @Success 200 {object} map[string]interface{} "Example: {\"success\": true, \"task\": {\"id\": 123, \"title\": \"Website Design\", \"description\": \"Need a modern website\", \"price\": 500.0, \"currency\": \"USD\", \"deadline\": \"2023-12-31T23:59:59Z\", \"client_id\": 456, \"status\": \"open\", \"created_at\": \"2023-12-01T10:00:00Z\"}}"
+// @Failure 400 {string} string "Example: \"Invalid JSON\""
+// @Failure 401 {string} string "Example: \"Unauthorized\""
+// @Failure 500 {string} string "Example: \"Failed to create task\""
 // @Router /api/tasks [post]
 // @Security BearerAuth
 func CreateTaskHandler() http.HandlerFunc {
