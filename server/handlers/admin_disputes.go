@@ -10,13 +10,15 @@ import (
 	"strconv"
 )
 // GetOpenDisputesHandler godoc
-// @Summary Get all open disputes
-// @Description Returns a list of disputes with status "open"
-// @Tags disputes
+// @Summary Retrieve Open Disputes
+// @Description Returns a paginated list of all unresolved disputes requiring admin attention. Used for dispute management dashboard.
+// @Tags dispute-management
 // @Produce json
-// @Success 200 {object} map[string]interface{} "success flag and disputes list"
-// @Failure 500 {string} string "Failed to get disputes"
-// @Router /api/disputes/open [get]
+// @Success 200 {object} map[string]interface{} "success: true, disputes: array of open dispute objects"
+// @Failure 401 {string} string "Authentication required"
+// @Failure 403 {string} string "Admin privileges required"
+// @Failure 500 {string} string "Database error retrieving disputes"
+// @Router /api/admin/disputes [get]
 // @Security BearerAuth
 func GetOpenDisputesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

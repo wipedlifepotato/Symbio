@@ -10,18 +10,18 @@ import (
 	"time"
 )
 // CreateReviewHandler godoc
-// @Summary Create a review
-// @Description Create a review for a completed task. Only the client or the accepted freelancer can review.
+// @Summary Submit Task Review
+// @Description Allows clients or accepted freelancers to submit a review for a completed task. Each user can only review a task once.
 // @Tags reviews
 // @Accept json
 // @Produce json
-// @Param review body models.Review true "Review payload"
-// @Success 200 {object} models.Review
-// @Failure 400 {object} map[string]string "Bad request"
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 404 {object} map[string]string "Task not found"
-// @Failure 500 {object} map[string]string "Internal server error"
+// @Param review body models.Review true "Review data including task ID, rating (1-5), and optional comment"
+// @Success 200 {object} map[string]interface{} "Example: {\"success\": true, \"review\": {\"id\": 123, \"task_id\": 456, \"reviewer_id\": 78, \"reviewed_id\": 90, \"rating\": 5, \"comment\": \"Great work!\", \"created_at\": \"2023-12-01T10:00:00Z\"}}"
+// @Failure 400 {object} map[string]string "Example: {\"error\": \"Task is not completed\"}"
+// @Failure 401 {object} map[string]string "Example: {\"error\": \"Unauthorized\"}"
+// @Failure 403 {object} map[string]string "Example: {\"error\": \"Forbidden\"}"
+// @Failure 404 {object} map[string]string "Example: {\"error\": \"Task not found\"}"
+// @Failure 500 {object} map[string]string "Example: {\"error\": \"Internal server error\"}"
 // @Security BearerAuth
 // @Router /api/reviews [post]
 func CreateReviewHandler() http.HandlerFunc {
@@ -116,21 +116,17 @@ func CreateReviewHandler() http.HandlerFunc {
 		})
 	}
 }
-// CreateReviewHandler godoc
-// @Summary Create a review
-// @Description Create a review for a completed task. Only the client or the accepted freelancer can review.
+// GetReviewsByUserHandler godoc
+// @Summary Get Reviews for User
+// @Description Retrieves all reviews received by a specific user (reviews about them). Used to display user reputation and feedback history.
 // @Tags reviews
-// @Accept json
 // @Produce json
-// @Param review body models.Review true "Review payload"
-// @Success 200 {object} models.Review
-// @Failure 400 {object} map[string]string "Bad request"
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 404 {object} map[string]string "Task not found"
-// @Failure 500 {object} map[string]string "Internal server error"
+// @Param user_id query int true "ID of the user to get reviews for"
+// @Success 200 {object} map[string]interface{} "Example: {\"success\": true, \"reviews\": [{\"id\": 123, \"task_id\": 456, \"reviewer_id\": 78, \"rating\": 5, \"comment\": \"Excellent work!\", \"created_at\": \"2023-12-01T10:00:00Z\"}]}"
+// @Failure 400 {object} map[string]string "Example: {\"error\": \"Invalid user ID\"}"
+// @Failure 500 {object} map[string]string "Example: {\"error\": \"Database error\"}"
 // @Security BearerAuth
-// @Router /api/reviews [post]
+// @Router /api/reviews/user [get]
 func GetReviewsByUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -159,15 +155,16 @@ func GetReviewsByUserHandler() http.HandlerFunc {
 	}
 }
 // GetReviewsByTaskHandler godoc
-// @Summary Get reviews by task
-// @Description Returns all reviews for a specific task
+// @Summary Get Reviews for Task
+// @Description Retrieves all reviews submitted for a specific task. Used to display feedback on task completion pages.
 // @Tags reviews
 // @Produce json
-// @Param task_id query int true "Task ID"
-// @Success 200 {array} models.Review
-// @Failure 400 {object} map[string]string "Invalid task ID"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /api/reviews/by-task [get]
+// @Param task_id query int true "ID of the task to get reviews for"
+// @Success 200 {object} map[string]interface{} "Example: {\"success\": true, \"reviews\": [{\"id\": 123, \"reviewer_id\": 78, \"rating\": 5, \"comment\": \"Great job!\", \"created_at\": \"2023-12-01T10:00:00Z\"}]}"
+// @Failure 400 {object} map[string]string "Example: {\"error\": \"Invalid task ID\"}"
+// @Failure 500 {object} map[string]string "Example: {\"error\": \"Database error\"}"
+// @Security BearerAuth
+// @Router /api/reviews/task [get]
 func GetReviewsByTaskHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -196,14 +193,15 @@ func GetReviewsByTaskHandler() http.HandlerFunc {
 	}
 }
 // GetUserRatingHandler godoc
-// @Summary Get user rating
-// @Description Returns the average rating of a user
+// @Summary Get User Average Rating
+// @Description Calculates and returns the average rating received by a user across all their completed tasks. Used for reputation scoring.
 // @Tags reviews
 // @Produce json
-// @Param user_id query int true "User ID"
-// @Success 200 {object} map[string]float64 "Rating"
-// @Failure 400 {object} map[string]string "Invalid user ID"
-// @Failure 500 {object} map[string]string "Internal server error"
+// @Param user_id query int true "ID of the user to get average rating for"
+// @Success 200 {object} map[string]interface{} "Example: {\"success\": true, \"rating\": 4.5}"
+// @Failure 400 {object} map[string]string "Example: {\"error\": \"Invalid user ID\"}"
+// @Failure 500 {object} map[string]string "Example: {\"error\": \"Database error\"}"
+// @Security BearerAuth
 // @Router /api/reviews/rating [get]
 func GetUserRatingHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

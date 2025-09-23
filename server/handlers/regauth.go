@@ -40,11 +40,11 @@ type Response struct {
 }
 
 // HelloHandler godoc
-// @Summary Health/hello
-// @Description Simple hello endpoint
-// @Tags auth
+// @Summary Health Check Endpoint
+// @Description Provides a simple health check response to verify API availability
+// @Tags system
 // @Produce json
-// @Success 200 {object} Response
+// @Success 200 {object} Response "Returns a greeting message confirming API is operational"
 // @Router /hello [get]
 func HelloHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -142,12 +142,14 @@ func generateCaptchaImage(text string) image.Image {
 }
 
 // CaptchaHandler godoc
-// @Summary Get captcha image
-// @Description Returns a captcha image and X-Captcha-ID header
-// @Tags auth
+// @Summary Generate CAPTCHA Challenge
+// @Description Generates a new CAPTCHA image with 4-digit code for user verification. Includes rate limiting per IP to prevent abuse.
+// @Tags authentication
 // @Produce png
-// @Success 200 "image/png"
-// @Header 200 {string} X-Captcha-ID "Captcha ID"
+// @Success 200 "image/png" "CAPTCHA image in PNG format"
+// @Header 200 {string} X-Captcha-ID "Unique identifier for the CAPTCHA challenge"
+// @Failure 429 {object} map[string]string "Rate limit exceeded - too many CAPTCHA requests"
+// @Failure 503 {object} map[string]string "CAPTCHA is disabled in server configuration"
 // @Router /captcha [get]
 func CaptchaHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 	if !config.AppConfig.CaptchaEnabled {
@@ -190,15 +192,19 @@ func CaptchaHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 }
 
 // VerifyHandler godoc
-// @Summary Verify captcha
-// @Description Verifies provided captcha answer
-// @Tags auth
-// @Param id query string true "Captcha ID"
-// @Param answer query string true "Captcha answer"
-// @Success 200 {object} map[string]bool
-// @Failure 400 {object} map[string]string
+// @Summary Validate CAPTCHA Response
+// @Description Verifies the user's answer against the stored CAPTCHA challenge. Consumes the CAPTCHA token upon successful verification.
+// @Tags authentication
+// @Param id query string true "CAPTCHA identifier received from /captcha endpoint"
+// @Param answer query string true "User's answer to the CAPTCHA challenge"
+// @Success 200 {object} map[string]bool "ok: true if verification successful"
+// @Failure 400 {object} map[string]string "CAPTCHA expired or invalid ID"
 // @Router /verify [get]
 func VerifyHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
+	if !config.AppConfig.CaptchaEnabled {
+		w.Write([]byte(`{"ok":true}`))
+		return
+	}
 	id := r.URL.Query().Get("id")
 	answer := r.URL.Query().Get("answer")
 
@@ -218,11 +224,11 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 }
 
 // CaptchaStatusHandler godoc
-// @Summary Check captcha status
-// @Description Returns whether captcha is enabled
-// @Tags auth
+// @Summary Get CAPTCHA Configuration Status
+// @Description Returns whether CAPTCHA verification is currently enabled on the server. Used by frontend to conditionally show CAPTCHA fields.
+// @Tags authentication
 // @Produce json
-// @Success 200 {object} map[string]bool
+// @Success 200 {object} map[string]bool "Example: {\"enabled\": true}"
 // @Router /captcha/status [get]
 func CaptchaStatusHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -230,14 +236,15 @@ func CaptchaStatusHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // RegisterHandler godoc
-// @Summary Register new user
-// @Description Creates a new user with login, password and captcha
-// @Tags auth
+// @Summary Register New User Account
+// @Description Creates a new user account with username, password, and CAPTCHA verification. Generates a recovery mnemonic phrase for account restoration.
+// @Tags authentication
 // @Accept json
 // @Produce json
-// @Param request body RegisterRequest true "User credentials"
-// @Success 200 {object} Response
-// @Failure 400 {object} map[string]string
+// @Param request body RegisterRequest true "Registration credentials including username, password, and CAPTCHA"
+// @Success 200 {object} Response "Example: {\"message\": \"Account created successfully. Save your recovery phrase!\", \"encrypted\": \"word1 word2 word3...\"}"
+// @Failure 400 {object} map[string]string "Example: {\"error\": \"invalid captcha\"}"
+// @Failure 500 {object} map[string]string "Example: {\"error\": \"failed to create user, maybe user exists\"}"
 // @Router /register [post]
 func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 	log.Println("[RegisterHandler] Register Handler")
@@ -303,14 +310,15 @@ type RestoreRequest struct {
 }
 
 // RestoreHandler godoc
-// @Summary Restore user account
-// @Description Restore account by mnemonic and set new password
-// @Tags auth
+// @Summary Restore User Account
+// @Description Restores access to a user account using the recovery mnemonic phrase and sets a new password. Requires CAPTCHA verification.
+// @Tags authentication
 // @Accept json
 // @Produce json
-// @Param request body RestoreRequest true "Restore payload"
-// @Success 200 {object} Response
-// @Failure 400 {object} map[string]string
+// @Param request body RestoreRequest true "Account restoration data including username, mnemonic, new password, and CAPTCHA"
+// @Success 200 {object} Response "Account restored successfully with new JWT token"
+// @Failure 400 {object} map[string]string "Invalid input, CAPTCHA failure, or invalid mnemonic"
+// @Failure 500 {object} map[string]string "Internal server error during account restoration"
 // @Router /restoreuser [post]
 func RestoreHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 	var req RestoreRequest
@@ -373,14 +381,15 @@ type AuthResponse struct {
 }
 
 // AuthHandler godoc
-// @Summary Authenticate user
-// @Description Logs in user and returns JWT token
-// @Tags auth
+// @Summary User Authentication
+// @Description Authenticates user credentials and returns a JWT token for API access. Requires CAPTCHA verification for security.
+// @Tags authentication
 // @Accept json
 // @Produce json
-// @Param request body AuthRequest true "Login credentials"
-// @Success 200 {object} AuthResponse
-// @Failure 401 {object} map[string]string
+// @Param request body AuthRequest true "User login credentials including username, password, and CAPTCHA"
+// @Success 200 {object} AuthResponse "Example: {\"message\": \"Authenticated successfully\", \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"}"
+// @Failure 400 {object} map[string]string "Example: {\"error\": \"invalid captcha\"}"
+// @Failure 401 {object} map[string]string "Example: {\"error\": \"invalid username or password\"}"
 // @Router /auth [post]
 func AuthHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 	var req AuthRequest
@@ -388,14 +397,15 @@ func AuthHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 		server.WriteErrorJSON(w, "invalid json", http.StatusBadRequest)
 		return
 	}
-	log.Print("[AuthHandler] Test captcha")
-	storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
-	if err != nil || storedCaptcha != req.CaptchaAnswer {
-		server.WriteErrorJSON(w, "invalid captcha", http.StatusBadRequest)
-		return
+	if config.AppConfig.CaptchaEnabled {
+		log.Print("[AuthHandler] Test captcha")
+		storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
+		if err != nil || storedCaptcha != req.CaptchaAnswer {
+			server.WriteErrorJSON(w, "invalid captcha", http.StatusBadRequest)
+			return
+		}
+		rdb.Del(ctx, "captcha:"+req.CaptchaID)
 	}
-	rdb.Del(ctx, "captcha:"+req.CaptchaID)
-
 	log.Print("[AuthHandler] Get User by Username")
 	userID, passwordHash, err := db.GetUserByUsername(db.Postgres, req.Username)
 	if err != nil {
