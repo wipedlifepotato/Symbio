@@ -186,3 +186,4 @@ func GetUserRatingHandler() http.HandlerFunc {
 		})
 	}
 }
+

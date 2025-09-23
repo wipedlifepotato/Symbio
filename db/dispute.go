@@ -115,3 +115,4 @@ func GetOpenDisputes() ([]*models.Dispute, error) {
 	}
 	return disputes, nil
 }
+

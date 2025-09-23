@@ -411,3 +411,50 @@ func DeleteChatRoom(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{\"res\":\"chat room deleted\"}"))
 }
+
+// AdminDeleteUserTasksHandler godoc
+// @Summary Delete all tasks of a specific user
+// @Description Allows an admin to delete all tasks belonging to a user by their ID
+// @Tags admin
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {object} map[string]interface{} "success and deleted count"
+// @Failure 400 {object} map[string]string "Invalid user_id"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Admin rights required"
+// @Failure 405 {object} map[string]string "Method not allowed"
+// @Failure 500 {object} map[string]string "Failed to delete tasks"
+// @Router /admin/delete-user-tasks [post]
+// @Security BearerAuth
+func AdminDeleteUserTasksHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	claims := server.GetUserFromContext(r)
+	if claims == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	isAdmin, err := db.IsAdmin(db.Postgres, claims.UserID)
+	if err != nil || !isAdmin {
+		http.Error(w, "admin rights required", http.StatusForbidden)
+		return
+	}
+	userIDStr := r.URL.Query().Get("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil || userID <= 0 {
+		http.Error(w, "Invalid user_id", http.StatusBadRequest)
+		return
+	}
+	n, err := db.DeleteTasksByUserID(db.Postgres, userID)
+	if err != nil {
+		http.Error(w, "Failed to delete tasks", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"deleted": n,
+	})
+}

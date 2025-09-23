@@ -1,29 +1,29 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Мои диспуты - mFrelance{% endblock %}
+{% block title %}{{ 'dispute.my_disputes'|trans }}{% endblock %}
 
 {% block body %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
-            <h2><i class="bi bi-exclamation-triangle"></i> Мои диспуты</h2>
+            <h2><i class="bi bi-exclamation-triangle"></i> {{ 'dispute.my_disputes'|trans }}</h2>
             
             {% if disputes is empty %}
                 <div class="text-center py-5">
                     <i class="bi bi-check-circle fs-1 text-success"></i>
-                    <h4 class="text-muted mt-3">У вас нет диспутов</h4>
-                    <p class="text-muted">Это хорошо! Диспуты возникают при спорах по задачам</p>
+                    <h4 class="text-muted mt-3">{{ 'dispute.none'|trans }}</h4>
+                    <p class="text-muted">{{ 'dispute.none_description'|trans }}</p>
                 </div>
             {% else %}
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Задача</th>
-                                <th>Статус</th>
-                                <th>Создан</th>
-                                <th>Действия</th>
+                                <th>{{ 'dispute.table.id'|trans }}</th>
+                                <th>{{ 'dispute.table.task'|trans }}</th>
+                                <th>{{ 'dispute.table.status'|trans }}</th>
+                                <th>{{ 'dispute.table.created'|trans }}</th>
+                                <th>{{ 'dispute.table.actions'|trans }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -33,19 +33,19 @@
                                     <td>
                                         <a href="{{ path('task_show', {'id': dispute.task_id}) }}" 
                                            class="text-decoration-none">
-                                            Задача #{{ dispute.task_id }}
+                                            {{ 'dispute.task_number'|trans({'%id%': dispute.task_id}) }}
                                         </a>
                                     </td>
                                     <td>
                                         <span class="badge bg-{{ dispute.status == 'open' ? 'warning' : 'success' }}">
-                                            {{ dispute.status }}
+                                            {{ ('dispute.status.' ~ dispute.status)|trans }}
                                         </span>
                                     </td>
                                     <td>{{ dispute.created_at|date('d.m.Y H:i') }}</td>
                                     <td>
                                         <a href="{{ path('dispute_show', {'id': dispute.id}) }}" 
                                            class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i> Просмотр
+                                            <i class="bi bi-eye"></i> {{ 'actions.view'|trans }}
                                         </a>
                                     </td>
                                 </tr>
@@ -58,3 +58,4 @@
     </div>
 </div>
 {% endblock %}
+

@@ -1,31 +1,31 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Задачи - mFrelance{% endblock %}
+{% block title %}{{ 'tasks.title'|trans }}{% endblock %}
 
 {% block body %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-8">
-            <h2><i class="bi bi-list-task"></i> Задачи</h2>
+            <h2><i class="bi bi-list-task"></i> {{ 'tasks.title'|trans }}</h2>
             
             <!-- Фильтры -->
             <div class="mb-3">
                 <div class="btn-group" role="group">
                     <a href="{{ path('tasks', {'status': 'all'}) }}" 
                        class="btn {{ currentStatus == 'all' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        Все
+                        {{ 'filters.all'|trans }}
                     </a>
                     <a href="{{ path('tasks', {'status': 'open'}) }}" 
                        class="btn {{ currentStatus == 'open' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        Открытые
+                        {{ 'filters.open'|trans }}
                     </a>
                     <a href="{{ path('tasks', {'status': 'in_progress'}) }}" 
                        class="btn {{ currentStatus == 'in_progress' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        В работе
+                        {{ 'filters.in_progress'|trans }}
                     </a>
                     <a href="{{ path('tasks', {'status': 'completed'}) }}" 
                        class="btn {{ currentStatus == 'completed' ? 'btn-primary' : 'btn-outline-primary' }}">
-                        Завершенные
+                        {{ 'filters.completed'|trans }}
                     </a>
                 </div>
             </div>
@@ -35,8 +35,8 @@
                 {% if tasks is empty %}
                     <div class="text-center py-5">
                         <i class="bi bi-inbox fs-1 text-muted"></i>
-                        <h4 class="text-muted mt-3">Нет задач</h4>
-                        <p class="text-muted">Создайте первую задачу или измените фильтр</p>
+                        <h4 class="text-muted mt-3">{{ 'no_tasks.title'|trans }}</h4>
+                        <p class="text-muted">{{ 'no_tasks.hint'|trans }}</p>
                     </div>
                 {% else %}
                     {% for task in tasks %}
@@ -47,9 +47,9 @@
                                         <h5 class="card-title">{{ task.title }}</h5>
                                         <p class="card-text">{{ task.description }}</p>
                                         <small class="text-muted">
-                                            Категория: {{ task.category }} | 
-                                            Бюджет: {{ task.budget }} {{ task.currency }} |
-                                            Статус: 
+                                            {{ 'task.category'|trans }}: {{ task.category }} | 
+                                            {{ 'task.budget'|trans }}: {{ task.budget }} {{ task.currency }} |
+                                            {{ 'task.status'|trans|default('Статус') }}: 
                                             <span class="badge bg-{{ task.status == 'open' ? 'success' : (task.status == 'in_progress' ? 'warning' : 'secondary') }}">
                                                 {{ task.status }}
                                             </span>
@@ -57,12 +57,25 @@
                                     </div>
                                     <div>
                                         <a href="{{ path('task_show', {'id': task.id}) }}" 
-                                           class="btn btn-sm btn-primary">Подробнее</a>
+                                           class="btn btn-sm btn-primary">{{ 'buttons.more'|trans }}</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     {% endfor %}
+
+                    <!-- Пагинация -->
+                    <nav aria-label="Навигация страниц">
+                        <ul class="pagination justify-content-center">
+                            {% set prevPage = page > 1 ? page - 1 : 1 %}
+                            <li class="page-item {{ page <= 1 ? 'disabled' : '' }}">
+                                <a class="page-link" href="{{ page <= 1 ? '#' : path('tasks', {'status': currentStatus, 'page': prevPage, 'perPage': perPage}) }}">{{ 'buttons.prev'|trans }}</a>
+                            </li>
+                            <li class="page-item {{ not hasNext ? 'disabled' : '' }}">
+                                <a class="page-link" href="{{ not hasNext ? '#' : path('tasks', {'status': currentStatus, 'page': page + 1, 'perPage': perPage}) }}">{{ 'buttons.next'|trans }}</a>
+                            </li>
+                        </ul>
+                    </nav>
                 {% endif %}
             </div>
         </div>
@@ -71,11 +84,11 @@
             <!-- Создание новой задачи -->
             <div class="card">
                 <div class="card-header">
-                    <h5><i class="bi bi-plus-circle"></i> Создать задачу</h5>
+                    <h5><i class="bi bi-plus-circle"></i> {{ 'task.create'|trans({'default': 'Создать задачу'}) }}</h5>
                 </div>
                 <div class="card-body">
                     <a href="{{ path('task_create') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-plus"></i> Новая задача
+                        <i class="bi bi-plus"></i> {{ 'task.create_button'|trans({'default':'Новая задача'}) }}
                     </a>
                 </div>
             </div>

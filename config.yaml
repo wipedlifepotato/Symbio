@@ -44,3 +44,7 @@ max:
   avatar_size_mb: 2
   addr_per_block: 100
 
+tasks:
+  min_interval: 1h
+  duplicate_window: 24h
+

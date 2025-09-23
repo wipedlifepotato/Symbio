@@ -60,4 +60,15 @@ input, button {
     text-decoration: underline;
 }
 
+/* flash messages */
+.alert {
+    max-width: 960px;
+    margin: 10px auto;
+}
+
+/* pagination */
+.pagination { margin-top: 12px; }
+.pagination .page-link { cursor: pointer; }
+.pagination .disabled .page-link { cursor: default; opacity: .6; }
+
 

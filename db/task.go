@@ -96,6 +96,47 @@ func GetOpenTasks(db *sqlx.DB) ([]*models.Task, error) {
 	return tasks, nil
 }
 
+func CountOpenTasks(db *sqlx.DB) (int64, error) {
+    var n int64
+    err := db.Get(&n, `SELECT COUNT(*) FROM tasks WHERE status='open'`)
+    return n, err
+}
+
+func CountTasksByClientAndStatus(db *sqlx.DB, clientID int64, status string) (int64, error) {
+    var n int64
+    err := db.Get(&n, `SELECT COUNT(*) FROM tasks WHERE client_id=$1 AND status=$2`, clientID, status)
+    return n, err
+}
+
+// Paged fetching helpers
+func GetTasksByClientIDPaged(db *sqlx.DB, clientID int64, limit, offset int) ([]*models.Task, error) {
+    var tasks []*models.Task
+    err := db.Select(&tasks, `SELECT * FROM tasks WHERE client_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`, clientID, limit, offset)
+    if err != nil {
+        return nil, err
+    }
+    return tasks, nil
+}
+
+func GetOpenTasksPaged(db *sqlx.DB, limit, offset int) ([]*models.Task, error) {
+    var tasks []*models.Task
+    err := db.Select(&tasks, `SELECT * FROM tasks WHERE status = 'open' ORDER BY created_at DESC LIMIT $1 OFFSET $2`, limit, offset)
+    if err != nil {
+        return nil, err
+    }
+    return tasks, nil
+}
+
+func GetTasksByClientIDAndStatusPaged(db *sqlx.DB, clientID int64, status string, limit, offset int) ([]*models.Task, error) {
+    var tasks []*models.Task
+    query := `SELECT * FROM tasks WHERE client_id = $1 AND status = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4`
+    err := db.Select(&tasks, query, clientID, status, limit, offset)
+    if err != nil {
+        return nil, err
+    }
+    return tasks, nil
+}
+
 func UpdateTask(db *sqlx.DB, task *models.Task) error {
 	query := `
 		UPDATE tasks
@@ -121,4 +162,13 @@ func UpdateTaskStatus(db *sqlx.DB, taskID int64, status string) error {
 func DeleteTask(db *sqlx.DB, id int64) error {
 	_, err := db.Exec(`DELETE FROM tasks WHERE id = $1`, id)
 	return err
+}
+
+func DeleteTasksByUserID(db *sqlx.DB, userID int64) (int64, error) {
+    res, err := db.Exec(`DELETE FROM tasks WHERE client_id = $1`, userID)
+    if err != nil {
+        return 0, err
+    }
+    n, _ := res.RowsAffected()
+    return n, nil
 }
