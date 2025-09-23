@@ -1,9 +1,9 @@
-# Petri
+# Symbio
 
 > **Currently in development, not for usage**  
-> Petri — something bigger than code.
+> Symbio — something bigger than code.
 
-![Petri Logo](logo.png)
+![Symbio Logo](logo.png)
 
 ---
 
@@ -51,8 +51,8 @@
     docker ps
     # Example output:
     # CONTAINER ID   IMAGE                   STATUS           PORTS                      NAMES
-    # 109364a43052   petri-electrum-server   Up 30s           127.0.0.1:7777->7777/tcp   petri-electrum-server-1
-    # d9f3142a8025   petri-php               Up 30s           0.0.0.0:8585->80/tcp       mfreelance-php
+    # 109364a43052   -electrum-server   Up 30s           127.0.0.1:7777->7777/tcp   -electrum-server-1
+    # d9f3142a8025   -php               Up 30s           0.0.0.0:8585->80/tcp       mfreelance-php
     # ...
 
     docker exec -it 109364a43052 /bin/sh
@@ -101,16 +101,16 @@
 
 ## License
 
-Petri is released under two types of licenses:
+Symbio is released under two types of licenses:
 
 ### Non-Commercial License
-Petri is free to use for **personal, educational, or research purposes only**.  
+Symbio is free to use for **personal, educational, or research purposes only**.  
 Commercial use is **not allowed** without a separate commercial license.  
 
 See [LICENSE](./LICENSE) for full details.
 
 ### Commercial License
-For **commercial use** of Petri, please contact:
+For **commercial use** of Symbio, please contact:
 
 **Email:** existentialglue@proton.me  
 

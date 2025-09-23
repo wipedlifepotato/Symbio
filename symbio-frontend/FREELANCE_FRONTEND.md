@@ -96,7 +96,7 @@
 ## Запуск
 
 ```bash
-cd /home/user/mFrelance/petri-frontendphp
+cd /home/user/mFrelance/symbio-frontendphp
 php -S localhost:8001 -t public
 ```
 
