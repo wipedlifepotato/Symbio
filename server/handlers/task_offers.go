@@ -112,7 +112,22 @@ func CreateTaskOfferHandler() http.HandlerFunc {
 	}
 }
 
-// UpdateTaskOfferHandler updates user's own offer
+// UpdateTaskOfferHandler godoc
+// @Summary Update user's own task offer
+// @Description Allows a freelancer to update their own offer (not accepted yet)
+// @Tags offers
+// @Accept json
+// @Produce json
+// @Param offer body models.TaskOffer true "Offer data"
+// @Success 200 {object} map[string]interface{} "success and updated offer"
+// @Failure 400 {object} map[string]string "Invalid JSON or accepted offer cannot be edited"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Forbidden (not owner)"
+// @Failure 404 {object} map[string]string "Offer not found"
+// @Failure 405 {object} map[string]string "Method not allowed"
+// @Failure 500 {object} map[string]string "Failed to update offer"
+// @Router /api/offers/update [put]
+// @Security BearerAuth
 func UpdateTaskOfferHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut && r.Method != http.MethodPost {
@@ -165,7 +180,21 @@ func UpdateTaskOfferHandler() http.HandlerFunc {
 	}
 }
 
-// DeleteTaskOfferHandler deletes user's own offer
+// DeleteTaskOfferHandler godoc
+// @Summary Delete user's own task offer
+// @Description Allows a freelancer (or admin) to delete their own offer if not accepted
+// @Tags offers
+// @Produce json
+// @Param id query int true "Offer ID"
+// @Success 200 {object} map[string]bool "success"
+// @Failure 400 {object} map[string]string "Invalid offer ID or accepted offer cannot be deleted"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Forbidden (not owner or admin)"
+// @Failure 404 {object} map[string]string "Offer not found"
+// @Failure 405 {object} map[string]string "Method not allowed"
+// @Failure 500 {object} map[string]string "Failed to delete offer"
+// @Router /api/offers/delete [delete]
+// @Security BearerAuth
 func DeleteTaskOfferHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete && r.Method != http.MethodPost {

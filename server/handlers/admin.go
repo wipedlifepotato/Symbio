@@ -412,7 +412,20 @@ func DeleteChatRoom(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{\"res\":\"chat room deleted\"}"))
 }
 
-// AdminDeleteUserTasksHandler deletes all tasks of a user (admin only)
+// AdminDeleteUserTasksHandler godoc
+// @Summary Delete all tasks of a specific user
+// @Description Allows an admin to delete all tasks belonging to a user by their ID
+// @Tags admin
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {object} map[string]interface{} "success and deleted count"
+// @Failure 400 {object} map[string]string "Invalid user_id"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Admin rights required"
+// @Failure 405 {object} map[string]string "Method not allowed"
+// @Failure 500 {object} map[string]string "Failed to delete tasks"
+// @Router /admin/delete-user-tasks [post]
+// @Security BearerAuth
 func AdminDeleteUserTasksHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

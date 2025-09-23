@@ -210,6 +210,23 @@ definitions:
       user_id:
         type: integer
     type: object
+  models.TaskOffer:
+    properties:
+      accepted:
+        type: boolean
+      created_at:
+        type: string
+      freelancer_id:
+        type: integer
+      id:
+        type: integer
+      message:
+        type: string
+      price:
+        type: number
+      task_id:
+        type: integer
+    type: object
   models.TicketDoc:
     properties:
       additional_users_have_access:
@@ -266,6 +283,59 @@ info:
   title: mFrelance API
   version: "1.0"
 paths:
+  /admin/delete-user-tasks:
+    post:
+      description: Allows an admin to delete all tasks belonging to a user by their
+        ID
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success and deleted count
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid user_id
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Admin rights required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "405":
+          description: Method not allowed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to delete tasks
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete all tasks of a specific user
+      tags:
+      - admin
   /admin/disputes/assign:
     post:
       consumes:
@@ -930,6 +1000,127 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a task offer
+      tags:
+      - offers
+  /api/offers/delete:
+    delete:
+      description: Allows a freelancer (or admin) to delete their own offer if not
+        accepted
+      parameters:
+      - description: Offer ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Invalid offer ID or accepted offer cannot be deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden (not owner or admin)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Offer not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "405":
+          description: Method not allowed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to delete offer
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete user's own task offer
+      tags:
+      - offers
+  /api/offers/update:
+    put:
+      consumes:
+      - application/json
+      description: Allows a freelancer to update their own offer (not accepted yet)
+      parameters:
+      - description: Offer data
+        in: body
+        name: offer
+        required: true
+        schema:
+          $ref: '#/definitions/models.TaskOffer'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success and updated offer
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid JSON or accepted offer cannot be edited
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden (not owner)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Offer not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "405":
+          description: Method not allowed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to update offer
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user's own task offer
       tags:
       - offers
   /api/tasks:
