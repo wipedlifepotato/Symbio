@@ -1,464 +1,724 @@
-````markdown
-# Lua HTTP Handlers with JWT Authentication
+# Lua API Documentation
 
-This document demonstrates how to build HTTP endpoints in Lua using `register_handler`.  
-It also shows how to protect endpoints with JWT authentication and how to use other Lua helpers provided by the Go backend.
+This document provides comprehensive documentation for the Lua API bindings exposed by the Go backend. These functions allow Lua scripts to interact with the database, wallets, authentication, and other system components.
 
 ---
 
-## Handlers Overview
+## Table of Contents
 
-Each handler is registered with the following pattern:
-
-```lua
-register_handler("/path", function(req)
-    -- your logic
-    return '{"json":"response"}'
-end)
-````
-
-* `req.method` → HTTP method (`GET`, `POST`, etc.).
-* `req.params` → request parameters (query string or form data).
-* Return value must be a JSON string.
+1. [HTTP Handlers](#1-http-handlers)
+2. [Config Globals](#2-config-globals)
+3. [BigMath](#3-bigmath)
+4. [Database Operations](#4-database-operations)
+5. [Disputes](#5-disputes)
+6. [Escrow](#6-escrow)
+7. [Reviews](#7-reviews)
+8. [JWT Authentication](#8-jwt-authentication)
+9. [Electrum (Bitcoin)](#9-electrum-bitcoin)
+10. [Monero](#10-monero)
+11. [WASM](#11-wasm)
+12. [Chat](#12-chat)
+13. [Tasks](#13-tasks)
+14. [User & Admin Helpers](#14-user--admin-helpers)
+15. [Profiles](#15-profiles)
+16. [Wallet & Balance](#16-wallet--balance)
+17. [Misc Helpers](#17-misc-helpers)
 
 ---
 
-## 1. Ping Handler
+## 1. HTTP Handlers
 
-A minimal handler that always responds with a `pong`.
+### register_handler(path, handlerFn)
 
+Registers an HTTP handler for the given path.
+
+**Parameters:**
+- `path` (string): The URL path to handle.
+- `handlerFn` (function): Lua function that takes a `req` table and returns a JSON string.
+
+**Request Table (`req`):**
+- `req.method` (string): HTTP method (GET, POST, etc.).
+- `req.params` (table): Query parameters or form data.
+
+**Example:**
 ```lua
 register_handler("/ping", function(req)
-    return '{"pong":true,"method":"'..req.method..'"}'
+    return '{"pong": true, "method": "' .. req.method .. '"}'
 end)
 ```
 
-**Example request:**
+---
 
-```
-GET /ping
-```
+## 2. Config Globals
 
-**Response:**
+The `config` table exposes backend configuration values.
 
-```json
-{"pong":true,"method":"GET"}
+**Available Fields:**
+- **Postgres:** `PostgresHost`, `PostgresPort`, `PostgresUser`, `PostgresPassword`, `PostgresDB`
+- **Redis:** `RedisHost`, `RedisPort`, `RedisPassword`
+- **Server:** `Port`, `JWTToken`, `ListenAddr`
+- **Electrum:** `ElectrumHost`, `ElectrumPort`, `ElectrumUser`, `ElectrumPassword`
+- **Monero:** `MoneroHost`, `MoneroPort`, `MoneroUser`, `MoneroPassword`, `MoneroAddress`, `MoneroCommission`
+- **Bitcoin:** `BitcoinAddress`, `BitcoinCommission`
+- **Constants:** `MaxProfiles`, `MaxAvatarSize`, `MaxAddrPerBlock`
+
+**Example:**
+```lua
+print(config.Port)  -- e.g., "8080"
 ```
 
 ---
 
-## 2. Echo Handler
+## 3. BigMath
 
-This handler reads parameters from the request and echoes them back.
+Provides arbitrary-precision arithmetic using Go's `math/big` package.
 
+### BigMath.New(val)
+
+Creates a new big.Float from a string value.
+
+**Parameters:**
+- `val` (string): Numeric string.
+
+**Returns:**
+- Userdata (big.Float) or nil if invalid.
+
+**Example:**
 ```lua
-register_handler("/echo", function(req)
-    local test = req.params["test"] or "nil"
-    local foo  = req.params["foo"] or "nil"
-    return '{"method":"'..req.method..'","test":"'..test..'","foo":"'..foo..'"}'
-end)
+local num = BigMath.New("123.456")
 ```
 
-**Example request:**
+### BigMath.Add(a, b)
 
-```
-GET /echo?test=hello&foo=bar
-```
+Adds two big.Float values.
 
-**Response:**
+**Parameters:**
+- `a`, `b` (userdata): big.Float instances.
 
-```json
-{"method":"GET","test":"hello","foo":"bar"}
+**Returns:**
+- Userdata (result).
+
+### BigMath.Sub(a, b)
+
+Subtracts b from a.
+
+### BigMath.Mul(a, b)
+
+Multiplies a and b.
+
+### BigMath.Quo(a, b)
+
+Divides a by b.
+
+### BigMath.String(a)
+
+Converts big.Float to string.
+
+**Returns:**
+- String representation.
+
+**Example:**
+```lua
+local a = BigMath.New("10.5")
+local b = BigMath.New("2.0")
+local sum = BigMath.Add(a, b)
+print(BigMath.String(sum))  -- "12.5"
 ```
 
 ---
 
-## 3. Server Config Example
+## 4. Database Operations
 
-Handler that returns the configured server port from `config.Port`.
+### Redis
 
+#### get_captcha(id)
+
+Retrieves a captcha value from Redis.
+
+**Parameters:**
+- `id` (string): Captcha ID.
+
+**Returns:**
+- String value or nil if not found.
+
+#### set_captcha(id, val, exp)
+
+Sets a captcha value with expiration.
+
+**Parameters:**
+- `id` (string): Captcha ID.
+- `val` (string): Value.
+- `exp` (number): Expiration in seconds.
+
+**Returns:**
+- true or false.
+
+### Postgres
+
+#### pg_query(query, params)
+
+Executes a SQL query.
+
+**Parameters:**
+- `query` (string): SQL query.
+- `params` (table, optional): Parameters as array.
+
+**Returns:**
+- Table of rows (SELECT) or affected rows (INSERT/UPDATE/DELETE), or false, error.
+
+**Supported Queries:** SELECT, INSERT, UPDATE, DELETE.
+
+**Example:**
 ```lua
-register_handler("/test3", function(req)
-    local port = config.Port or "undefined"
-    return string.format('{"testpass": true, "server_port": "%s"}', port)
-end)
-```
-
-**Response example:**
-
-```json
-{"testpass": true, "server_port": "8080"}
-```
-
----
-
-## 4. JWT Authentication Example
-
-JWT (JSON Web Token) can be used to protect sensitive endpoints.
-
-### Generate a JWT
-
-```lua
--- Example: restoring a user and generating a JWT
-local mnemonic = "ice kite panda monkey apple cat fish ice monkey zebra zebra panda"
-local restored = restore_user("testuser", mnemonic)
-
-if restored ~= nil then
-    change_password("testuser", "12345678")
-    local token = generate_jwt(restored.id, restored.username)
-    print("JWT:", token)
-end
-```
-
-**Example generated token:**
-
-```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
----
-
-### Protected Endpoint: `/mywallet`
-
-This handler requires a valid JWT token in the `Authorization` parameter.
-
-```lua
-register_handler("/mywallet", function(req)
-    local token = req.params["Authorization"]
-    if not token then
-        return '{"error":"missing token"}'
+local rows, err = pg_query("SELECT id, name FROM users WHERE id = $1", {42})
+if rows then
+    for _, row in ipairs(rows) do
+        print(row.id, row.name)
     end
-
-    local user, err = get_user_from_jwt(token)
-    if not user then
-        return '{"error":"invalid token: '..err..'"}'
-    end
-
-    local user_id = user.user_id
-    local username = user.username
-
-    return '{"user_id":'..user_id..', "username":"'..username..'"}'
-end)
-```
-
-**Example request:**
-
-```
-GET /mywallet?Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Example response:**
-
-```json
-{"user_id":42, "username":"alice"}
-```
-
----
-
-## 5. Config Globals
-
-The `config` global exposes backend configuration values.
-
-```lua
-print(config.PostgresHost)
-print(config.RedisHost)
-print(config.Port)
-print(config.ElectrumHost)
-print(config.MoneroAddress)
-print(config.BitcoinAddress)
-```
-
-### Available fields
-
-* **Postgres**
-
-  * `config.PostgresHost`
-  * `config.PostgresPort`
-  * `config.PostgresUser`
-  * `config.PostgresPassword`
-  * `config.PostgresDB`
-* **Redis**
-
-  * `config.RedisHost`
-  * `config.RedisPort`
-  * `config.RedisPassword`
-* **Server**
-
-  * `config.Port`
-  * `config.JWTToken`
-  * `config.ListenAddr`
-* **Electrum**
-
-  * `config.ElectrumHost`
-  * `config.ElectrumPort`
-  * `config.ElectrumUser`
-  * `config.ElectrumPassword`
-* **Monero**
-
-  * `config.MoneroHost`
-  * `config.MoneroPort`
-  * `config.MoneroUser`
-  * `config.MoneroPassword`
-  * `config.MoneroAddress`
-  * `config.MoneroCommission`
-* **Bitcoin**
-
-  * `config.BitcoinAddress`
-  * `config.BitcoinCommission`
-* **Constants**
-
-  * `config.MaxProfiles`
-
----
-
-## 6. Electrum API
-
-### Create a new address
-
-```lua
-local addr, err = electrum_create_address()
-```
-
-### Block/unblock withdrawals
-
-```lua
-electrum_set_withdraw_blocked(true)
-local blocked = electrum_is_withdraw_blocked()
-```
-
-### Pay to one address
-
-```lua
-local txid, err = electrum_pay_to("bcrt1qaddress...", "0.01")
-```
-
-### Pay to many addresses
-
-```lua
-local outputs = {
-    {"addr1", "0.01"},
-    {"addr2", "0.02"}
-}
-local txid, err = electrum_pay_to_many(outputs)
-```
-
-### Get balance
-
-```lua
-local balance, err = electrum_get_balance("bcrt1qaddress...")
-```
-
-### List addresses
-
-```lua
-local addrs, err = electrum_list_addresses()
-```
-
----
-
-## 7. User & Admin Helpers
-
-### User management
-
-```lua
-local user = get_user("alice")
-block_user(user.id)
-unblock_user(user.id)
-print(is_user_blocked("alice"))
-```
-
-### Admin management
-
-```lua
-local ok = make_admin(42)
-local ok = remove_admin(42)
-local isAdm = is_admin(42)
-```
-
-### Passwords
-
-```lua
-local ok = verify_password("secret", user.password_hash)
-local changed = change_password("alice", "newpass")
-```
-
-### Restore user from mnemonic
-
-```lua
-local restored = restore_user("alice", "word1 word2 word3 ...")
-```
-
----
-
-## 8. Profiles
-
-### Get a profile
-
-```lua
-local p = get_profile(42)
-print(p.full_name, p.bio, p.rating)
-```
-
-### Upsert a profile
-
-```lua
-upsert_profile(42, "Alice Doe", "Blockchain dev", {"Go","Lua"}, "avatar.png")
-```
-
-### Get multiple profiles
-
-```lua
-local profiles = get_profiles(10, 0)
-for _, p in ipairs(profiles) do
-    print(p.full_name, p.rating)
 end
 ```
 
----
+#### create_task(tbl)
 
-## 9. Misc Helpers
+Creates a new task.
 
-* `generate_mnemonic()` → returns a new wallet mnemonic.
-* `helloGo("Alice")` → logs from Go and returns `"Hi, Alice"`.
+**Parameters:**
+- `tbl` (table): {client_id, title, description, category, budget, currency, status}
 
----
+**Returns:**
+- true or false, error.
 
-## 10. Example Flow
+#### get_task(id)
 
-1. Restore a user from mnemonic.
-2. Change the password.
-3. Generate a JWT.
-4. Access `/mywallet` with the token.
+Retrieves a task by ID.
 
-```lua
-local restored = restore_user("alice", "ice kite panda monkey ...")
-change_password("alice", "12345678")
-local token = generate_jwt(restored.id, restored.username)
+**Returns:**
+- Table with task fields or nil, error.
 
-print("JWT:", token)
-```
+#### create_chat_request(requesterID, requestedID)
 
-**Request:**
+Creates a chat request.
 
-```
-GET /mywallet?Authorization=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
+**Returns:**
+- true or false, error.
 
-**Response:**
+#### update_chat_request(requesterID, requestedID, status)
 
-```json
-{"user_id":42, "username":"alice"}
-```
+Updates chat request status.
 
-````markdown
----
+#### get_chat_messages(chatID)
 
-## 11. Wallet / Balance Helpers
+Gets messages for a chat.
 
-These functions allow Lua scripts to **read and modify user balances** in the database.  
-They support any currency (BTC, XMR, etc.) and ensure safe updates.
+**Returns:**
+- Table of messages or nil, error.
 
-### Get balance
+#### send_chat_message(chatID, senderID, message)
 
-```lua
-local bal = get_balance(user_id, "BTC")
-if bal then
-    print("User BTC balance:", bal)
-else
-    print("Failed to fetch balance")
-end
-````
+Sends a message.
 
-**Parameters**
+**Returns:**
+- true or false, error.
 
-* `user_id` → string or number, the user’s ID.
-* `currency` → string, e.g. `"BTC"` or `"XMR"`.
+#### get_chat_rooms_for_user(userID)
 
-**Returns**
+Gets chat rooms for a user.
 
-* balance as a string (decimal) if success.
-* `nil, error_message` on failure.
+**Returns:**
+- Table of rooms or nil, error.
 
 ---
 
-### Add balance
+## 5. Disputes
 
-```lua
-local ok, err = add_balance(user_id, "BTC", "0.005")
-if ok then
-    print("Balance increased")
-else
-    print("Failed to increase balance:", err)
-end
-```
+#### create_dispute(taskID, openedBy)
 
-**Parameters**
+Creates a dispute.
 
-* `user_id` → string/number, the user ID.
-* `currency` → string.
-* `amount` → string decimal, e.g. `"0.005"`.
+**Returns:**
+- Dispute ID or nil, error.
 
-**Returns**
+#### get_dispute(id)
 
-* `true` on success.
-* `nil, error_message` on failure.
+Gets dispute by ID.
 
----
+**Returns:**
+- Table with dispute fields or nil, error.
 
-### Subtract balance
+#### update_dispute_status(id, status, resolution)
 
-```lua
-local ok, err = sub_balance(user_id, "BTC", "0.002")
-if ok then
-    print("Balance decreased")
-else
-    print("Failed to subtract balance:", err)
-end
-```
+Updates dispute status.
 
-**Parameters**
+**Parameters:**
+- `resolution` (string, optional): Resolution text.
 
-* `user_id` → string/number, the user ID.
-* `currency` → string.
-* `amount` → string decimal.
-
-**Returns**
-
-* `true` on success.
-* `nil, "insufficient balance"` if user does not have enough funds.
-* `nil, error_message` on other errors.
+**Returns:**
+- true or false, error.
 
 ---
 
-### Example: Transfer between users
+## 6. Escrow
 
-```lua
-local from_id = 42
-local to_id = 43
-local amount = "0.01"
+#### create_escrow(taskID, clientID, freelancerID, amount, currency)
 
-local ok, err = sub_balance(from_id, "BTC", amount)
-if not ok then
-    print("Failed to debit sender:", err)
-else
-    add_balance(to_id, "BTC", amount)
-    print("Transfer completed")
-end
-```
+Creates an escrow.
 
-This pattern ensures **atomic checks** and safe updates via Go/DB.
+**Parameters:**
+- `amount` (string): Amount as string.
+
+**Returns:**
+- Escrow ID or nil, error.
+
+#### get_escrow_by_task(taskID)
+
+Gets escrow by task ID.
+
+**Returns:**
+- Table with escrow fields or nil, error.
+
+---
+
+## 7. Reviews
+
+#### create_review(taskID, reviewerID, reviewedID, rating, comment)
+
+Creates a review.
+
+**Parameters:**
+- `rating` (number): 1-5.
+
+**Returns:**
+- Review ID or nil, error.
+
+#### get_reviews_by_user(userID)
+
+Gets reviews for a user.
+
+**Returns:**
+- Table of reviews or nil, error.
+
+---
+
+## 8. JWT Authentication
+
+#### get_user_from_jwt(token)
+
+Parses JWT and returns user info.
+
+**Returns:**
+- Table {user_id, username} or nil, error.
+
+#### generate_jwt(userID, username)
+
+Generates a JWT token.
+
+**Returns:**
+- Token string or nil.
+
+---
+
+## 9. Electrum (Bitcoin)
+
+#### electrum_create_address()
+
+Creates a new Bitcoin address.
+
+**Returns:**
+- Address string or nil, error.
+
+#### electrum_set_withdraw_blocked(blocked)
+
+Sets withdrawal block status.
+
+**Parameters:**
+- `blocked` (boolean)
+
+#### electrum_is_withdraw_blocked()
+
+Checks if withdrawals are blocked.
+
+**Returns:**
+- boolean
+
+#### electrum_pay_to_many(outputs)
+
+Pays to multiple addresses.
+
+**Parameters:**
+- `outputs` (table): Array of {address, amount}
+
+**Returns:**
+- TxID or nil, error.
+
+#### electrum_get_balance(addr)
+
+Gets balance for an address.
+
+**Returns:**
+- Balance (number) or nil, error.
+
+#### electrum_pay_to(destination, amount)
+
+Pays to a single address.
+
+**Returns:**
+- TxID or nil, error.
+
+#### electrum_list_addresses()
+
+Lists all addresses.
+
+**Returns:**
+- Table of addresses or nil, error.
+
+---
+
+## 10. Monero
+
+#### monero_get_balance()
+
+Gets total and unlocked balance.
+
+**Returns:**
+- total (number), unlocked (number)
+
+#### monero_create_address(label)
+
+Creates a new Monero address.
+
+**Returns:**
+- Address string
+
+#### monero_transfer(dest, amount)
+
+Transfers XMR.
+
+**Parameters:**
+- `amount` (number): In XMR.
+
+**Returns:**
+- TxHash string
+
+#### monero_get_subaddress_info(account, sub)
+
+Gets subaddress info.
+
+**Returns:**
+- total (number), unlocked (number), address (string)
+
+#### monero_get_subaddress_balance(account, sub)
+
+Gets subaddress balance.
+
+**Returns:**
+- total (number), unlocked (number)
+
+---
+
+## 11. WASM
+
+#### LoadWasmModule(path)
+
+Loads a WASM module (not a global function, call directly).
+
+#### wasm_call_bytes(fnName, ...)
+
+Calls a WASM function with byte arguments.
+
+**Returns:**
+- Result string or error.
+
+#### wasm_call(fnName, input)
+
+Calls a WASM function with int input.
+
+**Returns:**
+- Result number or error.
+
+---
+
+## 12. Chat
+
+#### create_chat_room()
+
+Creates a new chat room.
+
+**Returns:**
+- Room ID or nil, error.
+
+#### add_user_to_chat(userID, chatRoomID)
+
+Adds user to chat.
+
+**Returns:**
+- true or nil, error.
+
+#### get_chat_participants(chatRoomID)
+
+Gets participants.
+
+**Returns:**
+- Table of user IDs or nil, error.
+
+#### create_chat_message(chatRoomID, senderID, msg)
+
+Creates a message.
+
+**Returns:**
+- true or nil, error.
+
+#### get_chat_messages(chatRoomID)
+
+Gets messages.
+
+**Returns:**
+- Table of messages or nil, error.
+
+#### create_chat_request(requesterID, requestedID)
+
+Creates chat request.
+
+**Returns:**
+- true or nil, error.
+
+#### accept_chat_request(requesterID, requestedID)
+
+Accepts request.
+
+**Returns:**
+- true or nil, error.
+
+#### delete_chat_request(requesterID, requestedID)
+
+Deletes request.
+
+**Returns:**
+- true or nil, error.
+
+#### delete_chat_participant(chatRoomID, userID)
+
+Removes participant.
+
+**Returns:**
+- true or nil, error.
+
+---
+
+## 13. Tasks
+
+#### count_open_tasks()
+
+Counts open tasks.
+
+**Returns:**
+- Count (number) or nil, error.
+
+#### count_tasks_by_client_and_status(clientID, status)
+
+Counts tasks by client and status.
+
+**Returns:**
+- Count or nil, error.
+
+#### get_tasks_by_client_paged(clientID, limit, offset)
+
+Gets tasks for client with pagination.
+
+**Returns:**
+- Table of tasks or nil, error.
+
+#### get_open_tasks_paged(limit, offset)
+
+Gets open tasks with pagination.
+
+**Returns:**
+- Table of tasks or nil, error.
+
+#### get_tasks_by_client_and_status_paged(clientID, status, limit, offset)
+
+Gets tasks by client and status with pagination.
+
+**Returns:**
+- Table of tasks or nil, error.
+
+---
+
+## 14. User & Admin Helpers
+
+#### get_user(username)
+
+Gets user by username.
+
+**Returns:**
+- Table {id, password_hash} or nil.
+
+#### block_user(userID)
+
+Blocks a user.
+
+**Returns:**
+- true or error string.
+
+#### unblock_user(userID)
+
+Unblocks a user.
+
+**Returns:**
+- true or error string.
+
+#### is_user_blocked(username)
+
+Checks if user is blocked.
+
+**Returns:**
+- boolean or nil.
+
+#### verify_password(password, hashed)
+
+Verifies password.
+
+**Returns:**
+- boolean
+
+#### change_password(username, newPassword)
+
+Changes password.
+
+**Returns:**
+- Table or nil, error.
+
+#### restore_user(username, mnemonic)
+
+Restores user from mnemonic.
+
+**Returns:**
+- Table {id, username} or nil.
+
+#### generate_jwt(userID, username)
+
+Generates JWT.
+
+**Returns:**
+- Token or nil.
+
+#### is_admin(userID)
+
+Checks if user is admin.
+
+**Returns:**
+- boolean or nil, error.
+
+#### make_admin(userID)
+
+Makes user admin.
+
+**Returns:**
+- true or false, error.
+
+#### remove_admin(userID)
+
+Removes admin status.
+
+**Returns:**
+- true or false, error.
+
+---
+
+## 15. Profiles
+
+#### get_profile(userID)
+
+Gets user profile.
+
+**Returns:**
+- Table {user_id, full_name, bio, skills, avatar, rating, completed_tasks} or nil, error.
+
+#### upsert_profile(userID, fullName, bio, skills, avatar)
+
+Updates or inserts profile.
+
+**Parameters:**
+- `skills` (table): Array of strings.
+
+**Returns:**
+- true or error.
+
+#### get_profiles(limit, offset)
+
+Gets multiple profiles.
+
+**Returns:**
+- Table of profiles or nil, error.
+
+---
+
+## 16. Wallet & Balance
+
+#### get_wallet(userID, currency)
+
+Gets wallet info.
+
+**Returns:**
+- Table {id, balance, address} or nil, error.
+
+#### set_balance(userID, currency, newBalance)
+
+Sets balance.
+
+**Returns:**
+- true or false, error.
+
+#### get_balance(userID, currency)
+
+Gets balance as string.
+
+**Returns:**
+- Balance string or nil, error.
+
+#### add_balance(userID, currency, amount)
+
+Adds to balance.
+
+**Parameters:**
+- `amount` (string)
+
+**Returns:**
+- true or nil, error.
+
+#### sub_balance(userID, currency, amount)
+
+Subtracts from balance.
+
+**Returns:**
+- true or nil, error (e.g., "insufficient balance")
+
+#### get_transactions(walletID, limit, offset)
+
+Gets transactions.
+
+**Returns:**
+- Table of transactions or nil, error.
+
+---
+
+## 17. Misc Helpers
+
+#### generate_mnemonic()
+
+Generates a new mnemonic.
+
+**Returns:**
+- Mnemonic string.
+
+#### helloGo(name)
+
+Test function.
+
+**Returns:**
+- "Hi, " + name
 
 ---
 
 # Summary
 
-* `register_handler` allows writing Lua HTTP endpoints.
-* `config` exposes backend settings.
-* JWT (`generate_jwt`, `get_user_from_jwt`) provides authentication.
-* Electrum methods allow Bitcoin wallet operations.
-* User/admin helpers provide account management.
-* Profile methods manage user profiles.
-* The `/mywallet` endpoint demonstrates JWT-protected API access.
-
-
-
+This Lua API provides extensive access to backend functionality, including database operations, wallet management, authentication, and more. Use these functions in your Lua scripts to build custom handlers and logic.

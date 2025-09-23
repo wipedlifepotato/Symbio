@@ -9,7 +9,21 @@ import (
 	"strconv"
 	"time"
 )
-
+// CreateReviewHandler godoc
+// @Summary Create a review
+// @Description Create a review for a completed task. Only the client or the accepted freelancer can review.
+// @Tags reviews
+// @Accept json
+// @Produce json
+// @Param review body models.Review true "Review payload"
+// @Success 200 {object} models.Review
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Forbidden"
+// @Failure 404 {object} map[string]string "Task not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Router /api/reviews [post]
 func CreateReviewHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -102,7 +116,21 @@ func CreateReviewHandler() http.HandlerFunc {
 		})
 	}
 }
-
+// CreateReviewHandler godoc
+// @Summary Create a review
+// @Description Create a review for a completed task. Only the client or the accepted freelancer can review.
+// @Tags reviews
+// @Accept json
+// @Produce json
+// @Param review body models.Review true "Review payload"
+// @Success 200 {object} models.Review
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Forbidden"
+// @Failure 404 {object} map[string]string "Task not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Security BearerAuth
+// @Router /api/reviews [post]
 func GetReviewsByUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -130,7 +158,16 @@ func GetReviewsByUserHandler() http.HandlerFunc {
 		})
 	}
 }
-
+// GetReviewsByTaskHandler godoc
+// @Summary Get reviews by task
+// @Description Returns all reviews for a specific task
+// @Tags reviews
+// @Produce json
+// @Param task_id query int true "Task ID"
+// @Success 200 {array} models.Review
+// @Failure 400 {object} map[string]string "Invalid task ID"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/reviews/by-task [get]
 func GetReviewsByTaskHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -158,7 +195,16 @@ func GetReviewsByTaskHandler() http.HandlerFunc {
 		})
 	}
 }
-
+// GetUserRatingHandler godoc
+// @Summary Get user rating
+// @Description Returns the average rating of a user
+// @Tags reviews
+// @Produce json
+// @Param user_id query int true "User ID"
+// @Success 200 {object} map[string]float64 "Rating"
+// @Failure 400 {object} map[string]string "Invalid user ID"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /api/reviews/rating [get]
 func GetUserRatingHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
