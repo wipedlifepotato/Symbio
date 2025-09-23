@@ -1,18 +1,18 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Отзывы пользователя #{{ userId }} - mFrelance{% endblock %}
+{% block title %}{{ 'reviews.about_user'|trans({'%username%': username, '%id%': userId}) }} - mFrelance{% endblock %}
 
 {% block body %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
-            <h2><i class="bi bi-star"></i> Отзывы пользователя #{{ userId }}</h2>
+            <h2><i class="bi bi-star"></i> {{ 'reviews.about_user'|trans({'%username%': username, '%id%': userId}) }}</h2>
             
             {% if reviews is empty %}
                 <div class="text-center py-5">
                     <i class="bi bi-star fs-1 text-muted"></i>
-                    <h4 class="text-muted mt-3">Нет отзывов</h4>
-                    <p class="text-muted">У этого пользователя пока нет отзывов</p>
+                    <h4 class="text-muted mt-3">{{ 'reviews.no_reviews'|trans }}</h4>
+                    <p class="text-muted">{{ 'reviews.no_reviews_description'|trans }}</p>
                 </div>
             {% else %}
                 <div class="row">

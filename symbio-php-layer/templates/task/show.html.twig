@@ -89,17 +89,17 @@
             <!-- Отзывы -->
             <div class="card mt-4">
                 <div class="card-header">
-                    <h5><i class="bi bi-star"></i> Отзывы ({{ reviews|length }})</h5>
+                    <h5><i class="bi bi-star"></i> {{ 'reviews.title'|trans({'%count%': reviews|length}) }}</h5>
                 </div>
                 <div class="card-body">
                     {% if reviews is empty %}
-                        <p class="text-muted">Нет отзывов</p>
+                        <p class="text-muted">{{ 'reviews.no_reviews_task'|trans }}</p>
                     {% else %}
                         {% for review in reviews %}
                             <div class="card mb-3">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <h6 class="card-title">Отзыв от {{ review.reviewer_name }}</h6>
+                                        <h6 class="card-title">{{ 'reviews.from'|trans({'%reviewer%': review.reviewer_name}) }}</h6>
                                         <div class="text-warning">
                                             {% for i in 1..5 %}
                                                 <i class="bi bi-star{{ i <= review.rating ? '-fill' : '' }}"></i>
@@ -135,7 +135,7 @@
 
                     {% if canReview %}
                         <a href="{{ path('review_create', {'taskId': task.id}) }}" class="btn btn-primary w-100 mb-2">
-                            <i class="bi bi-star"></i> Оставить отзыв
+                            <i class="bi bi-star"></i> {{ 'reviews.leave'|trans }}
                         </a>
                     {% endif %}
 

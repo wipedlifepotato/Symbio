@@ -64,9 +64,17 @@ class ReviewController extends AbstractController
             $reviews = $data['reviews'] ?? [];
         }
 
+        $username = 'Unknown';
+        $resp = $this->mfrelance->doRequest("profile/by_id?user_id={$userId}", $jwt, [], false);
+        if (200 === $resp['httpCode']) {
+            $data = json_decode($resp['response'], true);
+            $username = $data['username'] ?? "User {$userId}";
+        }
+
         return $this->render('review/user.html.twig', [
             'reviews' => $reviews,
             'userId' => $userId,
+            'username' => $username,
         ]);
     }
 }
