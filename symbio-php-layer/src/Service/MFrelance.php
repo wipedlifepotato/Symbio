@@ -17,19 +17,24 @@ class MFrelance
 
     public function getCaptcha(): array
     {
-        $response = $this->client->request('GET', $this->addr.'captcha', [
-            'headers' => [
-                'Accept' => 'image/png',
-            ],
-        ]);
+    	try {
+		$response = $this->client->request('GET', $this->addr.'captcha', [
+		    'headers' => [
+		        'Accept' => 'image/png',
+		    ],
+		]);
 
-        $captchaId = $response->getHeaders(false)['x-captcha-id'][0] ?? '';
-        $captchaImg = 'data:image/png;base64,'.base64_encode($response->getContent());
-
-        return [
-            'captchaID' => $captchaId,
-            'captchaImg' => $captchaImg,
-        ];
+		$captchaId = $response->getHeaders(false)['x-captcha-id'][0] ?? '';
+		
+		$captchaImg = 'data:image/png;base64,'.base64_encode($response->getContent(false));
+		
+		return [
+		    'captchaID' => $captchaId,
+		    'captchaImg' => $captchaImg,
+		];
+        } catch(Exception $e) {
+        	return [];
+        }
     }
 
     public function doRequest(string $page, ?string $jwt = null, ?array $postData = null, bool $isPost = false): array

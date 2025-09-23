@@ -47,6 +47,11 @@ type Config struct {
 
 	TaskMinInterval     time.Duration
 	TaskDuplicateWindow time.Duration
+
+	CaptchaEnabled             bool
+	CaptchaRateLimitPerMinute  int
+	CaptchaRateLimitPerHour    int
+	CaptchaFontPath		   string
 }
 
 var AppConfig Config
@@ -135,6 +140,11 @@ func Init() {
 	viper.SetDefault("tasks.min_interval", "1h")
 	viper.SetDefault("tasks.duplicate_window", "24h")
 
+	// Captcha
+	viper.SetDefault("captcha.enabled", true)
+	viper.SetDefault("captcha.rate_limit_per_minute", 10)
+	viper.SetDefault("captcha.rate_limit_per_hour", 100)
+
 	if err := viper.ReadInConfig(); err != nil {
 		log.Println("No config file found, falling back to defaults/env vars")
 	} else {
@@ -181,6 +191,11 @@ func Init() {
 
 		TaskMinInterval:     viper.GetDuration("tasks.min_interval"),
 		TaskDuplicateWindow: viper.GetDuration("tasks.duplicate_window"),
+
+		CaptchaEnabled:             viper.GetBool("captcha.enabled"),
+		CaptchaRateLimitPerMinute:  viper.GetInt("captcha.rate_limit_per_minute"),
+		CaptchaRateLimitPerHour:    viper.GetInt("captcha.rate_limit_per_hour"),
+		CaptchaFontPath:	    viper.GetString("captcha.font_path"),
 	}
 
 	log.Println("Loaded commissions:", "BTC:", AppConfig.BitcoinCommission, "XMR:", AppConfig.MoneroCommission)

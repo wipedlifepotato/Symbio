@@ -8,7 +8,7 @@ import (
 
 func RegisterConfigGlobals(L *lua.LState) {
 	cfg := L.NewTable()
-
+  
 	stringFields := map[string]string{
 		"PostgresHost":     config.AppConfig.PostgresHost,
 		"PostgresPort":     config.AppConfig.PostgresPort,
@@ -49,6 +49,12 @@ func RegisterConfigGlobals(L *lua.LState) {
 		f, _ := v.Float64()
 		L.SetField(cfg, k, lua.LNumber(f))
 	}
+  
+  // Captcha
+	L.SetField(cfg, "CaptchaEnabled", lua.LBool(config.AppConfig.CaptchaEnabled))
+	L.SetField(cfg, "CaptchaRateLimitPerMinute", lua.LNumber(config.AppConfig.CaptchaRateLimitPerMinute))
+	L.SetField(cfg, "CaptchaRateLimitPerHour", lua.LNumber(config.AppConfig.CaptchaRateLimitPerHour))
+	L.SetField(cfg, "CaptchaFontPath", lua.LString(config.AppConfig.CaptchaFontPath))
 
 	L.SetGlobal("config", cfg)
 }

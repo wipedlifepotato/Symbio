@@ -5,13 +5,23 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
+	"strings"
 	"time"
-
+	"io/ioutil"
 	"github.com/go-redis/redis/v8"
-	"github.com/steambap/captcha"
+
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/math/fixed"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/png"
+	"math/rand"
+	"strconv"
 
 	"mFrelance/auth"
+	"mFrelance/config"
 	"mFrelance/db"
 	"mFrelance/server"
 )
@@ -52,6 +62,85 @@ func GetCaptchaFromRedis(rdb *redis.Client, id string) (string, error) {
 	return val, nil
 }
 
+func getClientIP(r *http.Request) string {
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		ips := strings.Split(xff, ",")
+		return strings.TrimSpace(ips[0])
+	}
+	xri := r.Header.Get("X-Real-IP")
+	if xri != "" {
+		return xri
+	}
+	ip := r.RemoteAddr
+	if strings.Contains(ip, ":") {
+		ip, _, _ = strings.Cut(ip, ":")
+	}
+	return ip
+}
+
+func resetAllCaptchas(rdb *redis.Client) {
+	// Find all captcha keys and delete them
+	keys, _ := rdb.Keys(ctx, "captcha:*").Result()
+	if len(keys) > 0 {
+		rdb.Del(ctx, keys...)
+	}
+}
+
+func generateCaptchaText() string {
+	rand.Seed(time.Now().UnixNano())
+	return strconv.Itoa(1000 + rand.Intn(9000)) // 4-digit number
+}
+
+func generateCaptchaImage(text string) image.Image {
+	width, height := 200, 60
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.White}, image.Point{}, draw.Src)
+
+	for i := 0; i < 100; i++ {
+		x := rand.Intn(width)
+		y := rand.Intn(height)
+		img.Set(x, y, color.Black)
+	}
+
+	fontBytes, err := ioutil.ReadFile(config.AppConfig.CaptchaFontPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ttfFont, err := opentype.Parse(fontBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	face, err := opentype.NewFace(ttfFont, &opentype.FaceOptions{
+		Size:    32,          // размер шрифта (можно увеличить)
+		DPI:     72,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	d := &font.Drawer{
+		Dst:  img,
+		Src:  image.NewUniform(color.Black),
+		Face: face,
+	}
+
+	textWidth := d.MeasureString(text).Ceil()
+	x := (width - textWidth) / 2
+	y := (height + int(face.Metrics().Ascent.Ceil()) - int(face.Metrics().Descent.Ceil())) / 2
+
+	d.Dot = fixed.Point26_6{
+		X: fixed.I(x),
+		Y: fixed.I(y),
+	}
+
+	d.DrawString(text)
+
+	return img
+}
+
 // CaptchaHandler godoc
 // @Summary Get captcha image
 // @Description Returns a captcha image and X-Captcha-ID header
@@ -61,13 +150,43 @@ func GetCaptchaFromRedis(rdb *redis.Client, id string) (string, error) {
 // @Header 200 {string} X-Captcha-ID "Captcha ID"
 // @Router /captcha [get]
 func CaptchaHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
-	data, _ := captcha.New(150, 50)
-	id := strconv.Itoa(int(time.Now().UnixNano()))
-	rdb.Set(ctx, "captcha:"+id, data.Text, 5*time.Minute)
+	if !config.AppConfig.CaptchaEnabled {
+		server.WriteErrorJSON(w, "Captcha is disabled", http.StatusServiceUnavailable)
+		return
+	}
 
+	ip := getClientIP(r)
+
+	minuteKey := "captcha:count:" + ip + ":minute"
+	hourKey := "captcha:count:" + ip + ":hour"
+
+	minuteCount, _ := rdb.Incr(ctx, minuteKey).Result()
+	if minuteCount == 1 {
+		rdb.Expire(ctx, minuteKey, time.Minute)
+	}
+
+	hourCount, _ := rdb.Incr(ctx, hourKey).Result()
+	if hourCount == 1 {
+		rdb.Expire(ctx, hourKey, time.Hour)
+	}
+
+	if minuteCount > int64(config.AppConfig.CaptchaRateLimitPerMinute) || hourCount > int64(config.AppConfig.CaptchaRateLimitPerHour) {
+		// If hour limit exceeded, reset all captcha keys to prevent DoS
+		if hourCount > int64(config.AppConfig.CaptchaRateLimitPerHour) {
+			resetAllCaptchas(rdb)
+		}
+		server.WriteErrorJSON(w, "Rate limit exceeded. Please try again later.", http.StatusTooManyRequests)
+		return
+	}
+
+	text := generateCaptchaText()
+	id := strconv.Itoa(int(time.Now().UnixNano()))
+	rdb.Set(ctx, "captcha:"+id, text, 5*time.Minute)
+
+	img := generateCaptchaImage(text)
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("X-Captcha-ID", id)
-	data.WriteImage(w)
+	png.Encode(w, img)
 }
 
 // VerifyHandler godoc
@@ -96,6 +215,18 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 	}
 
 	w.Write([]byte(`{"ok":false}`))
+}
+
+// CaptchaStatusHandler godoc
+// @Summary Check captcha status
+// @Description Returns whether captcha is enabled
+// @Tags auth
+// @Produce json
+// @Success 200 {object} map[string]bool
+// @Router /captcha/status [get]
+func CaptchaStatusHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"enabled": config.AppConfig.CaptchaEnabled})
 }
 
 // RegisterHandler godoc

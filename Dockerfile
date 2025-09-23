@@ -22,6 +22,7 @@ WORKDIR /app
 COPY --from=builder /app/mFrelance .
 COPY config.yaml .
 COPY mods/ ./mods/
+COPY fonts/ ./fonts
 RUN mkdir -p ./modsWasm
 COPY modsWasm/*.wasm ./modsWasm
 RUN mkdir -p ./db/migrations
