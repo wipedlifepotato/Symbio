@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     && mv composer.phar /usr/local/bin/composer
 
 
-COPY ./symbio-frontend /var/www/html/
+COPY ./symbio-php-layer /var/www/html/
 
 
 RUN cd /var/www/html/ && COMPOSER_ALLOW_SUPERUSER=1 composer install 
