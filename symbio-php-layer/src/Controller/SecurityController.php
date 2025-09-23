@@ -68,8 +68,9 @@ class SecurityController extends AbstractController
         } catch (\Exception $e) {
             $message = $translator->trans('auth.request_error', ['%error%' => $e->getMessage()]);
         }
-
+	try {
         $captcha = $mfrelance->getCaptcha();
+        } catch(Exception $e) {}
         $captchaId = $captcha['captchaID'] ?? '';
         $captchaImage = $captcha['captchaImg'] ?? '';
         $projectName = $this->getParameter('project_name');
@@ -87,8 +88,9 @@ class SecurityController extends AbstractController
     {
         $message = '';
         $jwt = $session->get('jwt', '');
-
+	
         $captcha = $mfrelance->getCaptcha();
+        
         $captchaId = $captcha['captchaID'] ?? '';
         $captchaImage = $captcha['captchaImg'] ?? '';
 

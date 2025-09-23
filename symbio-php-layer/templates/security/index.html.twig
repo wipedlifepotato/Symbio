@@ -11,9 +11,11 @@
     <h2>{{ 'login.heading'|trans }}</h2>
     {{ 'login.username'|trans }}: <input type="text" name="username" required><br>
     {{ 'login.password'|trans }}: <input type="password" name="password" required><br>
-    <img src="{{ captchaImage }}" alt="captcha"><br>
-    <input type="hidden" name="captcha_id" value="{{ captchaId }}">
-    {{ 'login.enter_captcha'|trans }}: <input type="text" name="captcha_answer" required><br>
+    {% if captchaId is not empty %}
+	    <img src="{{ captchaImage }}" alt="captcha"><br>
+	    <input type="hidden" name="captcha_id" value="{{ captchaId }}">
+	    {{ 'login.enter_captcha'|trans }}: <input type="text" name="captcha_answer" required><br>
+    {% endif %}
     <button type="submit">{{ 'login.submit'|trans }}</button>
 
     <div class="links">

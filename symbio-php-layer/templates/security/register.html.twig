@@ -12,9 +12,11 @@
 <form method="POST">
     {{ 'register.username'|trans }}: <input type="text" name="username" required><br>
     {{ 'register.password'|trans }}: <input type="password" name="password" required><br>
-    <img src="{{ captchaImage }}" alt="captcha"><br>
-    <input type="hidden" name="captcha_id" value="{{ captchaId }}">
-    {{ 'register.enter_captcha'|trans }}: <input type="text" name="captcha_answer" required><br>
+    {% if captchaId is not empty %}
+    	<img src="{{ captchaImage }}" alt="captcha"><br>
+    	<input type="hidden" name="captcha_id" value="{{ captchaId }}">
+    	{{ 'register.enter_captcha'|trans }}: <input type="text" name="captcha_answer" required><br>
+    {% endif %}
     <button type="submit">{{ 'register.submit'|trans }}</button>
 </form>
 

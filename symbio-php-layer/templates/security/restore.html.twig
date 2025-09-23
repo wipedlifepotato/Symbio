@@ -13,9 +13,11 @@
     {{ 'restore.username'|trans }}: <input type="text" name="username" required><br>
     {{ 'restore.mnemonic'|trans }}: <input type="text" name="mnemonic"><br>
     {{ 'restore.new_password'|trans }}: <input type="password" name="new_password" required><br>
-    <img src="{{ captchaImage }}" alt="captcha"><br>
-    <input type="hidden" name="captcha_id" value="{{ captchaId }}">
-    {{ 'restore.enter_captcha'|trans }}: <input type="text" name="captcha_answer" required><br>
+    {% if captchaId is not empty %}
+	    <img src="{{ captchaImage }}" alt="captcha"><br>
+	    <input type="hidden" name="captcha_id" value="{{ captchaId }}">
+	    {{ 'restore.enter_captcha'|trans }}: <input type="text" name="captcha_answer" required><br>
+    {% endif %}
     <button type="submit">{{ 'restore.submit'|trans }}</button>
 </form>
 
