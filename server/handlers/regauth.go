@@ -275,6 +275,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
 		log.Println("[RegisterHandler] username too long")
 		return
 	}
+
 	if config.AppConfig.CaptchaEnabled {
 		storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
 		if err != nil || storedCaptcha != req.CaptchaAnswer {
@@ -284,7 +285,8 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
 		}
 		rdb.Del(ctx, "captcha:"+req.CaptchaID)
 	}
-	mnemonic := server.GenerateMnemonic()
+
+  mnemonic := server.GenerateMnemonic()
 	passwordHash := server.HashPassword(req.Password)
 
 	err := db.CreateUser(db.Postgres, req.Username, passwordHash, mnemonic)
@@ -338,6 +340,7 @@ func RestoreHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 		log.Println("[RegisterHandler] password too small")
 		return
 	}
+
 	if config.AppConfig.CaptchaEnabled {
 		storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
 		if err != nil || storedCaptcha != req.CaptchaAnswer {
