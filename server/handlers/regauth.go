@@ -277,15 +277,16 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
 	}
 
 	if config.AppConfig.CaptchaEnabled {
-	storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
-	if err != nil || storedCaptcha != req.CaptchaAnswer {
-		server.WriteErrorJSON(w, "invalid captcha", http.StatusBadRequest)
-		log.Println("[RegisterHandler] invalid captcha")
-		return
+		storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
+		if err != nil || storedCaptcha != req.CaptchaAnswer {
+			server.WriteErrorJSON(w, "invalid captcha", http.StatusBadRequest)
+			log.Println("[RegisterHandler] invalid captcha")
+			return
+		}
+		rdb.Del(ctx, "captcha:"+req.CaptchaID)
 	}
-	rdb.Del(ctx, "captcha:"+req.CaptchaID)
-	}
-	mnemonic := server.GenerateMnemonic()
+
+  mnemonic := server.GenerateMnemonic()
 	passwordHash := server.HashPassword(req.Password)
 
 	err := db.CreateUser(db.Postgres, req.Username, passwordHash, mnemonic)
@@ -341,13 +342,12 @@ func RestoreHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 	}
 
 	if config.AppConfig.CaptchaEnabled {
-	storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
-	if err != nil || storedCaptcha != req.CaptchaAnswer {
-		server.WriteErrorJSON(w, "invalid captcha", http.StatusBadRequest)
-		return
-	}
-
-	rdb.Del(ctx, "captcha:"+req.CaptchaID)
+		storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
+		if err != nil || storedCaptcha != req.CaptchaAnswer {
+			server.WriteErrorJSON(w, "invalid captcha", http.StatusBadRequest)
+			return
+		}
+		rdb.Del(ctx, "captcha:"+req.CaptchaID)
 	}
 	userID, username, err := db.RestoreUser(db.Postgres, req.Username, req.Mnemonic)
 	if err != nil || userID == 0 || username == "" {
