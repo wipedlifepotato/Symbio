@@ -450,6 +450,35 @@ paths:
       summary: Check if user is admin
       tags:
       - admin
+  /api/admin/disputes:
+    get:
+      description: Returns a paginated list of all unresolved disputes requiring admin
+        attention. Used for dispute management dashboard.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success: true, disputes: array of open dispute objects'
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            type: string
+        "403":
+          description: Admin privileges required
+          schema:
+            type: string
+        "500":
+          description: Database error retrieving disputes
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Retrieve Open Disputes
+      tags:
+      - dispute-management
   /api/admin/getRandomTicket:
     get:
       description: Set ticket to admin (random)
@@ -481,9 +510,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Makes a user admin by userID
+      description: Elevates a regular user to administrator status. Requires existing
+        admin privileges to execute.
       parameters:
-      - description: UserID payload
+      - description: User ID to promote to admin
         in: body
         name: request
         required: true
@@ -493,37 +523,38 @@ paths:
       - application/json
       responses:
         "200":
-          description: user is now admin
+          description: User successfully granted admin rights
           schema:
             type: string
         "400":
-          description: invalid request body
+          description: Invalid JSON payload or user ID
           schema:
             type: string
         "401":
-          description: unauthorized
+          description: Authentication required
           schema:
             type: string
         "403":
-          description: admin rights required
+          description: Admin privileges required for this operation
           schema:
             type: string
         "500":
-          description: internal server error
+          description: Database error during privilege update
           schema:
             type: string
       security:
       - BearerAuth: []
-      summary: Grant admin rights
+      summary: Grant Administrative Privileges
       tags:
-      - admin
+      - administration
   /api/admin/remove:
     post:
       consumes:
       - application/json
-      description: Removes admin status from a user
+      description: Removes administrator status from a user, reverting them to regular
+        user privileges.
       parameters:
-      - description: UserID payload
+      - description: User ID to demote from admin
         in: body
         name: request
         required: true
@@ -533,22 +564,30 @@ paths:
       - application/json
       responses:
         "200":
-          description: user admin removed
+          description: User admin privileges successfully revoked
           schema:
             type: string
         "400":
-          description: Bad Request
+          description: Invalid JSON payload or user ID
+          schema:
+            type: string
+        "401":
+          description: Authentication required
+          schema:
+            type: string
+        "403":
+          description: Admin privileges required for this operation
           schema:
             type: string
         "500":
-          description: Internal Server Error
+          description: Database error during privilege update
           schema:
             type: string
       security:
       - BearerAuth: []
-      summary: Revoke admin rights
+      summary: Revoke Administrative Privileges
       tags:
-      - admin
+      - administration
   /api/admin/transactions:
     post:
       consumes:
@@ -907,26 +946,6 @@ paths:
       summary: Get user disputes
       tags:
       - disputes
-  /api/disputes/open:
-    get:
-      description: Returns a list of disputes with status "open"
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: success flag and disputes list
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Failed to get disputes
-          schema:
-            type: string
-      security:
-      - BearerAuth: []
-      summary: Get all open disputes
-      tags:
-      - disputes
   /api/disputes/resolve:
     post:
       consumes:
@@ -1144,10 +1163,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a review for a completed task. Only the client or the accepted
-        freelancer can review.
+      description: Allows clients or accepted freelancers to submit a review for a
+        completed task. Each user can only review a task once.
       parameters:
-      - description: Review payload
+      - description: Review data including task ID, rating (1-5), and optional comment
         in: body
         name: review
         required: true
@@ -1157,82 +1176,53 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 'Example: {\"success\": true, \"review\": {\"id\": 123, \"task_id\":
+            456, \"reviewer_id\": 78, \"reviewed_id\": 90, \"rating\": 5, \"comment\":
+            \"Great work!\", \"created_at\": \"2023-12-01T10:00:00Z\"}}'
           schema:
-            $ref: '#/definitions/models.Review'
+            additionalProperties: true
+            type: object
         "400":
-          description: Bad request
+          description: 'Example: {\"error\": \"Task is not completed\"}'
           schema:
             additionalProperties:
               type: string
             type: object
         "401":
-          description: Unauthorized
+          description: 'Example: {\"error\": \"Unauthorized\"}'
           schema:
             additionalProperties:
               type: string
             type: object
         "403":
-          description: Forbidden
+          description: 'Example: {\"error\": \"Forbidden\"}'
           schema:
             additionalProperties:
               type: string
             type: object
         "404":
-          description: Task not found
+          description: 'Example: {\"error\": \"Task not found\"}'
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal server error
+          description: 'Example: {\"error\": \"Internal server error\"}'
           schema:
             additionalProperties:
               type: string
             type: object
       security:
       - BearerAuth: []
-      summary: Create a review
-      tags:
-      - reviews
-  /api/reviews/by-task:
-    get:
-      description: Returns all reviews for a specific task
-      parameters:
-      - description: Task ID
-        in: query
-        name: task_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.Review'
-            type: array
-        "400":
-          description: Invalid task ID
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get reviews by task
+      summary: Submit Task Review
       tags:
       - reviews
   /api/reviews/rating:
     get:
-      description: Returns the average rating of a user
+      description: Calculates and returns the average rating received by a user across
+        all their completed tasks. Used for reputation scoring.
       parameters:
-      - description: User ID
+      - description: ID of the user to get average rating for
         in: query
         name: user_id
         required: true
@@ -1241,25 +1231,98 @@ paths:
       - application/json
       responses:
         "200":
-          description: Rating
+          description: 'Example: {\"success\": true, \"rating\": 4.5}'
           schema:
-            additionalProperties:
-              format: float64
-              type: number
+            additionalProperties: true
             type: object
         "400":
-          description: Invalid user ID
+          description: 'Example: {\"error\": \"Invalid user ID\"}'
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal server error
+          description: 'Example: {\"error\": \"Database error\"}'
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Get user rating
+      security:
+      - BearerAuth: []
+      summary: Get User Average Rating
+      tags:
+      - reviews
+  /api/reviews/task:
+    get:
+      description: Retrieves all reviews submitted for a specific task. Used to display
+        feedback on task completion pages.
+      parameters:
+      - description: ID of the task to get reviews for
+        in: query
+        name: task_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Example: {\"success\": true, \"reviews\": [{\"id\": 123, \"reviewer_id\":
+            78, \"rating\": 5, \"comment\": \"Great job!\", \"created_at\": \"2023-12-01T10:00:00Z\"}]}'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Example: {\"error\": \"Invalid task ID\"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'Example: {\"error\": \"Database error\"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Reviews for Task
+      tags:
+      - reviews
+  /api/reviews/user:
+    get:
+      description: Retrieves all reviews received by a specific user (reviews about
+        them). Used to display user reputation and feedback history.
+      parameters:
+      - description: ID of the user to get reviews for
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Example: {\"success\": true, \"reviews\": [{\"id\": 123, \"task_id\":
+            456, \"reviewer_id\": 78, \"rating\": 5, \"comment\": \"Excellent work!\",
+            \"created_at\": \"2023-12-01T10:00:00Z\"}]}'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Example: {\"error\": \"Invalid user ID\"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'Example: {\"error\": \"Database error\"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Reviews for User
       tags:
       - reviews
   /api/tasks:
@@ -1726,9 +1789,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Logs in user and returns JWT token
+      description: Authenticates user credentials and returns a JWT token for API
+        access. Requires CAPTCHA verification for security.
       parameters:
-      - description: Login credentials
+      - description: User login credentials including username, password, and CAPTCHA
         in: body
         name: request
         required: true
@@ -1738,33 +1802,69 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 'Example: {\"message\": \"Authenticated successfully\", \"token\":
+            \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"}'
           schema:
             $ref: '#/definitions/handlers.AuthResponse'
-        "401":
-          description: Unauthorized
+        "400":
+          description: 'Example: {\"error\": \"invalid captcha\"}'
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Authenticate user
+        "401":
+          description: 'Example: {\"error\": \"invalid username or password\"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User Authentication
       tags:
-      - auth
+      - authentication
   /captcha:
     get:
-      description: Returns a captcha image and X-Captcha-ID header
+      description: Generates a new CAPTCHA image with 4-digit code for user verification.
+        Includes rate limiting per IP to prevent abuse.
       produces:
       - image/png
       responses:
         "200":
-          description: image/png
+          description: image/png" "CAPTCHA image in PNG format
           headers:
             X-Captcha-ID:
-              description: Captcha ID
+              description: Unique identifier for the CAPTCHA challenge
               type: string
-      summary: Get captcha image
+        "429":
+          description: Rate limit exceeded - too many CAPTCHA requests
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: CAPTCHA is disabled in server configuration
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Generate CAPTCHA Challenge
       tags:
-      - auth
+      - authentication
+  /captcha/status:
+    get:
+      description: Returns whether CAPTCHA verification is currently enabled on the
+        server. Used by frontend to conditionally show CAPTCHA fields.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Example: {\"enabled\": true}'
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+      summary: Get CAPTCHA Configuration Status
+      tags:
+      - authentication
   /chat/UpdateChatRequest:
     post:
       consumes:
@@ -2066,17 +2166,17 @@ paths:
       - Chat
   /hello:
     get:
-      description: Simple hello endpoint
+      description: Provides a simple health check response to verify API availability
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Returns a greeting message confirming API is operational
           schema:
             $ref: '#/definitions/handlers.Response'
-      summary: Health/hello
+      summary: Health Check Endpoint
       tags:
-      - auth
+      - system
   /profile:
     get:
       consumes:
@@ -2195,9 +2295,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new user with login, password and captcha
+      description: Creates a new user account with username, password, and CAPTCHA
+        verification. Generates a recovery mnemonic phrase for account restoration.
       parameters:
-      - description: User credentials
+      - description: Registration credentials including username, password, and CAPTCHA
         in: body
         name: request
         required: true
@@ -2207,25 +2308,34 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 'Example: {\"message\": \"Account created successfully. Save
+            your recovery phrase!\", \"encrypted\": \"word1 word2 word3...\"}'
           schema:
             $ref: '#/definitions/handlers.Response'
         "400":
-          description: Bad Request
+          description: 'Example: {\"error\": \"invalid captcha\"}'
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Register new user
+        "500":
+          description: 'Example: {\"error\": \"failed to create user, maybe user exists\"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register New User Account
       tags:
-      - auth
+      - authentication
   /restoreuser:
     post:
       consumes:
       - application/json
-      description: Restore account by mnemonic and set new password
+      description: Restores access to a user account using the recovery mnemonic phrase
+        and sets a new password. Requires CAPTCHA verification.
       parameters:
-      - description: Restore payload
+      - description: Account restoration data including username, mnemonic, new password,
+          and CAPTCHA
         in: body
         name: request
         required: true
@@ -2235,48 +2345,55 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Account restored successfully with new JWT token
           schema:
             $ref: '#/definitions/handlers.Response'
         "400":
-          description: Bad Request
+          description: Invalid input, CAPTCHA failure, or invalid mnemonic
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Restore user account
+        "500":
+          description: Internal server error during account restoration
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Restore User Account
       tags:
-      - auth
+      - authentication
   /verify:
     get:
-      description: Verifies provided captcha answer
+      description: Verifies the user's answer against the stored CAPTCHA challenge.
+        Consumes the CAPTCHA token upon successful verification.
       parameters:
-      - description: Captcha ID
+      - description: CAPTCHA identifier received from /captcha endpoint
         in: query
         name: id
         required: true
         type: string
-      - description: Captcha answer
+      - description: User's answer to the CAPTCHA challenge
         in: query
         name: answer
         required: true
         type: string
       responses:
         "200":
-          description: OK
+          description: 'ok: true if verification successful'
           schema:
             additionalProperties:
               type: boolean
             type: object
         "400":
-          description: Bad Request
+          description: CAPTCHA expired or invalid ID
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Verify captcha
+      summary: Validate CAPTCHA Response
       tags:
-      - auth
+      - authentication
 securityDefinitions:
   BearerAuth:
     in: header

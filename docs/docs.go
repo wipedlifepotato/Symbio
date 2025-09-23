@@ -245,6 +245,50 @@ const docTemplate = `{
                 "responses": {}
             }
         },
+        "/api/admin/disputes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a paginated list of all unresolved disputes requiring admin attention. Used for dispute management dashboard.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dispute-management"
+                ],
+                "summary": "Retrieve Open Disputes",
+                "responses": {
+                    "200": {
+                        "description": "success: true, disputes: array of open dispute objects",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Admin privileges required",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Database error retrieving disputes",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/getRandomTicket": {
             "get": {
                 "security": [
@@ -295,7 +339,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Makes a user admin by userID",
+                "description": "Elevates a regular user to administrator status. Requires existing admin privileges to execute.",
                 "consumes": [
                     "application/json"
                 ],
@@ -303,12 +347,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "administration"
                 ],
-                "summary": "Grant admin rights",
+                "summary": "Grant Administrative Privileges",
                 "parameters": [
                     {
-                        "description": "UserID payload",
+                        "description": "User ID to promote to admin",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -319,31 +363,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "user is now admin",
+                        "description": "User successfully granted admin rights",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "invalid request body",
+                        "description": "Invalid JSON payload or user ID",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "401": {
-                        "description": "unauthorized",
+                        "description": "Authentication required",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "403": {
-                        "description": "admin rights required",
+                        "description": "Admin privileges required for this operation",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "internal server error",
+                        "description": "Database error during privilege update",
                         "schema": {
                             "type": "string"
                         }
@@ -358,7 +402,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Removes admin status from a user",
+                "description": "Removes administrator status from a user, reverting them to regular user privileges.",
                 "consumes": [
                     "application/json"
                 ],
@@ -366,12 +410,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "administration"
                 ],
-                "summary": "Revoke admin rights",
+                "summary": "Revoke Administrative Privileges",
                 "parameters": [
                     {
-                        "description": "UserID payload",
+                        "description": "User ID to demote from admin",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -382,19 +426,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "user admin removed",
+                        "description": "User admin privileges successfully revoked",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid JSON payload or user ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Admin privileges required for this operation",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Database error during privilege update",
                         "schema": {
                             "type": "string"
                         }
@@ -958,38 +1014,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/disputes/open": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns a list of disputes with status \"open\"",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "disputes"
-                ],
-                "summary": "Get all open disputes",
-                "responses": {
-                    "200": {
-                        "description": "success flag and disputes list",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to get disputes",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/api/disputes/resolve": {
             "post": {
                 "security": [
@@ -1321,7 +1345,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a review for a completed task. Only the client or the accepted freelancer can review.",
+                "description": "Allows clients or accepted freelancers to submit a review for a completed task. Each user can only review a task once.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1331,10 +1355,10 @@ const docTemplate = `{
                 "tags": [
                     "reviews"
                 ],
-                "summary": "Create a review",
+                "summary": "Submit Task Review",
                 "parameters": [
                     {
-                        "description": "Review payload",
+                        "description": "Review data including task ID, rating (1-5), and optional comment",
                         "name": "review",
                         "in": "body",
                         "required": true,
@@ -1345,13 +1369,14 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Example: {\\\"success\\\": true, \\\"review\\\": {\\\"id\\\": 123, \\\"task_id\\\": 456, \\\"reviewer_id\\\": 78, \\\"reviewed_id\\\": 90, \\\"rating\\\": 5, \\\"comment\\\": \\\"Great work!\\\", \\\"created_at\\\": \\\"2023-12-01T10:00:00Z\\\"}}",
                         "schema": {
-                            "$ref": "#/definitions/models.Review"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Bad request",
+                        "description": "Example: {\\\"error\\\": \\\"Task is not completed\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1360,7 +1385,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Example: {\\\"error\\\": \\\"Unauthorized\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1369,7 +1394,7 @@ const docTemplate = `{
                         }
                     },
                     "403": {
-                        "description": "Forbidden",
+                        "description": "Example: {\\\"error\\\": \\\"Forbidden\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1378,7 +1403,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Task not found",
+                        "description": "Example: {\\\"error\\\": \\\"Task not found\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1387,57 +1412,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/reviews/by-task": {
-            "get": {
-                "description": "Returns all reviews for a specific task",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "reviews"
-                ],
-                "summary": "Get reviews by task",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Task ID",
-                        "name": "task_id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Review"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid task ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
+                        "description": "Example: {\\\"error\\\": \\\"Internal server error\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1450,18 +1425,23 @@ const docTemplate = `{
         },
         "/api/reviews/rating": {
             "get": {
-                "description": "Returns the average rating of a user",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Calculates and returns the average rating received by a user across all their completed tasks. Used for reputation scoring.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "reviews"
                 ],
-                "summary": "Get user rating",
+                "summary": "Get User Average Rating",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "User ID",
+                        "description": "ID of the user to get average rating for",
                         "name": "user_id",
                         "in": "query",
                         "required": true
@@ -1469,17 +1449,14 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Rating",
+                        "description": "Example: {\\\"success\\\": true, \\\"rating\\\": 4.5}",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "number",
-                                "format": "float64"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid user ID",
+                        "description": "Example: {\\\"error\\\": \\\"Invalid user ID\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1488,7 +1465,113 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Example: {\\\"error\\\": \\\"Database error\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reviews/task": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all reviews submitted for a specific task. Used to display feedback on task completion pages.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reviews"
+                ],
+                "summary": "Get Reviews for Task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID of the task to get reviews for",
+                        "name": "task_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Example: {\\\"success\\\": true, \\\"reviews\\\": [{\\\"id\\\": 123, \\\"reviewer_id\\\": 78, \\\"rating\\\": 5, \\\"comment\\\": \\\"Great job!\\\", \\\"created_at\\\": \\\"2023-12-01T10:00:00Z\\\"}]}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Example: {\\\"error\\\": \\\"Invalid task ID\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Example: {\\\"error\\\": \\\"Database error\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reviews/user": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all reviews received by a specific user (reviews about them). Used to display user reputation and feedback history.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reviews"
+                ],
+                "summary": "Get Reviews for User",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID of the user to get reviews for",
+                        "name": "user_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Example: {\\\"success\\\": true, \\\"reviews\\\": [{\\\"id\\\": 123, \\\"task_id\\\": 456, \\\"reviewer_id\\\": 78, \\\"rating\\\": 5, \\\"comment\\\": \\\"Excellent work!\\\", \\\"created_at\\\": \\\"2023-12-01T10:00:00Z\\\"}]}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Example: {\\\"error\\\": \\\"Invalid user ID\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Example: {\\\"error\\\": \\\"Database error\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2219,7 +2302,7 @@ const docTemplate = `{
         },
         "/auth": {
             "post": {
-                "description": "Logs in user and returns JWT token",
+                "description": "Authenticates user credentials and returns a JWT token for API access. Requires CAPTCHA verification for security.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2227,12 +2310,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "authentication"
                 ],
-                "summary": "Authenticate user",
+                "summary": "User Authentication",
                 "parameters": [
                     {
-                        "description": "Login credentials",
+                        "description": "User login credentials including username, password, and CAPTCHA",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -2243,13 +2326,22 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Example: {\\\"message\\\": \\\"Authenticated successfully\\\", \\\"token\\\": \\\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\\\"}",
                         "schema": {
                             "$ref": "#/definitions/handlers.AuthResponse"
                         }
                     },
+                    "400": {
+                        "description": "Example: {\\\"error\\\": \\\"invalid captcha\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Example: {\\\"error\\\": \\\"invalid username or password\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2262,21 +2354,62 @@ const docTemplate = `{
         },
         "/captcha": {
             "get": {
-                "description": "Returns a captcha image and X-Captcha-ID header",
+                "description": "Generates a new CAPTCHA image with 4-digit code for user verification. Includes rate limiting per IP to prevent abuse.",
                 "produces": [
                     "image/png"
                 ],
                 "tags": [
-                    "auth"
+                    "authentication"
                 ],
-                "summary": "Get captcha image",
+                "summary": "Generate CAPTCHA Challenge",
                 "responses": {
                     "200": {
-                        "description": "image/png",
+                        "description": "image/png\" \"CAPTCHA image in PNG format",
                         "headers": {
                             "X-Captcha-ID": {
                                 "type": "string",
-                                "description": "Captcha ID"
+                                "description": "Unique identifier for the CAPTCHA challenge"
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded - too many CAPTCHA requests",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "CAPTCHA is disabled in server configuration",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/captcha/status": {
+            "get": {
+                "description": "Returns whether CAPTCHA verification is currently enabled on the server. Used by frontend to conditionally show CAPTCHA fields.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Get CAPTCHA Configuration Status",
+                "responses": {
+                    "200": {
+                        "description": "Example: {\\\"enabled\\\": true}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
                             }
                         }
                     }
@@ -2737,17 +2870,17 @@ const docTemplate = `{
         },
         "/hello": {
             "get": {
-                "description": "Simple hello endpoint",
+                "description": "Provides a simple health check response to verify API availability",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "system"
                 ],
-                "summary": "Health/hello",
+                "summary": "Health Check Endpoint",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Returns a greeting message confirming API is operational",
                         "schema": {
                             "$ref": "#/definitions/handlers.Response"
                         }
@@ -2936,7 +3069,7 @@ const docTemplate = `{
         },
         "/register": {
             "post": {
-                "description": "Creates a new user with login, password and captcha",
+                "description": "Creates a new user account with username, password, and CAPTCHA verification. Generates a recovery mnemonic phrase for account restoration.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2944,12 +3077,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "authentication"
                 ],
-                "summary": "Register new user",
+                "summary": "Register New User Account",
                 "parameters": [
                     {
-                        "description": "User credentials",
+                        "description": "Registration credentials including username, password, and CAPTCHA",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -2960,13 +3093,22 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Example: {\\\"message\\\": \\\"Account created successfully. Save your recovery phrase!\\\", \\\"encrypted\\\": \\\"word1 word2 word3...\\\"}",
                         "schema": {
                             "$ref": "#/definitions/handlers.Response"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Example: {\\\"error\\\": \\\"invalid captcha\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Example: {\\\"error\\\": \\\"failed to create user, maybe user exists\\\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2979,7 +3121,7 @@ const docTemplate = `{
         },
         "/restoreuser": {
             "post": {
-                "description": "Restore account by mnemonic and set new password",
+                "description": "Restores access to a user account using the recovery mnemonic phrase and sets a new password. Requires CAPTCHA verification.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2987,12 +3129,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "authentication"
                 ],
-                "summary": "Restore user account",
+                "summary": "Restore User Account",
                 "parameters": [
                     {
-                        "description": "Restore payload",
+                        "description": "Account restoration data including username, mnemonic, new password, and CAPTCHA",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -3003,13 +3145,22 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Account restored successfully with new JWT token",
                         "schema": {
                             "$ref": "#/definitions/handlers.Response"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid input, CAPTCHA failure, or invalid mnemonic",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error during account restoration",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3022,22 +3173,22 @@ const docTemplate = `{
         },
         "/verify": {
             "get": {
-                "description": "Verifies provided captcha answer",
+                "description": "Verifies the user's answer against the stored CAPTCHA challenge. Consumes the CAPTCHA token upon successful verification.",
                 "tags": [
-                    "auth"
+                    "authentication"
                 ],
-                "summary": "Verify captcha",
+                "summary": "Validate CAPTCHA Response",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Captcha ID",
+                        "description": "CAPTCHA identifier received from /captcha endpoint",
                         "name": "id",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Captcha answer",
+                        "description": "User's answer to the CAPTCHA challenge",
                         "name": "answer",
                         "in": "query",
                         "required": true
@@ -3045,7 +3196,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "ok: true if verification successful",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3054,7 +3205,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "CAPTCHA expired or invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {

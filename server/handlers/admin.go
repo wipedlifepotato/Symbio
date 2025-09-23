@@ -33,17 +33,17 @@ func RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
 }
 
 // MakeAdminHandler godoc
-// @Summary Grant admin rights
-// @Description Makes a user admin by userID
-// @Tags admin
+// @Summary Grant Administrative Privileges
+// @Description Elevates a regular user to administrator status. Requires existing admin privileges to execute.
+// @Tags administration
 // @Accept json
 // @Produce json
-// @Param request body AdminRequest true "UserID payload"
-// @Success 200 {string} string "user is now admin"
-// @Failure 400 {string} string "invalid request body"
-// @Failure 401 {string} string "unauthorized"
-// @Failure 403 {string} string "admin rights required"
-// @Failure 500 {string} string "internal server error"
+// @Param request body AdminRequest true "User ID to promote to admin"
+// @Success 200 {string} string "Example: \"user is now admin\""
+// @Failure 400 {string} string "Example: \"invalid request body\""
+// @Failure 401 {string} string "Example: \"unauthorized\""
+// @Failure 403 {string} string "Example: \"admin rights required\""
+// @Failure 500 {string} string "Example: \"internal server error\""
 // @Security BearerAuth
 // @Router /api/admin/make [post]
 func MakeAdminHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,15 +61,17 @@ func MakeAdminHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // RemoveAdminHandler godoc
-// @Summary Revoke admin rights
-// @Description Removes admin status from a user
-// @Tags admin
+// @Summary Revoke Administrative Privileges
+// @Description Removes administrator status from a user, reverting them to regular user privileges.
+// @Tags administration
 // @Accept json
 // @Produce json
-// @Param request body AdminRequest true "UserID payload"
-// @Success 200 {string} string "user admin removed"
-// @Failure 400 {string} string
-// @Failure 500 {string} string
+// @Param request body AdminRequest true "User ID to demote from admin"
+// @Success 200 {string} string "User admin privileges successfully revoked"
+// @Failure 400 {string} string "Invalid JSON payload or user ID"
+// @Failure 401 {string} string "Authentication required"
+// @Failure 403 {string} string "Admin privileges required for this operation"
+// @Failure 500 {string} string "Database error during privilege update"
 // @Security BearerAuth
 // @Router /api/admin/remove [post]
 func RemoveAdminHandler(w http.ResponseWriter, r *http.Request) {
