@@ -1,16 +1,67 @@
-# Общие
+disputes: "Диспуты"
+exit: "Выход"
+frelancesystem: "Система фриланса"
+dispute:
+  my_disputes: "Мои диспуты"
+  none: "У вас нет диспутов"
+  none_description: "Это хорошо! Диспуты возникают при спорах по задачам"
+  task_number: "Задача #%id%"
+  status:
+    open: "Открыт"
+    closed: "Закрыт"
+    resolved: "Разрешён"
+  table:
+    id: "ID"
+    task: "Задача"
+    status: "Статус"
+    created: "Создан"
+    actions: "Действия"
+  id: "Айди диспута"
+  number: "Диспут #%id%"
+  opened_by: "Открыл пользователь #%id%"
+  created_at: "Создан %date%"
+  admin: "Админ #%id%"
+  not_assigned: "Не назначен"
+  messages:
+    none: "Пока нет сообщений"
+    placeholder: "Введите сообщение..."
+    send_button: "Отправить"
+actions:
+  back_to_list: "Назад к списку"
+  view_task: "Посмотреть задачу"
+  waiting_admin: "Диспут ожидает рассмотрения администратором"
+  resolved: "Диспут разрешен"
+  view: "Просмотр"
+task:
+  currency: "Валюта"
+  categories:
+    web_development: "Веб-разработка"
+    mobile_development: "Мобильная разработка"
+    design: "Дизайн"
+    writing: "Копирайтинг"
+    translation: "Переводы"
+    marketing: "Маркетинг"
+    other: "Другое"
+  id: "ID задачи"
+  name: "Название задачи"
+  about: "Описание"
+  category: "Категория"
+  budget: "Бюджет"
+  deadline: "Срок выполнения"
+  create: "Создать новую задачу"
+  create_button: "Создать задачу"
+
 project_name: "Название проекта"
 bad_captcha: "плохая капча, попробуйте ещё"
 invalidusernameopassword: "Не правильный логин или пароль"
 passwordtoosmall: "Пароль маленький"
 notFoundUser: "Не найден юзер или мнемоника не корректна"
-# Авторизация
+
 auth.jwt_missing: "JWT отсутствует. Пожалуйста, войдите в систему."
 auth.error_jwt: "Ошибка: JWT не получен"
 auth.login_error: "Ошибка авторизации: %error%"
 auth.request_error: "Ошибка запроса: %error%"
 
-# Восстановление аккаунта
 restore.captcha: "Капча"
 restore.username: "Имя пользователя"
 restore.mnemonic: "Мнемоника"
@@ -19,7 +70,6 @@ restore.restore_button: "Восстановить аккаунт"
 restore.success: "Аккаунт успешно восстановлен"
 restore.error: "Ошибка восстановления: %error%"
 
-# Регистрация
 register.username: "Имя пользователя"
 register.password: "Пароль"
 register.captcha_answer: "Ответ капчи"
@@ -27,11 +77,9 @@ register.register_button: "Зарегистрироваться"
 register.success: "Регистрация успешна"
 register.error: "Ошибка регистрации: %error%"
 
-# Captcha
 captcha.answer_label: "Ответ на капчу"
 captcha.refresh: "Обновить капчу"
 
-# Формы
 form.submit: "Отправить"
 form.cancel: "Отмена"
 
@@ -47,6 +95,10 @@ dashboard:
   send_amount: "Сумма"
   send_button: "Отправить"
   send_result: "Результат отправки"
+  admin_dispute_control: "Управление диспутами"
+  all_tasks: "Все задачи"
+  search_work: "Поиск работы"
+  create_task: "Создать задачу"
   link:
     profiles: "Профили"
     profile: "Профиль"
@@ -183,4 +235,6 @@ flash.task_delete_error: "Ошибка удаления задачи"
 flash.admin_user_tasks_deleted: "Все задачи пользователя удалены"
 flash.admin_user_tasks_delete_error: "Ошибка удаления задач пользователя"
 
+task.create: "Создать новую задачу"
+task.create_button: "Создать задачу"
 

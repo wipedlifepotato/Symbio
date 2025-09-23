@@ -12,6 +12,19 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class SecurityController extends AbstractController
 {
+    #[Route('/exit', name: 'app_exit', methods: ['GET'])]
+    public function Exit(Request $request, MFrelance $mfrelance, SessionInterface $session, TranslatorInterface $translator): Response
+    {
+        if (!$session->has('jwt')) {
+            return $this->redirectToRoute('app_login');
+        }
+        $jwt = $session->get('jwt', '');
+        if ($jwt)
+        {
+            $session->clear();
+        }
+        return new Response('OK', 200);
+    }
     #[Route('/auth', name: 'app_auth', methods: ['POST'])]
     public function auth(Request $request, MFrelance $mfrelance, SessionInterface $session, TranslatorInterface $translator): Response
     {

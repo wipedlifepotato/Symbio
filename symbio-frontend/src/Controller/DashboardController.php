@@ -120,7 +120,6 @@ class DashboardController extends AbstractController
                 $message = 'Ошибка запроса: '.$e->getMessage();
             }
 
-            // Обработка POST-запроса для создания чата
             if ($request->isMethod('POST') && $request->request->has('create_chat_request')) {
                 $requestedID = (int) $request->request->get('requested_id', 0);
                 try {
