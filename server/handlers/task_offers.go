@@ -1,14 +1,14 @@
 package handlers
 
 import (
-	"encoding/json"
-	"mFrelance/db"
-	"mFrelance/models"
-	"mFrelance/server"
-	"math/big"
-	"net/http"
-	"strconv"
-	"time"
+    "encoding/json"
+    "mFrelance/db"
+    "mFrelance/models"
+    "mFrelance/server"
+    "net/http"
+    "math/big"
+    "strconv"
+    "time"
 )
 
 type CreateTaskOfferRequest struct {
@@ -55,7 +55,16 @@ func CreateTaskOfferHandler() http.HandlerFunc {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		userID := claims.UserID
+        userID := claims.UserID
+
+        // Blocked users cannot create offers
+        if blocked, err := db.IsUserBlocked(db.Postgres, userID); err != nil {
+            http.Error(w, "Failed to check user status", http.StatusInternalServerError)
+            return
+        } else if blocked {
+            http.Error(w, "User is blocked", http.StatusForbidden)
+            return
+        }
 
 		task, err := db.GetTask(db.Postgres, offer.TaskID)
 		if err != nil {
@@ -68,10 +77,23 @@ func CreateTaskOfferHandler() http.HandlerFunc {
 			return
 		}
 
-		if task.ClientID == userID {
+        if task.ClientID == userID {
 			http.Error(w, "Cannot make offer on your own task", http.StatusBadRequest)
 			return
 		}
+
+        // Limit: only one offer per user per task
+        existingOffers, err := db.GetTaskOffersByTaskID(db.Postgres, offer.TaskID)
+        if err != nil {
+            http.Error(w, "Failed to check existing offers", http.StatusInternalServerError)
+            return
+        }
+        for _, of := range existingOffers {
+            if of.FreelancerID == userID {
+                http.Error(w, "You have already made an offer for this task", http.StatusBadRequest)
+                return
+            }
+        }
 
 		offer.FreelancerID = userID
 		offer.Accepted = false
@@ -86,6 +108,139 @@ func CreateTaskOfferHandler() http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
 			"offer":   offer,
+		})
+	}
+}
+
+// UpdateTaskOfferHandler godoc
+// @Summary Update user's own task offer
+// @Description Allows a freelancer to update their own offer (not accepted yet)
+// @Tags offers
+// @Accept json
+// @Produce json
+// @Param offer body models.TaskOffer true "Offer data"
+// @Success 200 {object} map[string]interface{} "success and updated offer"
+// @Failure 400 {object} map[string]string "Invalid JSON or accepted offer cannot be edited"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Forbidden (not owner)"
+// @Failure 404 {object} map[string]string "Offer not found"
+// @Failure 405 {object} map[string]string "Method not allowed"
+// @Failure 500 {object} map[string]string "Failed to update offer"
+// @Router /api/offers/update [put]
+// @Security BearerAuth
+func UpdateTaskOfferHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut && r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var offer models.TaskOffer
+		if err := json.NewDecoder(r.Body).Decode(&offer); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		claims := server.GetUserFromContext(r)
+		if claims == nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Fetch existing to verify ownership and status
+		existing, err := db.GetTaskOffer(db.Postgres, offer.ID)
+		if err != nil {
+			http.Error(w, "Offer not found", http.StatusNotFound)
+			return
+		}
+		if existing.FreelancerID != claims.UserID {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		if existing.Accepted {
+			http.Error(w, "Accepted offer cannot be edited", http.StatusBadRequest)
+			return
+		}
+
+		// Keep immutable fields
+		offer.TaskID = existing.TaskID
+		offer.FreelancerID = existing.FreelancerID
+		offer.Accepted = false
+
+		if err := db.UpdateTaskOffer(db.Postgres, &offer); err != nil {
+			http.Error(w, "Failed to update offer", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"offer":   offer,
+		})
+	}
+}
+
+// DeleteTaskOfferHandler godoc
+// @Summary Delete user's own task offer
+// @Description Allows a freelancer (or admin) to delete their own offer if not accepted
+// @Tags offers
+// @Produce json
+// @Param id query int true "Offer ID"
+// @Success 200 {object} map[string]bool "success"
+// @Failure 400 {object} map[string]string "Invalid offer ID or accepted offer cannot be deleted"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Forbidden (not owner or admin)"
+// @Failure 404 {object} map[string]string "Offer not found"
+// @Failure 405 {object} map[string]string "Method not allowed"
+// @Failure 500 {object} map[string]string "Failed to delete offer"
+// @Router /api/offers/delete [delete]
+// @Security BearerAuth
+func DeleteTaskOfferHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		offerIDStr := r.URL.Query().Get("id")
+		offerID, err := strconv.ParseInt(offerIDStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid offer ID", http.StatusBadRequest)
+			return
+		}
+
+		claims := server.GetUserFromContext(r)
+		if claims == nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		existing, err := db.GetTaskOffer(db.Postgres, offerID)
+		if err != nil {
+			http.Error(w, "Offer not found", http.StatusNotFound)
+			return
+		}
+		// Owner or admin can delete
+		if existing.FreelancerID != claims.UserID {
+			isAdmin, err := db.IsAdmin(db.Postgres, claims.UserID)
+			if err != nil || !isAdmin {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
+		}
+		if existing.Accepted {
+			http.Error(w, "Accepted offer cannot be deleted", http.StatusBadRequest)
+			return
+		}
+
+		if err := db.DeleteTaskOffer(db.Postgres, offerID); err != nil {
+			http.Error(w, "Failed to delete offer", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
 		})
 	}
 }

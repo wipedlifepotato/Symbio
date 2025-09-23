@@ -14,3 +14,4 @@ type EscrowBalance struct {
 	Status       string    `db:"status" json:"status"`
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 }
+

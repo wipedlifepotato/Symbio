@@ -1,118 +1,61 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Диспут #{{ dispute.id }} - mFrelance{% endblock %}
+{% block title %}{{ 'dispute.my_disputes'|trans }} - mFrelance{% endblock %}
 
 {% block body %}
 <div class="container mt-4">
     <div class="row">
-        <div class="col-md-8">
-            <!-- Информация о диспуте -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h4><i class="bi bi-exclamation-triangle"></i> Диспут #{{ dispute.id }}</h4>
-                    <span class="badge bg-{{ dispute.status == 'open' ? 'warning' : 'success' }}">
-                        {{ dispute.status }}
-                    </span>
+        <div class="col-12">
+            <h2><i class="bi bi-exclamation-triangle"></i> {{ 'dispute.my_disputes'|trans }}</h2>
+            
+            {% if disputes is empty %}
+                <div class="text-center py-5">
+                    <i class="bi bi-check-circle fs-1 text-success"></i>
+                    <h4 class="text-muted mt-3">{{ 'dispute.none'|trans }}</h4>
+                    <p class="text-muted">{{ 'dispute.none_description'|trans }}</p>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Задача:</strong> 
-                            <a href="{{ path('task_show', {'id': dispute.task_id}) }}">
-                                #{{ dispute.task_id }}
-                            </a><br>
-                            <strong>Открыл:</strong> Пользователь #{{ dispute.opened_by }}<br>
-                            <strong>Статус:</strong> {{ dispute.status }}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Создан:</strong> {{ dispute.created_at|date('d.m.Y H:i') }}<br>
-                            {% if dispute.assigned_admin %}
-                                <strong>Админ:</strong> #{{ dispute.assigned_admin }}
-                            {% else %}
-                                <strong>Админ:</strong> <span class="text-muted">Не назначен</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Сообщения диспута -->
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="bi bi-chat"></i> Сообщения диспута</h5>
-                </div>
-                <div class="card-body">
-                    <div class="messages-container" style="max-height: 400px; overflow-y: auto;">
-                        {% if messages is empty %}
-                            <p class="text-muted">Пока нет сообщений</p>
-                        {% else %}
-                            {% for message in messages %}
-                                <div class="card mb-2">
-                                    <div class="card-body">
-                                        <p class="card-text">{{ message.message }}</p>
-                                        <small class="text-muted">
-                                            От: Пользователь #{{ message.sender_id }} | 
-                                            {{ message.created_at|date('d.m.Y H:i') }}
-                                        </small>
-                                    </div>
-                                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>{{ 'dispute.table.id'|trans }}</th>
+                                <th>{{ 'dispute.table.task'|trans }}</th>
+                                <th>{{ 'dispute.table.status'|trans }}</th>
+                                <th>{{ 'dispute.table.created'|trans }}</th>
+                                <th>{{ 'dispute.table.actions'|trans }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dispute in disputes %}
+                                <tr>
+                                    <td>{{ dispute.id }}</td>
+                                    <td>
+                                        <a href="{{ path('task_show', {'id': dispute.task_id}) }}" 
+                                           class="text-decoration-none">
+                                            {{ 'dispute.task_number'|trans({'%id%': dispute.task_id}) }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ dispute.status == 'open' ? 'warning' : 'success' }}">
+                                            {{ ('dispute.status.' ~ dispute.status)|trans }}
+                                        </span>
+                                    </td>
+                                    <td>{{ dispute.created_at|date('d.m.Y H:i') }}</td>
+                                    <td>
+                                        <a href="{{ path('dispute_show', {'id': dispute.id}) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> {{ 'actions.view'|trans }}
+                                        </a>
+                                    </td>
+                                </tr>
                             {% endfor %}
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Форма отправки сообщения -->
-                    <form method="POST" class="mt-3">
-                        <div class="input-group">
-                            <input type="text" class="form-control" name="message" 
-                                   placeholder="Введите сообщение..." required>
-                            <button class="btn btn-primary" type="submit">
-                                <i class="bi bi-send"></i> Отправить
-                            </button>
-                        </div>
-                    </form>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <!-- Информация о задаче -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5><i class="bi bi-info-circle"></i> Информация о задаче</h5>
-                </div>
-                <div class="card-body">
-                    <p><strong>ID задачи:</strong> {{ dispute.task_id }}</p>
-                    <a href="{{ path('task_show', {'id': dispute.task_id}) }}" 
-                       class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-eye"></i> Посмотреть задачу
-                    </a>
-                </div>
-            </div>
-
-            <!-- Действия -->
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="bi bi-gear"></i> Действия</h5>
-                </div>
-                <div class="card-body">
-                    <a href="{{ path('disputes') }}" class="btn btn-secondary w-100 mb-2">
-                        <i class="bi bi-arrow-left"></i> Назад к списку
-                    </a>
-                    
-                    {% if dispute.status == 'open' %}
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i>
-                            Диспут ожидает рассмотрения администратором
-                        </div>
-                    {% else %}
-                        <div class="alert alert-success">
-                            <i class="bi bi-check-circle"></i>
-                            Диспут разрешен
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 {% endblock %}
+

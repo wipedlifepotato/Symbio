@@ -216,3 +216,4 @@ GET /api/admin/disputes/details?id=789
 ## Валюты
 - `BTC` - Bitcoin
 - `XMR` - Monero
+

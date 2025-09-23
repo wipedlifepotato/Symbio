@@ -21,3 +21,4 @@ type ReviewResponse struct {
 	Response  string    `db:"response" json:"response"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }
+

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}mFrelance{% endblock %}</title>
+    <title>{% block title %}{{'project_name'|trans}}{% endblock %}</title>
     <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('css/bootstrap-icons.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
@@ -11,26 +11,28 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ path('app_dashboard') }}">
-                <i class="bi bi-briefcase"></i> mFrelance
+            <a class="navbar-brand" href="{{ path('app_login') }}">
+                <i class="bi bi-briefcase"></i> {{'project_name'|trans}}
             </a>
+            {% if app.session.has('jwt') %}
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="{{ path('app_dashboard') }}">
-                    <i class="bi bi-house"></i> Дашборд
+                    <i class="bi bi-house"></i> {{'dashboard.heading'|trans}}
                 </a>
                 <a class="nav-link" href="{{ path('tasks') }}">
-                    <i class="bi bi-list-task"></i> Задачи
+                    <i class="bi bi-list-task"></i> {{'tasks.title'|trans}}
                 </a>
                 <a class="nav-link" href="{{ path('disputes') }}">
-                    <i class="bi bi-exclamation-triangle"></i> Диспуты
+                    <i class="bi bi-exclamation-triangle"></i> {{'disputes'|trans}}
                 </a>
                 <a class="nav-link" href="{{ path('app_profile') }}">
-                    <i class="bi bi-person"></i> Профиль
+                    <i class="bi bi-person"></i> {{'dashboard.link.profile'|trans}}
                 </a>
-                <a class="nav-link" href="{{ path('app_login') }}">
-                    <i class="bi bi-box-arrow-right"></i> Выход
+                <a class="nav-link" href="{{ path('app_exit') }}">
+                    <i class="bi bi-box-arrow-right"></i> {{'exit'|trans}}
                 </a>
             </div>
+            {% endif %}
         </div>
     </nav>
 
@@ -53,7 +55,7 @@
     </main>
 
     <footer class="bg-dark text-light text-center py-3 mt-5">
-        <p class="mb-0">© {{ "now"|date("Y") }} mFrelance - Система фриланса на криптовалютах</p>
+        <p class="mb-0">© {{ "now"|date("Y") }} {{'project_name'|trans}}</p>
     </footer>
 
     <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>

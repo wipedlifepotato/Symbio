@@ -39,28 +39,28 @@
     <!-- Система фриланса -->
     <div class="card mb-4">
         <div class="card-header">
-            <h3><i class="bi bi-briefcase"></i> Система фриланса</h3>
+            <h3><i class="bi bi-briefcase"></i> {{'frelancesystem'|trans}}</h3>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-3 mb-2">
                     <a href="{{ path('tasks') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-list-task"></i> Все задачи
+                        <i class="bi bi-list-task"></i> {{'dashboard.all_tasks'|trans}}
                     </a>
                 </div>
                 <div class="col-md-3 mb-2">
                     <a href="{{ path('tasks', {'status': 'open'}) }}" class="btn btn-success w-100">
-                        <i class="bi bi-search"></i> Найти работу
+                        <i class="bi bi-search"></i> {{'dashboard.search_work'|trans}}
                     </a>
                 </div>
                 <div class="col-md-3 mb-2">
                     <a href="{{ path('task_create') }}" class="btn btn-info w-100">
-                        <i class="bi bi-plus-circle"></i> Создать задачу
+                        <i class="bi bi-plus-circle"></i> {{'dashboard.create_task'|trans}}
                     </a>
                 </div>
                 <div class="col-md-3 mb-2">
                     <a href="{{ path('disputes') }}" class="btn btn-warning w-100">
-                        <i class="bi bi-exclamation-triangle"></i> Диспуты
+                        <i class="bi bi-exclamation-triangle"></i> {{'disputes'|trans}}
                     </a>
                 </div>
             </div>
@@ -74,7 +74,7 @@
         {% if isAdmin %}
             <a href="{{ path('app_admin') }}">{{ 'dashboard.link.admin'|trans }}</a>
             <a href="{{ path('app_admin_tickets') }}">{{ 'dashboard.link.admin_tickets'|trans }}</a>
-            <a href="{{ path('admin_disputes') }}">Управление диспутами</a>
+            <a href="{{ path('admin_disputes') }}">{{'dashboard.admin_dispute_control'|trans}}</a>
         {% endif %}
         <a href="{{ path('app_chat') }}">{{ 'dashboard.link.chats'|trans }}</a>
         <a href="{{ path('app_login') }}">{{ 'dashboard.link.back'|trans }}</a>

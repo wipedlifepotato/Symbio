@@ -22,3 +22,4 @@ type DisputeMessage struct {
 	Message   string    `db:"message" json:"message"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }
+

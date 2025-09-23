@@ -56,3 +56,4 @@ func GetEscrowBalancesByUserID(userID int64) ([]*models.EscrowBalance, error) {
 	}
 	return balances, nil
 }
+

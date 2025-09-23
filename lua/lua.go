@@ -941,6 +941,103 @@ func RegisterHttpHandler(L *lua.LState, mux *http.ServeMux) {
 		return 0
 	}))
 }
+func RegisterLuaTasks(L *lua.LState, psql *sqlx.DB) {
+	L.SetGlobal("count_open_tasks", L.NewFunction(func(L *lua.LState) int {
+		n, err := db.CountOpenTasks(psql)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LNumber(n))
+		return 1
+	}))
+
+	L.SetGlobal("count_tasks_by_client_and_status", L.NewFunction(func(L *lua.LState) int {
+		clientID := int64(L.ToInt(1))
+		status := L.ToString(2)
+		n, err := db.CountTasksByClientAndStatus(psql, clientID, status)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LNumber(n))
+		return 1
+	}))
+
+	L.SetGlobal("get_tasks_by_client_paged", L.NewFunction(func(L *lua.LState) int {
+		clientID := int64(L.ToInt(1))
+		limit := L.ToInt(2)
+		offset := L.ToInt(3)
+		tasks, err := db.GetTasksByClientIDPaged(psql, clientID, limit, offset)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tb := L.NewTable()
+		for _, t := range tasks {
+			taskTbl := L.NewTable()
+			taskTbl.RawSetString("id", lua.LNumber(t.ID))
+			taskTbl.RawSetString("title", lua.LString(t.Title))
+			taskTbl.RawSetString("status", lua.LString(t.Status))
+			taskTbl.RawSetString("client_id", lua.LNumber(t.ClientID))
+			taskTbl.RawSetString("created_at", lua.LString(t.CreatedAt.Format(time.RFC3339)))
+			tb.Append(taskTbl)
+		}
+		L.Push(tb)
+		return 1
+	}))
+
+	L.SetGlobal("get_open_tasks_paged", L.NewFunction(func(L *lua.LState) int {
+		limit := L.ToInt(1)
+		offset := L.ToInt(2)
+		tasks, err := db.GetOpenTasksPaged(psql, limit, offset)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tb := L.NewTable()
+		for _, t := range tasks {
+			taskTbl := L.NewTable()
+			taskTbl.RawSetString("id", lua.LNumber(t.ID))
+			taskTbl.RawSetString("title", lua.LString(t.Title))
+			taskTbl.RawSetString("status", lua.LString(t.Status))
+			taskTbl.RawSetString("client_id", lua.LNumber(t.ClientID))
+			taskTbl.RawSetString("created_at", lua.LString(t.CreatedAt.Format(time.RFC3339)))
+			tb.Append(taskTbl)
+		}
+		L.Push(tb)
+		return 1
+	}))
+
+	L.SetGlobal("get_tasks_by_client_and_status_paged", L.NewFunction(func(L *lua.LState) int {
+		clientID := int64(L.ToInt(1))
+		status := L.ToString(2)
+		limit := L.ToInt(3)
+		offset := L.ToInt(4)
+		tasks, err := db.GetTasksByClientIDAndStatusPaged(psql, clientID, status, limit, offset)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tb := L.NewTable()
+		for _, t := range tasks {
+			taskTbl := L.NewTable()
+			taskTbl.RawSetString("id", lua.LNumber(t.ID))
+			taskTbl.RawSetString("title", lua.LString(t.Title))
+			taskTbl.RawSetString("status", lua.LString(t.Status))
+			taskTbl.RawSetString("client_id", lua.LNumber(t.ClientID))
+			taskTbl.RawSetString("created_at", lua.LString(t.CreatedAt.Format(time.RFC3339)))
+			tb.Append(taskTbl)
+		}
+		L.Push(tb)
+		return 1
+	}))
+}
 
 func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.Client, mClient *walletrpc.Client) {
 	//l := lua.NewState()
@@ -952,9 +1049,10 @@ func luaInit(l *lua.LState, rdb *redis.Client, psql *sqlx.DB, eClient *electrum.
 	RegisterElectrumLua(l, eClient)
 	RegisterJWTLua(l)
 	RegisterMoneroLua(l, mClient)
-RegisterLuaDisputes(l)
-RegisterLuaEscrow(l)
-RegisterLuaReviews(l)
+	RegisterLuaDisputes(l)
+	RegisterLuaEscrow(l)
+	RegisterLuaReviews(l)
+	RegisterLuaTasks(l, psql)
 	return
 }
 

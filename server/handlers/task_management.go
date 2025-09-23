@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"mFrelance/config"
 	"mFrelance/db"
 	"mFrelance/models"
 	"mFrelance/server"
@@ -70,7 +71,36 @@ func CreateTaskHandler() http.HandlerFunc {
 
 		userID := claims.UserID
 
+		// block banned users
+		if blocked, err := db.IsUserBlocked(db.Postgres, userID); err != nil {
+			log.Printf("[CreateTaskHandler] IsUserBlocked error: %v", err)
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		} else if blocked {
+			log.Printf("[CreateTaskHandler] User %d is blocked", userID)
+			http.Error(w, "User is blocked", http.StatusForbidden)
+			return
+		}
+
 		log.Printf("[CreateTaskHandler] User ID: %d", userID)
+
+		// Duplicate content protection: last N hours same title+description
+		dupWindow := config.AppConfig.TaskDuplicateWindow
+		var nDup int64
+		err := db.Postgres.Get(&nDup, `SELECT COUNT(*) FROM tasks WHERE client_id=$1 AND title=$2 AND description=$3 AND created_at > now() - $4::interval`, userID, task.Title, task.Description, dupWindow.String())
+		if err == nil && nDup > 0 {
+			http.Error(w, "Duplicate task detected", http.StatusBadRequest)
+			return
+		}
+
+		// Rate limit: min interval between tasks
+		minInt := config.AppConfig.TaskMinInterval
+		var last time.Time
+		err = db.Postgres.Get(&last, `SELECT COALESCE(max(created_at), to_timestamp(0)) FROM tasks WHERE client_id=$1`, userID)
+		if err == nil && time.Since(last) < minInt {
+			http.Error(w, "Rate limit: please wait before creating another task", http.StatusTooManyRequests)
+			return
+		}
 
 		task.ClientID = userID
 		task.Status = "open"
@@ -115,9 +145,24 @@ func GetTasksHandler() http.HandlerFunc {
 		var tasks []*models.Task
 		var err error
 
+		// Pagination
+		q := r.URL.Query()
+		limit := 20
+		offset := 0
+		if v := q.Get("limit"); v != "" {
+			if li, e := strconv.Atoi(v); e == nil && li > 0 && li <= 100 {
+				limit = li
+			}
+		}
+		if v := q.Get("offset"); v != "" {
+			if of, e := strconv.Atoi(v); e == nil && of >= 0 {
+				offset = of
+			}
+		}
+
 		if status == "open" {
-			//	log.Println("Get opet tasks")
-			tasks, err = db.GetOpenTasks(db.Postgres)
+			//  log.Println("Get open tasks")
+			tasks, err = db.GetOpenTasksPaged(db.Postgres, limit, offset)
 			if err != nil {
 				log.Printf("GetOpenTasks error: %v", err)
 			} else {
@@ -135,7 +180,11 @@ func GetTasksHandler() http.HandlerFunc {
 				return
 			}
 			userID := claims.UserID
-			tasks, err = db.GetTasksByClientID(db.Postgres, userID)
+			if status == "" || status == "all" {
+				tasks, err = db.GetTasksByClientIDPaged(db.Postgres, userID, limit, offset)
+			} else {
+				tasks, err = db.GetTasksByClientIDAndStatusPaged(db.Postgres, userID, status, limit, offset)
+			}
 		}
 
 		if err != nil {
@@ -262,7 +311,7 @@ func UpdateTaskHandler() http.HandlerFunc {
 // @Security BearerAuth
 func DeleteTaskHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
+		if r.Method != http.MethodDelete && r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
@@ -288,8 +337,16 @@ func DeleteTaskHandler() http.HandlerFunc {
 		}
 
 		if existingTask.ClientID != userID {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
+			// allow admin
+			isAdmin, err := db.IsAdmin(db.Postgres, userID)
+			if err != nil {
+				http.Error(w, "Failed to check admin", http.StatusInternalServerError)
+				return
+			}
+			if !isAdmin {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
 		}
 
 		if err := db.DeleteTask(db.Postgres, taskID); err != nil {
