@@ -275,6 +275,8 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
 		log.Println("[RegisterHandler] username too long")
 		return
 	}
+
+	if config.AppConfig.CaptchaEnabled {
 	storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
 	if err != nil || storedCaptcha != req.CaptchaAnswer {
 		server.WriteErrorJSON(w, "invalid captcha", http.StatusBadRequest)
@@ -282,11 +284,11 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
 		return
 	}
 	rdb.Del(ctx, "captcha:"+req.CaptchaID)
-
+	}
 	mnemonic := server.GenerateMnemonic()
 	passwordHash := server.HashPassword(req.Password)
 
-	err = db.CreateUser(db.Postgres, req.Username, passwordHash, mnemonic)
+	err := db.CreateUser(db.Postgres, req.Username, passwordHash, mnemonic)
 	if err != nil {
 		log.Println("[RegisterHandler] failed to create user")
 		server.WriteErrorJSON(w, "failed to create user, maybe user exists", http.StatusInternalServerError)
@@ -337,13 +339,16 @@ func RestoreHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) {
 		log.Println("[RegisterHandler] password too small")
 		return
 	}
+
+	if config.AppConfig.CaptchaEnabled {
 	storedCaptcha, err := rdb.Get(ctx, "captcha:"+req.CaptchaID).Result()
 	if err != nil || storedCaptcha != req.CaptchaAnswer {
 		server.WriteErrorJSON(w, "invalid captcha", http.StatusBadRequest)
 		return
 	}
-	rdb.Del(ctx, "captcha:"+req.CaptchaID)
 
+	rdb.Del(ctx, "captcha:"+req.CaptchaID)
+	}
 	userID, username, err := db.RestoreUser(db.Postgres, req.Username, req.Mnemonic)
 	if err != nil || userID == 0 || username == "" {
 		server.WriteErrorJSON(w, "failed to found user", http.StatusInternalServerError)
