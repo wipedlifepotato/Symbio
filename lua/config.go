@@ -46,6 +46,11 @@ func RegisterConfigGlobals(L *lua.LState) {
 	L.SetField(cfg, "MaxProfiles", lua.LNumber(config.AppConfig.MaxProfiles))
 	L.SetField(cfg, "MaxAvatarSize", lua.LNumber(config.AppConfig.MaxAvatarSize))
 	L.SetField(cfg, "MaxAddrPerBlock", lua.LNumber(config.AppConfig.MaxAddrPerBlock))
+	// Captcha
+	L.SetField(cfg, "CaptchaEnabled", lua.LBool(config.AppConfig.CaptchaEnabled))
+	L.SetField(cfg, "CaptchaRateLimitPerMinute", lua.LNumber(config.AppConfig.CaptchaRateLimitPerMinute))
+	L.SetField(cfg, "CaptchaRateLimitPerHour", lua.LNumber(config.AppConfig.CaptchaRateLimitPerHour))
+	L.SetField(cfg, "CaptchaFontPath", lua.LString(config.AppConfig.CaptchaFontPath))
 
 	L.SetGlobal("config", cfg)
 }

@@ -127,6 +127,7 @@ func main() {
 	s.Handle("/verify", func(w http.ResponseWriter, r *http.Request) {
 		serverhandlers.VerifyHandler(w, r, db.RedisClient)
 	})
+	s.Handle("/captcha/status", serverhandlers.CaptchaStatusHandler)
 	s.Handle("/restoreuser", func(w http.ResponseWriter, r *http.Request) {
 		serverhandlers.RestoreHandler(w, r, db.RedisClient)
 	})
