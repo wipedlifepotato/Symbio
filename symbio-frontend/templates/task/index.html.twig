@@ -63,6 +63,19 @@
                             </div>
                         </div>
                     {% endfor %}
+
+                    <!-- Пагинация -->
+                    <nav aria-label="Навигация страниц">
+                        <ul class="pagination justify-content-center">
+                            {% set prevPage = page > 1 ? page - 1 : 1 %}
+                            <li class="page-item {{ page <= 1 ? 'disabled' : '' }}">
+                                <a class="page-link" href="{{ page <= 1 ? '#' : path('tasks', {'status': currentStatus, 'page': prevPage, 'perPage': perPage}) }}">Предыдущая</a>
+                            </li>
+                            <li class="page-item {{ not hasNext ? 'disabled' : '' }}">
+                                <a class="page-link" href="{{ not hasNext ? '#' : path('tasks', {'status': currentStatus, 'page': page + 1, 'perPage': perPage}) }}">Следующая</a>
+                            </li>
+                        </ul>
+                    </nav>
                 {% endif %}
             </div>
         </div>

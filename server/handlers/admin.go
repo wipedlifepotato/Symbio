@@ -411,3 +411,37 @@ func DeleteChatRoom(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{\"res\":\"chat room deleted\"}"))
 }
+
+// AdminDeleteUserTasksHandler deletes all tasks of a user (admin only)
+func AdminDeleteUserTasksHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	claims := server.GetUserFromContext(r)
+	if claims == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	isAdmin, err := db.IsAdmin(db.Postgres, claims.UserID)
+	if err != nil || !isAdmin {
+		http.Error(w, "admin rights required", http.StatusForbidden)
+		return
+	}
+	userIDStr := r.URL.Query().Get("user_id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil || userID <= 0 {
+		http.Error(w, "Invalid user_id", http.StatusBadRequest)
+		return
+	}
+	n, err := db.DeleteTasksByUserID(db.Postgres, userID)
+	if err != nil {
+		http.Error(w, "Failed to delete tasks", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"deleted": n,
+	})
+}

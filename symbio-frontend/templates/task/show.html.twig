@@ -57,8 +57,7 @@
                                             </small>
                                         </div>
                                         <div>
-                                            {% if task.is_own %}
-                                            {% if task.status == 'open' and not offer.accepted %}
+                                            {% if task.is_own and task.status == 'open' and not offer.accepted %}
                                                 <form method="POST" style="display: inline;">
                                                     <input type="hidden" name="action" value="accept_offer">
                                                     <input type="hidden" name="offer_id" value="{{ offer.id }}">
@@ -67,6 +66,16 @@
                                                     </button>
                                                 </form>
                                             {% endif %}
+
+                                            {% if myOffer and myOffer.id == offer.id and not offer.accepted %}
+                                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editOfferModal">
+                                                    Изменить
+                                                </button>
+                                                <form method="POST" style="display:inline" onsubmit="return confirm('Удалить предложение?');">
+                                                    <input type="hidden" name="action" value="delete_offer">
+                                                    <input type="hidden" name="offer_id" value="{{ offer.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                                                </form>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -85,22 +94,40 @@
                     <h5><i class="bi bi-gear"></i> Действия</h5>
                 </div>
                 <div class="card-body">
-                    {% if task.status == 'in_progress' %}
-                    	{% if task.is_own %}
+                    {% if task.status == 'in_progress' and task.is_own %}
                         <button class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#completeModal">
                             <i class="bi bi-check-circle"></i> Отметить как выполненную
                         </button>
-                        {% endif %}
-                        
+                    {% endif %}
+
+                    {% if task.status == 'in_progress' %}
                         <button class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#disputeModal">
                             <i class="bi bi-exclamation-triangle"></i> Открыть диспут
                         </button>
                     {% endif %}
-                    
-                    {% if task.status == 'open' and not task.is_own %}
+
+                    {% if task.status == 'open' and not task.is_own and not myOffer %}
                         <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#offerModal">
                             <i class="bi bi-hand-thumbs-up"></i> Подать предложение
                         </button>
+                    {% endif %}
+
+                    {% if task.is_own or isAdmin %}
+                        <form method="POST" class="mt-3" onsubmit="return confirm('Удалить задачу? Это действие необратимо.');">
+                            <input type="hidden" name="action" value="delete_task">
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-trash"></i> Удалить задачу
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if isAdmin %}
+                        <form method="POST" class="mt-2" onsubmit="return confirm('Удалить ВСЕ задачи этого пользователя?');">
+                            <input type="hidden" name="action" value="admin_delete_user_tasks">
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-trash3"></i> Удалить все задачи пользователя
+                            </button>
+                        </form>
                     {% endif %}
                 </div>
             </div>
@@ -121,6 +148,7 @@
 </div>
 
 <!-- Модальное окно для создания предложения -->
+{% if not myOffer and task.status == 'open' and not task.is_own %}
 <div class="modal fade" id="offerModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -131,13 +159,10 @@
             <form method="POST">
                 <div class="modal-body">
                     <input type="hidden" name="action" value="create_offer">
-                    
                     <div class="mb-3">
                         <label for="price" class="form-label">Ваша цена</label>
-                        <input type="number" class="form-control" id="price" name="price" 
-                               step="0.00000001" min="0" required>
+                        <input type="number" class="form-control" id="price" name="price" step="0.00000001" min="0" required>
                     </div>
-                    
                     <div class="mb-3">
                         <label for="message" class="form-label">Сообщение</label>
                         <textarea class="form-control" id="message" name="message" rows="3" required></textarea>
@@ -151,8 +176,41 @@
         </div>
     </div>
 </div>
+{% endif %}
 
-<!-- Модальное окно для завершения задачи -->
+<!-- Модал редактирования моего оффера -->
+{% if myOffer %}
+<div class="modal fade" id="editOfferModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изменить предложение</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="update_offer">
+                    <input type="hidden" name="offer_id" value="{{ myOffer.id }}">
+                    <div class="mb-3">
+                        <label for="price_edit" class="form-label">Цена</label>
+                        <input type="number" class="form-control" id="price_edit" name="price" value="{{ myOffer.price }}" step="0.00000001" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message_edit" class="form-label">Сообщение</label>
+                        <textarea class="form-control" id="message_edit" name="message" rows="3" required>{{ myOffer.message }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Complete Modal -->
 <div class="modal fade" id="completeModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -174,7 +232,7 @@
     </div>
 </div>
 
-<!-- Модальное окно для создания диспута -->
+<!-- Dispute Modal -->
 <div class="modal fade" id="disputeModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">

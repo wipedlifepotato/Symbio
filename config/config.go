@@ -44,6 +44,9 @@ type Config struct {
 	WalletSyncInterval  time.Duration
 	TxBlockInterval     time.Duration
 	TxPoolFlushInterval time.Duration
+
+	TaskMinInterval     time.Duration
+	TaskDuplicateWindow time.Duration
 }
 
 var AppConfig Config
@@ -128,6 +131,10 @@ func Init() {
 	viper.SetDefault("max.avatar_size_mb", 2)
 	viper.SetDefault("max.addr_per_block", 100)
 
+	// Tasks
+	viper.SetDefault("tasks.min_interval", "1h")
+	viper.SetDefault("tasks.duplicate_window", "24h")
+
 	if err := viper.ReadInConfig(); err != nil {
 		log.Println("No config file found, falling back to defaults/env vars")
 	} else {
@@ -171,6 +178,9 @@ func Init() {
 		WalletSyncInterval:  viper.GetDuration("wallet_sync_interval"),
 		TxBlockInterval:     viper.GetDuration("tx_block_interval"),
 		TxPoolFlushInterval: viper.GetDuration("tx_pool_flush_interval"),
+
+		TaskMinInterval:     viper.GetDuration("tasks.min_interval"),
+		TaskDuplicateWindow: viper.GetDuration("tasks.duplicate_window"),
 	}
 
 	log.Println("Loaded commissions:", "BTC:", AppConfig.BitcoinCommission, "XMR:", AppConfig.MoneroCommission)

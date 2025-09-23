@@ -162,6 +162,7 @@ func main() {
 	apiMux.Handle("/admin/transactions", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminTransactionsHandler)))
 	apiMux.Handle("/admin/wallets", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminWalletsHandler)))
 	apiMux.Handle("/admin/update_balance", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminUpdateBalanceHandler)))
+	apiMux.Handle("/admin/delete_user_tasks", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminDeleteUserTasksHandler)))
 	apiMux.Handle("/admin/getRandomTicket", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminGetRandomTicketHandler)))
 	apiMux.Handle("/admin/addUserToChatRoom", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminAddUserToChatRoom)))
 	apiMux.Handle("/admin/deleteChatRoom", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.DeleteChatRoom)))
@@ -177,6 +178,8 @@ func main() {
 	apiMux.Handle("/offers/create", server.AuthMiddleware(http.HandlerFunc(serverhandlers.CreateTaskOfferHandler())))
 	apiMux.Handle("/offers", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetTaskOffersHandler())))
 	apiMux.Handle("/offers/accept", server.AuthMiddleware(http.HandlerFunc(serverhandlers.AcceptTaskOfferHandler())))
+	apiMux.Handle("/offers/update", server.AuthMiddleware(http.HandlerFunc(serverhandlers.UpdateTaskOfferHandler())))
+	apiMux.Handle("/offers/delete", server.AuthMiddleware(http.HandlerFunc(serverhandlers.DeleteTaskOfferHandler())))
 	apiMux.Handle("/tasks/complete", server.AuthMiddleware(http.HandlerFunc(serverhandlers.CompleteTaskHandler())))
 
 	// Dispute routes
