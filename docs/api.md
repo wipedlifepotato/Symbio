@@ -1,9 +1,9 @@
-# mFrelance API Documentation
+# API Documentation
 
 ## Version: 1.0
 
 ### Overview
-mFrelance is a freelance platform API that provides user registration, authentication, task management, reviews, disputes, chat functionality, and administrative controls. The API supports cryptocurrency payments (Bitcoin and Monero) and includes comprehensive security features.
+mFrelance is a freelance platform API that provides user registration, authentication, task management, reviews, disputes, chat functionality, and administrative controls. The API supports cryptocurrency payments (Bitcoin) and includes comprehensive security features.
 
 ### Base URL
 ```
