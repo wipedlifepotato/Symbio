@@ -50,14 +50,14 @@
         {% for chat in chatRooms %}
             <li>
                 <a href="{{ path('app_chat', {chat_id: chat.id}) }}">
-                    {{ 'chat.chat_id'|trans({'%id%': chat.id}) }}
+                    {{ chat.name }}
                 </a>
             </li>
         {% endfor %}
     </ul>
 
     {% if selectedChatID %}
-        <h3>{{ 'chat.messages_in'|trans({'%id%': selectedChatID}) }}</h3>
+        <h3>{{ selectedChatName ?: 'chat.messages_in'|trans({'%id%': selectedChatID}) }}</h3>
         <div class="chat-box">
             {% for msg in messages|reverse %}
             <div class="chat-message">

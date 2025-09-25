@@ -3,6 +3,7 @@
 {% block title %}{{ 'register.title'|trans }}{% endblock %}
 
 {% block body %}
+<center>
 <h2>{{ 'register.heading'|trans }}</h2>
 
 {% if message %}
@@ -25,5 +26,6 @@
 {% endif %}
 
 <p><a href="{{ path('app_login') }}">{{ 'register.back'|trans }}</a></p>
+</center>
 {% endblock %}
 

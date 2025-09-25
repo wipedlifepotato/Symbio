@@ -110,15 +110,12 @@ func ProfileHandler() http.HandlerFunc {
 // @Router /profiles [get]
 func ProfilesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		limit := 50
+		limit := 5 // Default to 5 profiles per page
 		offset := 0
 		if l := r.URL.Query().Get("limit"); l != "" {
-			if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 500 {
+			if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 10 { // Max 10 per page
 				limit = v
 			}
-		}
-		if limit > int(config.AppConfig.MaxProfiles) {
-			limit = int(config.AppConfig.MaxProfiles)
 		}
 		if o := r.URL.Query().Get("offset"); o != "" {
 			if v, err := strconv.Atoi(o); err == nil && v >= 0 {
@@ -126,47 +123,31 @@ func ProfilesHandler() http.HandlerFunc {
 			}
 		}
 
-		userIDs, err := db.GetAllUserIDs(db.Postgres)
+		profiles, err := models.GetProfilesWithLimitOffset(db.Postgres, limit, offset)
 		if err != nil {
 			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
+		total, err := models.GetProfilesCount(db.Postgres)
+		if err != nil {
+			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Filter out empty profiles (no name or bio)
 		var filteredProfiles []models.Profile
-		for _, userID := range userIDs {
-			isBlocked, err := db.IsUserBlocked(db.Postgres, userID)
-			if err != nil {
-				log.Printf("Error checking block status for user %d: %v", userID, err)
-				continue // Skip this user if there's an error
+		for _, profile := range profiles {
+			if profile.FullName != "" || profile.Bio != "" {
+				filteredProfiles = append(filteredProfiles, profile)
 			}
-			if isBlocked {
-				continue // Skip blocked users
-			}
-
-			profile, err := models.GetProfile(db.Postgres, userID)
-			if err != nil {
-				log.Printf("Error getting profile for user %d: %v", userID, err)
-				continue // Skip this user if there's an error
-			}
-			if profile == nil {
-				log.Printf("Profile not found for user %d", userID)
-				continue // Skip if profile is nil
-			}
-
-			filteredProfiles = append(filteredProfiles, *profile)
 		}
 
-		// Apply limit and offset after filtering
-		start := offset
-		end := offset + limit
-		if start > len(filteredProfiles) {
-			start = len(filteredProfiles)
-		}
-		if end > len(filteredProfiles) {
-			end = len(filteredProfiles)
-		}
-
-		json.NewEncoder(w).Encode(filteredProfiles[start:end])
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"profiles": filteredProfiles,
+			"total":    total,
+		})
 	}
 }
 

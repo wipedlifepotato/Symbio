@@ -17,6 +17,16 @@ class DisputeController extends AbstractController
         $this->mfrelance = $mfrelance;
     }
 
+    private function getUsernameById(int $userId, string $jwt): string
+    {
+        $userResponse = $this->mfrelance->doRequest("/profile/by_id?user_id={$userId}", $jwt);
+        if (200 === $userResponse['httpCode']) {
+            $userData = json_decode($userResponse['response'], true);
+            return $userData['username'] ?? 'Пользователь #' . $userId;
+        }
+        return 'Пользователь #' . $userId;
+    }
+
     #[Route('/disputes', name: 'disputes')]
     public function index(Request $request): Response
     {
@@ -59,8 +69,76 @@ class DisputeController extends AbstractController
             throw $this->createNotFoundException('Диспут не найден');
         }
 
-        // Получаем сообщения диспута
-        $messages = $data['messages'] ?? [];
+        // Получаем детали диспута (задачу, escrow и сообщения)
+        $detailsResponse = $this->mfrelance->doRequest("api/disputes/get?id={$id}", $jwt);
+       // var_dump($detailsResponse);
+       // exit(0);
+        $task = null;
+        $escrow = null;
+        $messages = [];
+        $admin = null;
+
+        if (200 === $detailsResponse['httpCode']) {
+            $detailsData = json_decode($detailsResponse['response'], true);
+            $task = $detailsData['task'] ?? null;
+            $escrow = $detailsData['escrow'] ?? null;
+            $messages = $detailsData['messages'] ?? [];
+            $admin = $detailsData['admin'] ?? null;
+
+            // Добавляем usernames для всех ID
+            if ($dispute && isset($dispute['opened_by'])) {
+                $dispute['opened_by_username'] = $this->getUsernameById($dispute['opened_by'], $jwt);
+            }
+            if ($task) {
+                if (isset($task['client_id'])) {
+                    $task['client_username'] = $this->getUsernameById($task['client_id'], $jwt);
+                }
+            }
+            if ($escrow) {
+                if (isset($escrow['client_id'])) {
+                    $escrow['client_username'] = $this->getUsernameById($escrow['client_id'], $jwt);
+                }
+                if (isset($escrow['freelancer_id'])) {
+                    $escrow['freelancer_username'] = $this->getUsernameById($escrow['freelancer_id'], $jwt);
+                }
+            }
+        }
+
+        // Добавляем usernames к сообщениям
+        foreach ($messages as &$message) {
+            if (isset($message['sender_id'])) {
+                $message['sender_username'] = $this->getUsernameById($message['sender_id'], $jwt);
+            }
+        }
+
+        // Получаем профиль пользователя
+        $userResponse = $this->mfrelance->doRequest('api/profile', $jwt);
+        $user = null;
+        $userId = null;
+        if (200 === $userResponse['httpCode']) {
+            $user = json_decode($userResponse['response'], true);
+            $userId = $user['user_id'] ?? null;
+            $user['username'] = $this->getUsernameById($user['user_id'], $jwt);
+        }
+
+        // Проверяем, является ли пользователь админом
+        $adminResponse = $this->mfrelance->doRequest('api/admin/IIsAdmin', $jwt);
+        $isAdmin = false;
+        if (200 === $adminResponse['httpCode']) {
+            $adminData = json_decode($adminResponse['response'], true);
+            $isAdmin = $adminData['is_admin'] ?? false;
+        }
+
+        // Проверяем, является ли пользователь участником диспута
+        $isDisputeParticipant = false;
+        if ($userId && $task) {
+            $isDisputeParticipant = ($task['client_id'] == $userId || (isset($escrow['freelancer_id']) && $escrow['freelancer_id'] == $userId));
+        }
+
+        if ($user) {
+            $user['is_admin'] = $isAdmin;
+            $user['is_dispute_participant'] = $isDisputeParticipant;
+        }
 
         // Обработка отправки сообщения
         if ($request->isMethod('POST')) {
@@ -85,6 +163,10 @@ class DisputeController extends AbstractController
         return $this->render('dispute/show.html.twig', [
             'dispute' => $dispute,
             'messages' => $messages,
+            'admin' => $admin,
+            'user' => $user,
+            'task' => $task,
+            'escrow' => $escrow,
         ]);
     }
 

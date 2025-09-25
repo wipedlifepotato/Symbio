@@ -46,8 +46,19 @@ func CreateChatMessage(db *sqlx.DB, message *models.ChatMessage) error {
 
 // GetChatMessages retrieves messages in a chat room
 func GetChatMessages(db *sqlx.DB, chatRoomID int64) ([]models.ChatMessage, error) {
+	return GetChatMessagesPaged(db, chatRoomID, 0, 0)
+}
+
+// GetChatMessagesPaged retrieves messages in a chat room with pagination
+func GetChatMessagesPaged(db *sqlx.DB, chatRoomID int64, limit, offset int) ([]models.ChatMessage, error) {
 	var messages []models.ChatMessage
-	err := db.Select(&messages, `SELECT * FROM chat_messages WHERE chat_room_id = $1 ORDER BY created_at`, chatRoomID)
+	query := `SELECT * FROM chat_messages WHERE chat_room_id = $1 ORDER BY created_at ASC`
+	if limit > 0 {
+		query += ` LIMIT $2 OFFSET $3`
+		err := db.Select(&messages, query, chatRoomID, limit, offset)
+		return messages, err
+	}
+	err := db.Select(&messages, query, chatRoomID)
 	return messages, err
 }
 

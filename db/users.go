@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
+	"mFrelance/models"
 )
 
 func BlockUser(db *sqlx.DB, userID int64) error {
@@ -233,4 +234,25 @@ func RemoveAdmin(db *sqlx.DB, userID int64) error {
 		return errors.New("user not found")
 	}
 	return nil
+}
+
+func GetUserByID(id int64) (*models.User, error) {
+	var user models.User
+	err := Postgres.Get(&user, "SELECT * FROM users WHERE id=$1", id)
+	return &user, err
+}
+
+func AddPermission(db *sqlx.DB, userID int64, perm int) error {
+	_, err := db.Exec("UPDATE users SET permissions = permissions | $1 WHERE id = $2", perm, userID)
+	return err
+}
+
+func RemovePermission(db *sqlx.DB, userID int64, perm int) error {
+	_, err := db.Exec("UPDATE users SET permissions = permissions & ~$1 WHERE id = $2", perm, userID)
+	return err
+}
+
+func SetPermissions(db *sqlx.DB, userID int64, permissions int) error {
+	_, err := db.Exec("UPDATE users SET permissions = $1 WHERE id = $2", permissions, userID)
+	return err
 }

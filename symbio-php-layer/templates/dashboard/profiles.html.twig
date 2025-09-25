@@ -3,52 +3,134 @@
 {% block title %}{{ 'profiles.title'|trans }}{% endblock %}
 
 {% block body %}
-<h2>{{ 'profiles.heading'|trans }}</h2>
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0"><i class="bi bi-people"></i> {{ 'profiles.heading'|trans }}</h2>
+                <a href="{{ path('app_dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> {{ 'profiles.back'|trans }}
+                </a>
+            </div>
 
-{% if message %}
-    <p style="color:red">{{ 'profiles.error'|trans }}: {{ message }}</p>
-{% endif %}
+            {% if message %}
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> {{ 'profiles.error'|trans }}: {{ message }}
+                </div>
+            {% endif %}
 
-{% if profiles %}
-    <table border="1" cellpadding="5">
-        <tr>
-            <th>{{ 'profiles.userid'|trans }}</th>
-            <th>{{ 'profiles.full_name'|trans }}</th>
-            <th>{{ 'profiles.bio'|trans }}</th>
-            <th>{{ 'profiles.skills'|trans }}</th>
-            <th>{{ 'profiles.avatar'|trans }}</th>
-            <th>{{ 'profiles.rating'|trans }}</th>
-            <th>{{ 'profiles.completed_tasks'|trans }}</th>
-            <th>{{ 'profiles.actions'|trans }}</th>
-        </tr>
-        {% for p in profiles %}
-            <tr>
-                <td>{{ p.user_id }}</td>
-                <td>{{ p.full_name }}</td>
-                <td>{{ p.bio }}</td>
-                <td>{{ p.skills|join(',') }}</td>
-                <td>
-                    {% if p.avatar %}
-                        <img src="{{ p.avatar }}" alt="{{ 'profiles.avatar'|trans }}" style="max-width:50px;">
-                    {% endif %}
-                </td>
-                <td>{{ p.rating }}</td>
-                <td>{{ p.completed_tasks }}</td>
-                <td>
-                    {% if p.user_id != userId %}
-                        <form method="POST" style="margin:0;">
-                            <input type="hidden" name="requested_id" value="{{ p.user_id }}">
-                            <button type="submit" name="create_chat_request">{{ 'profiles.request_chat'|trans }}</button>
-                        </form>
-                    {% endif %}
-                </td>
-            </tr>
-        {% endfor %}
-    </table>
-{% else %}
-    <p>{{ 'profiles.no_profiles'|trans }}</p>
-{% endif %}
+            {% set current_page = (offset // limit) + 1 %}
+            {% set total_pages = (total / limit)|round(0, 'ceil') %}
 
-<p><a href="{{ path('app_dashboard') }}">{{ 'profiles.back'|trans }}</a></p>
+            {% if profiles %}
+                <div class="row">
+                    {% for p in profiles %}
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body d-flex flex-column">
+                                    <div class="d-flex align-items-center mb-3">
+                                        {% if p.avatar %}
+                                            <img src="{{ p.avatar }}" alt="{{ 'profiles.avatar'|trans }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
+                                                <i class="bi bi-person text-white" style="font-size: 1.5rem;"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <h5 class="card-title mb-1">{{ p.full_name ?: 'profiles.no_name'|trans }}</h5>
+                                            <small class="text-muted">{{ 'profiles.userid'|trans }}: {{ p.user_id }}</small>
+                                        </div>
+                                    </div>
+
+                                    {% if p.bio %}
+                                        <p class="card-text text-muted mb-2">{{ p.bio|slice(0, 100) ~ (p.bio|length > 100 ? '...' : '') }}</p>
+                                    {% endif %}
+
+                                    {% if p.skills %}
+                                        <div class="mb-3">
+                                            <small class="text-muted d-block">{{ 'profiles.skills'|trans }}:</small>
+                                            <div>
+                                                {% for skill in p.skills %}
+                                                    <span class="badge bg-primary me-1">{{ skill }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+
+                                    <div class="mt-auto">
+                                        <div class="row text-center mb-3">
+                                            <div class="col-6">
+                                                <div class="border-end">
+                                                    <div class="fw-bold">{{ p.rating|default(0) }}</div>
+                                                    <small class="text-muted">{{ 'profiles.rating'|trans }}</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="fw-bold">{{ p.completed_tasks|default(0) }}</div>
+                                                <small class="text-muted">{{ 'profiles.completed_tasks'|trans }}</small>
+                                            </div>
+                                        </div>
+
+                                        {% if p.user_id != userId %}
+                                            <form method="POST" class="mt-3">
+                                                <input type="hidden" name="requested_id" value="{{ p.user_id }}">
+                                                <button type="submit" name="create_chat_request" class="btn btn-primary w-100">
+                                                    <i class="bi bi-chat"></i> {{ 'profiles.request_chat'|trans }}
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <div class="text-center text-muted small mt-3">
+                                                <i class="bi bi-person-check"></i> {{ 'profiles.your_profile'|trans }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                <nav aria-label="Profiles pagination" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if current_page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('app_profiles', {'offset': (offset - limit), 'limit': limit}) }}">
+                                    <i class="bi bi-chevron-left"></i> {{ 'profiles.previous'|trans }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="bi bi-chevron-left"></i> {{ 'profiles.previous'|trans }}</span>
+                            </li>
+                        {% endif %}
+
+                        <li class="page-item disabled">
+                            <span class="page-link">{{ 'profiles.page'|trans }} {{ current_page }} {{ 'profiles.of'|trans }} {{ total_pages }}</span>
+                        </li>
+
+                        {% if current_page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('app_profiles', {'offset': (offset + limit), 'limit': limit}) }}">
+                                    {{ 'profiles.next'|trans }} <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">{{ 'profiles.next'|trans }} <i class="bi bi-chevron-right"></i></span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% else %}
+                <div class="text-center mt-5">
+                    <i class="bi bi-people display-1 text-muted mb-3"></i>
+                    <h4 class="text-muted">{{ 'profiles.no_profiles'|trans }}</h4>
+                    <p class="text-muted">{{ 'profiles.no_profiles_desc'|trans }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 {% endblock %}
 

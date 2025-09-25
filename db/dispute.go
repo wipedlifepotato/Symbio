@@ -1,9 +1,11 @@
 package db
 
 import (
-	//	"database/sql"
+	"database/sql"
 	"mFrelance/models"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 func CreateDispute(dispute *models.Dispute) error {
@@ -58,6 +60,12 @@ func UpdateDisputeStatus(id int64, status string, resolution *string) error {
 	return err
 }
 
+func UpdateDisputeStatusTx(tx *sqlx.Tx, id int64, status string, resolution *string) error {
+	query := `UPDATE disputes SET status = $1, resolution = $2, updated_at = $3 WHERE id = $4`
+	_, err := tx.Exec(query, status, resolution, time.Now(), id)
+	return err
+}
+
 func AssignDisputeToAdmin(disputeID, adminID int64) error {
 	query := `UPDATE disputes SET assigned_admin = $1, updated_at = $2 WHERE id = $3`
 	_, err := Postgres.Exec(query, adminID, time.Now(), disputeID)
@@ -74,8 +82,19 @@ func CreateDisputeMessage(message *models.DisputeMessage) error {
 }
 
 func GetDisputeMessages(disputeID int64) ([]*models.DisputeMessage, error) {
-	query := `SELECT id, dispute_id, sender_id, message, created_at FROM dispute_messages WHERE dispute_id = $1 ORDER BY created_at ASC`
-	rows, err := Postgres.Query(query, disputeID)
+	return GetDisputeMessagesPaged(disputeID, 0, 0)
+}
+
+func GetDisputeMessagesPaged(disputeID int64, limit, offset int) ([]*models.DisputeMessage, error) {
+	query := `SELECT id, dispute_id, sender_id, message, created_at FROM dispute_messages WHERE dispute_id = $1 ORDER BY created_at DESC`
+	var rows *sql.Rows
+	var err error
+	if limit > 0 {
+		query += ` LIMIT $2 OFFSET $3`
+		rows, err = Postgres.Query(query, disputeID, limit, offset)
+	} else {
+		rows, err = Postgres.Query(query, disputeID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +114,29 @@ func GetDisputeMessages(disputeID int64) ([]*models.DisputeMessage, error) {
 
 func GetOpenDisputes() ([]*models.Dispute, error) {
 	query := `SELECT id, task_id, opened_by, assigned_admin, status, resolution, created_at, updated_at FROM disputes WHERE status = 'open' ORDER BY created_at DESC`
+	rows, err := Postgres.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var disputes []*models.Dispute
+	for rows.Next() {
+		dispute := &models.Dispute{}
+		err := rows.Scan(
+			&dispute.ID, &dispute.TaskID, &dispute.OpenedBy, &dispute.AssignedAdmin,
+			&dispute.Status, &dispute.Resolution, &dispute.CreatedAt, &dispute.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		disputes = append(disputes, dispute)
+	}
+	return disputes, nil
+}
+
+func GetAllDisputes() ([]*models.Dispute, error) {
+	query := `SELECT id, task_id, opened_by, assigned_admin, status, resolution, created_at, updated_at FROM disputes ORDER BY created_at DESC`
 	rows, err := Postgres.Query(query)
 	if err != nil {
 		return nil, err

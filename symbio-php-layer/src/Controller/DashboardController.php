@@ -100,18 +100,21 @@ class DashboardController extends AbstractController
     {
         $message = '';
         $profiles = [];
+        $total = 0;
+        $offset = (int) $request->query->get('offset', 0);
+        $limit = (int) $request->query->get('limit', 5);
         $jwt = $session->get('jwt', '');
 
         if (!$jwt) {
             $message = $translator->trans('auth.jwt_missing');
         } else {
-            $offset = (int) $request->query->get('offset', 0);
-            $limit = (int) $request->query->get('limit', 50);
 
             try {
                 $response = $mfrelance->doRequest("profiles?limit={$limit}&offset={$offset}", $jwt);
                 if (200 === $response['httpCode']) {
-                    $profiles = json_decode($response['response'], true);
+                    $data = json_decode($response['response'], true);
+                    $profiles = $data['profiles'] ?? [];
+                    $total = $data['total'] ?? 0;
                 } else {
                     $message = 'Ошибка при получении профилей: '.$response['response'];
                     $session->remove('jwt');
@@ -142,6 +145,9 @@ class DashboardController extends AbstractController
             'profiles' => $profiles,
             'message' => $message,
             'userId' => $session->get('user_id', 0),
+            'total' => $total ?? 0,
+            'offset' => $offset,
+            'limit' => $limit,
         ]);
     }
 
@@ -455,13 +461,31 @@ class DashboardController extends AbstractController
 
             // my chats
             $res = $mfrelance->doRequest('api/chat/getChatRoomsForUser', $jwt);
+            //var_dump($res);
+            //exit(0);
             if (200 === $res['httpCode']) {
                 $chatRooms = json_decode($res['response'], true);
+                if (!is_array($chatRooms)) {
+                    $error = 'API вернул некорректный формат данных для чатов';
+                    $chatRooms = [];
+                }
+            } else {
+                $error = 'Ошибка загрузки чатов: HTTP ' . $res['httpCode'] . ' - ' . $res['response'];
+                $chatRooms = [];
             }
 
             // messages of chat
             $selectedChatID = $request->query->getInt('chat_id', 0);
-            if ($selectedChatID) {
+            $selectedChatName = null;
+            if ($selectedChatID && is_array($chatRooms)) {
+                // Find chat name
+                foreach ($chatRooms as $chat) {
+                    if ($chat['id'] == $selectedChatID) {
+                        $selectedChatName = $chat['name'] ?? "Chat #$selectedChatID";
+                        break;
+                    }
+                }
+
                 $res = $mfrelance->doRequest("api/chat/getChatMessages?chat_room_id=$selectedChatID", $jwt);
                 if (200 === $res['httpCode']) {
                     $messages = json_decode($res['response'], true);
@@ -493,6 +517,7 @@ class DashboardController extends AbstractController
             'chatRequests' => $chatRequests,
             'chatRooms' => $chatRooms,
             'selectedChatID' => $selectedChatID,
+            'selectedChatName' => $selectedChatName,
             'messages' => $messages,
         ]);
     }

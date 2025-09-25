@@ -126,6 +126,52 @@ func RegisterLuaDisputes(L *lua.LState) {
 		return 1
 	}))
 
+	L.SetGlobal("get_dispute_messages", L.NewFunction(func(L *lua.LState) int {
+		disputeID := L.CheckInt64(1)
+		messages, err := db.GetDisputeMessages(disputeID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tbl := L.NewTable()
+		for _, m := range messages {
+			msgTbl := L.NewTable()
+			msgTbl.RawSetString("id", lua.LNumber(m.ID))
+			msgTbl.RawSetString("dispute_id", lua.LNumber(m.DisputeID))
+			msgTbl.RawSetString("sender_id", lua.LNumber(m.SenderID))
+			msgTbl.RawSetString("message", lua.LString(m.Message))
+			msgTbl.RawSetString("created_at", lua.LString(m.CreatedAt.Format(time.RFC3339)))
+			tbl.Append(msgTbl)
+		}
+		L.Push(tbl)
+		return 1
+	}))
+
+	L.SetGlobal("get_dispute_messages_paged", L.NewFunction(func(L *lua.LState) int {
+		disputeID := L.CheckInt64(1)
+		limit := L.ToInt(2)
+		offset := L.ToInt(3)
+		messages, err := db.GetDisputeMessagesPaged(disputeID, limit, offset)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tbl := L.NewTable()
+		for _, m := range messages {
+			msgTbl := L.NewTable()
+			msgTbl.RawSetString("id", lua.LNumber(m.ID))
+			msgTbl.RawSetString("dispute_id", lua.LNumber(m.DisputeID))
+			msgTbl.RawSetString("sender_id", lua.LNumber(m.SenderID))
+			msgTbl.RawSetString("message", lua.LString(m.Message))
+			msgTbl.RawSetString("created_at", lua.LString(m.CreatedAt.Format(time.RFC3339)))
+			tbl.Append(msgTbl)
+		}
+		L.Push(tbl)
+		return 1
+	}))
+
 	L.SetGlobal("update_dispute_status", L.NewFunction(func(L *lua.LState) int {
 		id := L.CheckInt64(1)
 		status := L.CheckString(2)
@@ -553,6 +599,45 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 		return 1
 	}))
 
+	L.SetGlobal("add_permission", L.NewFunction(func(L *lua.LState) int {
+		userID := int64(L.ToInt(1))
+		perm := L.ToInt(2)
+		err := db.AddPermission(psql, userID, perm)
+		if err != nil {
+			L.Push(lua.LBool(false))
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	L.SetGlobal("remove_permission", L.NewFunction(func(L *lua.LState) int {
+		userID := int64(L.ToInt(1))
+		perm := L.ToInt(2)
+		err := db.RemovePermission(psql, userID, perm)
+		if err != nil {
+			L.Push(lua.LBool(false))
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
+	L.SetGlobal("set_permissions", L.NewFunction(func(L *lua.LState) int {
+		userID := int64(L.ToInt(1))
+		permissions := L.ToInt(2)
+		err := db.SetPermissions(psql, userID, permissions)
+		if err != nil {
+			L.Push(lua.LBool(false))
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		L.Push(lua.LBool(true))
+		return 1
+	}))
+
 	L.SetGlobal("get_user", L.NewFunction(func(L *lua.LState) int {
 		username := L.ToString(1)
 		userID, passwordHash, err := db.GetUserByUsername(psql, username)
@@ -820,6 +905,28 @@ func RegisterLuaHelpers(L *lua.LState, rdb *redis.Client, psql *sqlx.DB) {
 	L.SetGlobal("get_chat_messages", L.NewFunction(func(L *lua.LState) int {
 		chatRoomID := int64(L.ToInt(1))
 		messages, err := db.GetChatMessages(psql, chatRoomID)
+		if err != nil {
+			L.Push(lua.LNil)
+			L.Push(lua.LString(err.Error()))
+			return 2
+		}
+		tb := L.NewTable()
+		for _, m := range messages {
+			msgTbl := L.NewTable()
+			msgTbl.RawSetString("sender_id", lua.LNumber(m.SenderID))
+			msgTbl.RawSetString("message", lua.LString(m.Message))
+			msgTbl.RawSetString("created_at", lua.LString(m.CreatedAt.Format(time.RFC3339)))
+			tb.Append(msgTbl)
+		}
+		L.Push(tb)
+		return 1
+	}))
+
+	L.SetGlobal("get_chat_messages_paged", L.NewFunction(func(L *lua.LState) int {
+		chatRoomID := int64(L.ToInt(1))
+		limit := L.ToInt(2)
+		offset := L.ToInt(3)
+		messages, err := db.GetChatMessagesPaged(psql, chatRoomID, limit, offset)
 		if err != nil {
 			L.Push(lua.LNil)
 			L.Push(lua.LString(err.Error()))

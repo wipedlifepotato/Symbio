@@ -47,9 +47,11 @@ max:
 tasks:
   min_interval: 1h
   duplicate_window: 24h
+  rate_limit_disabled: false
+min_transaction_amount: 0
 
 captcha:
-  enabled: false
+  enabled: true
   rate_limit_per_minute: 10
   rate_limit_per_hour: 100
   font_path: "./fonts/captchaFont.ttf"

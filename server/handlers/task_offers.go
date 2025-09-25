@@ -2,6 +2,7 @@ package handlers
 
 import (
     "encoding/json"
+    "mFrelance/config"
     "mFrelance/db"
     "mFrelance/models"
     "mFrelance/server"
@@ -98,6 +99,12 @@ func CreateTaskOfferHandler() http.HandlerFunc {
 		offer.FreelancerID = userID
 		offer.Accepted = false
 		offer.CreatedAt = time.Now()
+
+		// Check minimum transaction amount
+		if offer.Price < config.AppConfig.MinTransactionAmount {
+			http.Error(w, "Offer amount is below minimum transaction amount", http.StatusBadRequest)
+			return
+		}
 
 		if err := db.CreateTaskOffer(db.Postgres, &offer); err != nil {
 			http.Error(w, "Failed to create offer", http.StatusInternalServerError)
@@ -382,6 +389,14 @@ func AcceptTaskOfferHandler() http.HandlerFunc {
 			return
 		}
 
+		// Use transaction to ensure atomicity
+		tx, err := db.Postgres.Beginx()
+		if err != nil {
+			http.Error(w, "Failed to start transaction: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer tx.Rollback()
+
 		userWallet, err := models.GetWalletByUserAndCurrency(db.Postgres, userID, task.Currency)
 		if err != nil {
 			http.Error(w, "Failed to get wallet: "+err.Error(), http.StatusInternalServerError)
@@ -394,7 +409,7 @@ func AcceptTaskOfferHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := userWallet.SubBalance(db.Postgres, amountBig); err != nil {
+		if err := userWallet.SubBalance(tx, amountBig); err != nil {
 			http.Error(w, "Failed to debit wallet: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -409,23 +424,28 @@ func AcceptTaskOfferHandler() http.HandlerFunc {
 			CreatedAt:    time.Now(),
 		}
 
-		if err := db.CreateEscrowBalance(escrow); err != nil {
+		if err := db.CreateEscrowBalanceTx(tx, escrow); err != nil {
 			http.Error(w, "Failed to create escrow: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err := db.AcceptTaskOffer(db.Postgres, req.OfferID); err != nil {
+		if err := db.AcceptTaskOfferTx(tx, req.OfferID); err != nil {
 			http.Error(w, "Failed to accept offer: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err := db.RejectOtherOffersForTask(db.Postgres, task.ID, req.OfferID); err != nil {
+		if err := db.RejectOtherOffersForTaskTx(tx, task.ID, req.OfferID); err != nil {
 			http.Error(w, "Failed to reject other offers: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err := db.UpdateTaskStatus(db.Postgres, task.ID, "in_progress"); err != nil {
+		if err := db.UpdateTaskStatusTx(tx, task.ID, "in_progress"); err != nil {
 			http.Error(w, "Failed to update task status: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if err := tx.Commit(); err != nil {
+			http.Error(w, "Failed to commit transaction: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -524,21 +544,30 @@ func CompleteTaskHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := freelancerWallet.AddBalance(db.Postgres, amountBig); err != nil {
+		// Use transaction to ensure atomicity
+		tx, err := db.Postgres.Beginx()
+		if err != nil {
+			http.Error(w, "Failed to start transaction: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer tx.Rollback()
+
+		if err := freelancerWallet.AddBalance(tx, amountBig); err != nil {
 			http.Error(w, "Failed to credit freelancer: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err := db.UpdateEscrowBalanceStatus(task.ID, "released"); err != nil {
+		if err := db.UpdateEscrowBalanceStatusTx(tx, task.ID, "released"); err != nil {
 			http.Error(w, "Failed to update escrow status", http.StatusInternalServerError)
 			return
 		}
 
-		if err := db.UpdateTaskStatus(db.Postgres, task.ID, "completed"); err != nil {
+		if err := db.UpdateTaskStatusTx(tx, task.ID, "completed"); err != nil {
 			http.Error(w, "Failed to update task status", http.StatusInternalServerError)
 			return
 		}
-		_, err = db.Postgres.Exec(`
+
+		_, err = tx.Exec(`
 		    UPDATE profiles
 		    SET completed_tasks = completed_tasks + 1
 		    WHERE user_id = $1
@@ -546,6 +575,11 @@ func CompleteTaskHandler() http.HandlerFunc {
 		if err != nil {
 		    http.Error(w, "Failed to update freelancer completed tasks", http.StatusInternalServerError)
 		    return
+		}
+
+		if err := tx.Commit(); err != nil {
+			http.Error(w, "Failed to commit transaction: "+err.Error(), http.StatusInternalServerError)
+			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{

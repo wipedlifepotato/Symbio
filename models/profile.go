@@ -38,6 +38,9 @@ type Profile struct {
 	Avatar         string      `db:"avatar" json:"avatar"`
 	Rating         float64     `db:"rating" json:"rating"`
 	CompletedTasks int         `db:"completed_tasks" json:"completed_tasks"`
+	IsAdmin        bool        `db:"is_admin" json:"is_admin"`
+	AdminTitle     string      `db:"admin_title" json:"admin_title"`
+	Permissions    int         `db:"permissions" json:"permissions"`
 }
 
 func (j *JSONStrings) UnmarshalJSON(data []byte) error {
@@ -51,10 +54,35 @@ func (j *JSONStrings) UnmarshalJSON(data []byte) error {
 
 func GetProfile(db *sqlx.DB, userID int64) (*Profile, error) {
 	var profile Profile
-	err := db.Get(&profile, `SELECT * FROM profiles WHERE user_id=$1`, userID)
+	err := db.Get(&profile, `
+		SELECT p.*, u.is_admin, COALESCE(u.admin_title, '') as admin_title, u.permissions,
+		       COALESCE(AVG(r.rating), 0) as rating
+		FROM profiles p
+		LEFT JOIN users u ON p.user_id = u.id
+		LEFT JOIN reviews r ON r.reviewed_id = p.user_id
+		WHERE p.user_id=$1
+		GROUP BY p.user_id, p.full_name, p.bio, p.skills, p.avatar, p.rating, p.completed_tasks, u.is_admin, u.admin_title, u.permissions
+	`, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return &Profile{UserID: userID, Skills: JSONStrings{}}, nil
+			// Get user data even if profile doesn't exist
+			var isAdmin bool
+			var adminTitle string
+			var permissions int
+			err := db.QueryRow(`
+				SELECT is_admin, COALESCE(admin_title, ''), permissions
+				FROM users WHERE id=$1
+			`, userID).Scan(&isAdmin, &adminTitle, &permissions)
+			if err != nil {
+				return nil, err
+			}
+			return &Profile{
+				UserID: userID,
+				Skills: JSONStrings{},
+				IsAdmin: isAdmin,
+				AdminTitle: adminTitle,
+				Permissions: permissions,
+			}, nil
 		}
 		return nil, err
 	}
@@ -71,9 +99,33 @@ func UpsertProfile(db *sqlx.DB, p *Profile) error {
 	return err
 }
 
+func GetProfilesCount(db *sqlx.DB) (int, error) {
+	var count int
+	err := db.Get(&count, `
+		SELECT COUNT(*)
+		FROM profiles p
+		LEFT JOIN users u ON p.user_id = u.id
+		WHERE (p.full_name != '' OR p.bio != '') AND u.blocked = false
+	`)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func GetProfilesWithLimitOffset(db *sqlx.DB, limit, offset int) ([]Profile, error) {
 	var profiles []Profile
-	err := db.Select(&profiles, `SELECT * FROM profiles ORDER BY user_id LIMIT $1 OFFSET $2`, limit, offset)
+	err := db.Select(&profiles, `
+		SELECT p.*, u.is_admin, COALESCE(u.admin_title, '') as admin_title, u.permissions,
+		       COALESCE(AVG(r.rating), 0) as rating
+		FROM profiles p
+		LEFT JOIN users u ON p.user_id = u.id
+		LEFT JOIN reviews r ON r.reviewed_id = p.user_id
+		WHERE u.blocked = false
+		GROUP BY p.user_id, p.full_name, p.bio, p.skills, p.avatar, p.rating, p.completed_tasks, u.is_admin, u.admin_title, u.permissions
+		ORDER BY p.completed_tasks DESC, AVG(r.rating) DESC, u.is_admin DESC
+		LIMIT $1 OFFSET $2
+	`, limit, offset)
 	if err != nil {
 		return nil, err
 	}

@@ -150,10 +150,39 @@ func GetDisputeHandler() http.HandlerFunc {
 			return
 		}
 
-		messages, err := db.GetDisputeMessages(disputeID)
+		limit := 50
+		offset := 0
+		if lStr := r.URL.Query().Get("limit"); lStr != "" {
+			if l, err := strconv.Atoi(lStr); err == nil && l > 0 && l <= 1000 {
+				limit = l
+			}
+		}
+		if oStr := r.URL.Query().Get("offset"); oStr != "" {
+			if o, err := strconv.Atoi(oStr); err == nil && o >= 0 {
+				offset = o
+			}
+		}
+
+		messages, err := db.GetDisputeMessagesPaged(disputeID, limit, offset)
 		if err != nil {
 			http.Error(w, "Failed to get dispute messages", http.StatusInternalServerError)
 			return
+		}
+
+		var adminInfo interface{} = nil
+		if dispute.AssignedAdmin != nil {
+			admin, err := db.GetUserByID(*dispute.AssignedAdmin)
+			if err == nil {
+				adminTitle := ""
+				if admin.AdminTitle.Valid {
+					adminTitle = admin.AdminTitle.String
+				}
+				adminInfo = map[string]interface{}{
+					"id":       admin.ID,
+					"username": admin.Username,
+					"title":    adminTitle,
+				}
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -161,6 +190,7 @@ func GetDisputeHandler() http.HandlerFunc {
 			"success":  true,
 			"dispute":  dispute,
 			"messages": messages,
+			"admin":    adminInfo,
 		})
 	}
 }
@@ -238,7 +268,9 @@ func SendDisputeMessageHandler() http.HandlerFunc {
 			return
 		}
 
-		if task.ClientID != userID && acceptedOffer.FreelancerID != userID && dispute.AssignedAdmin == nil || (dispute.AssignedAdmin != nil && *dispute.AssignedAdmin != userID) {
+		isAdmin, _ := db.IsAdmin(db.Postgres, userID)
+		isAllowed := task.ClientID == userID || acceptedOffer.FreelancerID == userID || isAdmin || (dispute.AssignedAdmin != nil && *dispute.AssignedAdmin == userID)
+		if !isAllowed {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}

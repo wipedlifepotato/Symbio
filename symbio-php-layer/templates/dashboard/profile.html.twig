@@ -3,38 +3,95 @@
 {% block title %}{{ 'profile.title'|trans }}{% endblock %}
 
 {% block body %}
-<h2>{{ 'profile.heading'|trans({'%username%': username}) }}</h2>
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0"><i class="bi bi-person-circle"></i> {{ 'profile.heading'|trans({'%username%': username}) }}</h2>
+                <a href="{{ path('app_dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> {{ 'profile.back'|trans }}
+                </a>
+            </div>
 
-{% if message %}
-    <p style="color:red">{{ 'profile.error'|trans }}: {{ message|raw }}</p>
-{% endif %}
-
-{% if profile %}
-    <form method="POST" enctype="multipart/form-data">
-        <label>{{ 'profile.full_name'|trans }}:<br>
-            <input type="text" name="full_name" value="{{ profile.full_name|default('') }}">
-        </label><br><br>
-
-        <label>{{ 'profile.bio'|trans }}:<br>
-            <textarea name="bio">{{ profile.bio|default('') }}</textarea>
-        </label><br><br>
-
-        <label>{{ 'profile.skills'|trans }}:<br>
-            <input type="text" name="skills" value="{{ profile.skills|default([])|join(',') }}">
-        </label><br><br>
-
-        <label>{{ 'profile.avatar'|trans }}:<br>
-            {% if profile.avatar %}
-                <img src="{{ profile.avatar }}" alt="{{ 'profile.avatar'|trans }}" style="max-width:100px;"><br>
+            {% if message %}
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> {{ 'profile.error'|trans }}: {{ message|raw }}
+                </div>
             {% endif %}
-            <input type="file" name="avatar">
-            <input type="hidden" name="avatar_base64" value="{{ profile.avatar|default('') }}">
-        </label><br><br>
 
-        <button type="submit">{{ 'profile.save_button'|trans }}</button>
-    </form>
-{% endif %}
+            {% if profile %}
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-pencil-square"></i> {{ 'profile.edit_profile'|trans }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="full_name" class="form-label">
+                                    <i class="bi bi-person"></i> {{ 'profile.full_name'|trans }}
+                                </label>
+                                <input type="text" class="form-control" id="full_name" name="full_name"
+                                       value="{{ profile.full_name|default('') }}" placeholder="{{ 'profile.full_name_placeholder'|trans }}">
+                            </div>
 
-<p><a href="{{ path('app_dashboard') }}">{{ 'profile.back'|trans }}</a></p>
+                            <div class="mb-3">
+                                <label for="bio" class="form-label">
+                                    <i class="bi bi-file-text"></i> {{ 'profile.bio'|trans }}
+                                </label>
+                                <textarea class="form-control" id="bio" name="bio" rows="4"
+                                          placeholder="{{ 'profile.bio_placeholder'|trans }}">{{ profile.bio|default('') }}</textarea>
+                                <div class="form-text">{{ 'profile.bio_help'|trans }}</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="skills" class="form-label">
+                                    <i class="bi bi-tools"></i> {{ 'profile.skills'|trans }}
+                                </label>
+                                <input type="text" class="form-control" id="skills" name="skills"
+                                       value="{{ profile.skills|default([])|join(', ') }}"
+                                       placeholder="{{ 'profile.skills_placeholder'|trans }}">
+                                <div class="form-text">{{ 'profile.skills_help'|trans }}</div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="avatar" class="form-label">
+                                    <i class="bi bi-camera"></i> {{ 'profile.avatar'|trans }}
+                                </label>
+                                <div class="d-flex align-items-center mb-2">
+                                    {% if profile.avatar %}
+                                        <img src="{{ profile.avatar }}" alt="{{ 'profile.avatar'|trans }}"
+                                             class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center me-3"
+                                             style="width: 80px; height: 80px;">
+                                            <i class="bi bi-person text-white" style="font-size: 2rem;"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div class="flex-grow-1">
+                                        <input type="file" class="form-control" id="avatar" name="avatar" accept="image/*">
+                                        <div class="form-text">{{ 'profile.avatar_help'|trans }}</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="avatar_base64" value="{{ profile.avatar|default('') }}">
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-check-circle"></i> {{ 'profile.save_button'|trans }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center mt-5">
+                    <i class="bi bi-person-x display-1 text-muted mb-3"></i>
+                    <h4 class="text-muted">{{ 'profile.no_profile'|trans }}</h4>
+                    <p class="text-muted">{{ 'profile.create_profile_desc'|trans }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 {% endblock %}
 

@@ -3,81 +3,198 @@
 {% block title %}{{ 'dashboard.title'|trans }}{% endblock %}
 
 {% block body %}
-<div class="language-switcher">
-    <a href="{{ path('app_set_locale', {'locale': 'ru'}) }}">RU</a> |
-    <a href="{{ path('app_set_locale', {'locale': 'en'}) }}">EN</a>
-</div>
-<div class="dashboard-container">
-    <h2>{{ 'dashboard.heading'|trans }}</h2>
-
-    {% if message %}
-        <p style="color:red">{{ message }}</p>
-    {% endif %}
-
-    {% if walletInfo %}
-        <div class="wallet-info">
-            <h3>{{ 'dashboard.wallet.btc'|trans }}</h3>
-            <p>{{ 'dashboard.wallet.address'|trans }}: {{ walletInfo.address|default('-') }}</p>
-            {% if walletInfo.balance is defined %}
-                <p>{{ 'dashboard.wallet.balance'|trans }}: {{ walletInfo.balance }}</p>
-            {% endif %}
+<div class="container-fluid mt-4">
+    <!-- Language Switcher -->
+    <div class="d-flex justify-content-end mb-3">
+        <div class="btn-group" role="group" aria-label="Language switcher">
+            <a href="{{ path('app_set_locale', {'locale': 'ru'}) }}" class="btn btn-outline-primary btn-sm{% if app.request.locale == 'ru' %} active{% endif %}">RU</a>
+            <a href="{{ path('app_set_locale', {'locale': 'en'}) }}" class="btn btn-outline-primary btn-sm{% if app.request.locale == 'en' %} active{% endif %}">EN</a>
         </div>
+    </div>
 
-        <form method="POST">
-            <h3>{{ 'dashboard.send_btc'|trans }}</h3>
-            <label>{{ 'dashboard.send_to'|trans }}: <input type="text" name="to" required></label><br>
-            <label>{{ 'dashboard.send_amount'|trans }}: <input type="text" name="amount" required></label><br>
-            <button type="submit">{{ 'dashboard.send_button'|trans }}</button>
-        </form>
-
-        {% if sendResult %}
-            <h4>{{ 'dashboard.send_result'|trans }}</h4>
-            <pre>{{ sendResult }}</pre>
-        {% endif %}
-    {% endif %}
-
-    <!-- Система фриланса -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3><i class="bi bi-briefcase"></i> {{'frelancesystem'|trans}}</h3>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-3 mb-2">
-                    <a href="{{ path('tasks') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-list-task"></i> {{'dashboard.all_tasks'|trans}}
-                    </a>
-                </div>
-                <div class="col-md-3 mb-2">
-                    <a href="{{ path('tasks', {'status': 'open'}) }}" class="btn btn-success w-100">
-                        <i class="bi bi-search"></i> {{'dashboard.search_work'|trans}}
-                    </a>
-                </div>
-                <div class="col-md-3 mb-2">
-                    <a href="{{ path('task_create') }}" class="btn btn-info w-100">
-                        <i class="bi bi-plus-circle"></i> {{'dashboard.create_task'|trans}}
-                    </a>
-                </div>
-                <div class="col-md-3 mb-2">
-                    <a href="{{ path('disputes') }}" class="btn btn-warning w-100">
-                        <i class="bi bi-exclamation-triangle"></i> {{'disputes'|trans}}
-                    </a>
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white shadow">
+                <div class="card-body text-center py-4">
+                    <h1 class="display-5 mb-2"><i class="bi bi-house-door"></i> {{ 'dashboard.heading'|trans }}</h1>
+                    <p class="lead mb-0">{{ 'dashboard.welcome_message'|trans }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="links-block">
-        <a href="{{ path('app_profiles') }}">{{ 'dashboard.link.profiles'|trans }}</a>
-        <a href="{{ path('app_profile') }}">{{ 'dashboard.link.profile'|trans }}</a>
-        <a href="{{ path('app_ticket') }}">{{ 'dashboard.link.tickets'|trans }}</a>
-        {% if isAdmin %}
-            <a href="{{ path('app_admin') }}">{{ 'dashboard.link.admin'|trans }}</a>
-            <a href="{{ path('app_admin_tickets') }}">{{ 'dashboard.link.admin_tickets'|trans }}</a>
-            <a href="{{ path('admin_disputes') }}">{{'dashboard.admin_dispute_control'|trans}}</a>
+    {% if message %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endif %}
+
+    <!-- Wallet Section -->
+    {% if walletInfo %}
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100 shadow">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-wallet2"></i> {{ 'dashboard.wallet.btc'|trans }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <h6 class="text-muted">{{ 'dashboard.wallet.address'|trans }}</h6>
+                                    <code class="small">{{ walletInfo.address}}</code>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <h6 class="text-muted">{{ 'dashboard.wallet.balance'|trans }}</h6>
+                                <span class="fw-bold text-success">{{ walletInfo.balance|default('0.00000000') }} BTC</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100 shadow">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="bi bi-send"></i> {{ 'dashboard.send_btc'|trans }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="send_to" class="form-label">{{ 'dashboard.send_to'|trans }}</label>
+                                <input type="text" class="form-control" id="send_to" name="to" required
+                                       placeholder="bc1q... or wallet address">
+                            </div>
+                            <div class="mb-3">
+                                <label for="send_amount" class="form-label">{{ 'dashboard.send_amount'|trans }}</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="send_amount" name="amount"
+                                           step="0.00000001" min="0" required placeholder="0.00000000">
+                                    <span class="input-group-text">BTC</span>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-send"></i> {{ 'dashboard.send_button'|trans }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if sendResult %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-receipt"></i> {{ 'dashboard.send_result'|trans }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <pre class="bg-light p-3 rounded">{{ sendResult }}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
         {% endif %}
-        <a href="{{ path('app_chat') }}">{{ 'dashboard.link.chats'|trans }}</a>
-        <a href="{{ path('app_login') }}">{{ 'dashboard.link.back'|trans }}</a>
+    {% endif %}
+
+    <!-- Freelance System -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0"><i class="bi bi-briefcase"></i> {{'frelancesystem'|trans}}</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-lg-3 col-md-6">
+                            <a href="{{ path('tasks') }}" class="btn btn-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-4">
+                                <i class="bi bi-list-task display-4 mb-2"></i>
+                                <span class="fw-bold">{{'dashboard.all_tasks'|trans}}</span>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a href="{{ path('tasks', {'status': 'open'}) }}" class="btn btn-success w-100 h-100 d-flex flex-column align-items-center justify-content-center py-4">
+                                <i class="bi bi-search display-4 mb-2"></i>
+                                <span class="fw-bold">{{'dashboard.search_work'|trans}}</span>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a href="{{ path('task_create') }}" class="btn btn-info w-100 h-100 d-flex flex-column align-items-center justify-content-center py-4">
+                                <i class="bi bi-plus-circle display-4 mb-2"></i>
+                                <span class="fw-bold">{{'dashboard.create_task'|trans}}</span>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a href="{{ path('disputes') }}" class="btn btn-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center py-4">
+                                <i class="bi bi-exclamation-triangle display-4 mb-2"></i>
+                                <span class="fw-bold">{{'disputes'|trans}}</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-link-45deg"></i> {{ 'dashboard.quick_links'|trans }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                            <a href="{{ path('app_profiles') }}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-people"></i> {{ 'dashboard.link.profiles'|trans }}
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                            <a href="{{ path('app_profile') }}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-person"></i> {{ 'dashboard.link.profile'|trans }}
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                            <a href="{{ path('app_ticket') }}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-ticket"></i> {{ 'dashboard.link.tickets'|trans }}
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                            <a href="{{ path('app_chat') }}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-chat"></i> {{ 'dashboard.link.chats'|trans }}
+                            </a>
+                        </div>
+                        {% if isAdmin %}
+                            <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                                <a href="{{ path('app_admin') }}" class="btn btn-outline-danger w-100">
+                                    <i class="bi bi-shield"></i> {{ 'dashboard.link.admin'|trans }}
+                                </a>
+                            </div>
+                            <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                                <a href="{{ path('app_admin_tickets') }}" class="btn btn-outline-danger w-100">
+                                    <i class="bi bi-ticket-detailed"></i> {{ 'dashboard.link.admin_tickets'|trans }}
+                                </a>
+                            </div>
+                            <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                                <a href="{{ path('admin_disputes') }}" class="btn btn-outline-danger w-100">
+                                    <i class="bi bi-exclamation-triangle"></i> {{'dashboard.admin_dispute_control'|trans}}
+                                </a>
+                            </div>
+                        {% endif %}
+                        <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                            <a href="{{ path('app_login') }}" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-box-arrow-right"></i> {{ 'dashboard.link.back'|trans }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

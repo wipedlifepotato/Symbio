@@ -161,14 +161,20 @@ class AdminController extends AbstractController
         if (!$jwt) {
             $message = 'JWT отсутствует. Пожалуйста, войдите в систему.';
         } else {
-            // Получаем все тикеты
-            $resTickets = $mf->doRequest('api/ticket/my', $jwt, [], false);
+            // Получаем все тикеты (для админа используем специальный эндпоинт)
+            $resTickets = $mf->doRequest('api/admin/tickets', $jwt, [], false);
             if (200 === $resTickets['httpCode']) {
                 $allTickets = json_decode($resTickets['response'], true);
+                if (!is_array($allTickets)) {
+                    $allTickets = [];
+                }
                 foreach ($allTickets as &$t) {
                     $t['username'] = $this->usernameByID($mf, $jwt, $t['user_id'] ?? 0, $usernameCache);
                 }
                 unset($t);
+            } else {
+                $message = 'Ошибка получения тикетов: ' . $resTickets['response'];
+                $allTickets = [];
             }
 
             // Get random ticket
@@ -178,6 +184,14 @@ class AdminController extends AbstractController
                     $randomTicket = json_decode($res['response'], true);
                     if ($randomTicket) {
                         $randomTicket['username'] = $this->usernameByID($mf, $jwt, $randomTicket['UserID'] ?? 0, $usernameCache);
+                        // Redirect to remove get_ticket parameter from URL
+                        $queryParams = $request->query->all();
+                        unset($queryParams['get_ticket']);
+                        $redirectUrl = $request->getPathInfo();
+                        if (!empty($queryParams)) {
+                            $redirectUrl .= '?' . http_build_query($queryParams);
+                        }
+                        return $this->redirect($redirectUrl);
                     }
                 } else {
                     $message = 'Ошибка получения тикета: '.$res['response'];

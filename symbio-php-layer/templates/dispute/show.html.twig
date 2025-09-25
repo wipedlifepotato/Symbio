@@ -1,59 +1,77 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'dispute.my_disputes'|trans }} - mFrelance{% endblock %}
+{% block title %}{{ 'dispute.title'|trans({'%id%': dispute.id}) }}{% endblock %}
 
 {% block body %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
-            <h2><i class="bi bi-exclamation-triangle"></i> {{ 'dispute.my_disputes'|trans }}</h2>
-            
-            {% if disputes is empty %}
-                <div class="text-center py-5">
-                    <i class="bi bi-check-circle fs-1 text-success"></i>
-                    <h4 class="text-muted mt-3">{{ 'dispute.none'|trans }}</h4>
-                    <p class="text-muted">{{ 'dispute.none_description'|trans }}</p>
+            <h2><i class="bi bi-exclamation-triangle"></i> {{ 'dispute.heading'|trans({'%id%': dispute.id}) }}</h2>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">{{ 'dispute.info'|trans }}</h5>
+                    <p><strong>{{ 'dispute.is'|trans }}:</strong>
+                        <span class="badge bg-{{ dispute.status == 'open' ? 'warning' : 'success' }}">
+                            {{ dispute.status == 'open' ? 'dispute.status.open'|trans : 'dispute.status.closed'|trans }}
+                        </span>
+                    </p>
+                    <p><strong>{{ 'dispute.task'|trans }}:</strong>
+                        <a href="{{ path('task_show', {'id': dispute.task_id}) }}">#{{ dispute.task_id }}</a>
+                    </p>
+                    <p><strong>{{ 'dispute.created'|trans }}:</strong> {{ dispute.created_at|date('d.m.Y H:i') }}</p>
+                    <p><strong>{{ 'dispute.opened_by'|trans }}:</strong> {{ dispute.opened_by_username ?? 'Пользователь #' ~ dispute.opened_by }}</p>
+                    {% if admin %}
+                        <p><strong>{{ 'dispute.assigned_admin'|trans }}:</strong>
+                            {{ admin.username }} {% if admin.title %}({{ admin.title }}){% endif %}
+                        </p>
+                    {% endif %}
                 </div>
-            {% else %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>{{ 'dispute.table.id'|trans }}</th>
-                                <th>{{ 'dispute.table.task'|trans }}</th>
-                                <th>{{ 'dispute.table.status'|trans }}</th>
-                                <th>{{ 'dispute.table.created'|trans }}</th>
-                                <th>{{ 'dispute.table.actions'|trans }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for dispute in disputes %}
-                                <tr>
-                                    <td>{{ dispute.id }}</td>
-                                    <td>
-                                        <a href="{{ path('task_show', {'id': dispute.task_id}) }}" 
-                                           class="text-decoration-none">
-                                            {{ 'dispute.task_number'|trans({'%id%': dispute.task_id}) }}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ dispute.status == 'open' ? 'warning' : 'success' }}">
-                                            {{ ('dispute.status.' ~ dispute.status)|trans }}
-                                        </span>
-                                    </td>
-                                    <td>{{ dispute.created_at|date('d.m.Y H:i') }}</td>
-                                    <td>
-                                        <a href="{{ path('dispute_show', {'id': dispute.id}) }}" 
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i> {{ 'actions.view'|trans }}
-                                        </a>
-                                    </td>
-                                </tr>
+            </div>
+            <center>
+            <!-- Простая форма отправки сообщения -->
+            <div class="mb-3 p-3 bg-light rounded">
+                <form method="post">
+                    <div class="input-group">
+                    <textarea 
+                            class="form-control w-auto" 
+                            name="message" 
+                            placeholder="Message..." 
+                            required 
+                            rows="3" 
+                            cols="40"
+                        ></textarea>
+                        <button class="btn btn-primary" type="submit">SEND</button>
+                    </div>
+                </form>
+            </div>
+            </center>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ 'dispute.messages'|trans }}</h5>
+                </div>
+                <div class="card-body">
+
+                    {% if messages %}
+                        <div class="chat-box mb-3" style="max-height: 400px; overflow-y: auto;">
+                            {% for message in messages %}
+                                <div class="message mb-3 p-3 border rounded">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <strong>{{ message.sender_username ?? 'Пользователь #' ~ message.sender_id }}</strong>
+                                        <small class="text-muted">{{ message.created_at|date('d.m.Y H:i') }}</small>
+                                    </div>
+                                    <p class="mb-0 mt-2">{{ message.message }}</p>
+                                </div>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-chat-square-text fs-1 text-muted"></i>
+                            <p class="text-muted mt-2">{{ 'dispute.no_messages'|trans }}</p>
+                        </div>
+                    {% endif %}
                 </div>
-            {% endif %}
+            </div>
         </div>
     </div>
 </div>
