@@ -1,6 +1,6 @@
 # Symbio
 
-> **Currently in development, not for usage**  
+> **This software is experimental. Use at your own risk. We are not responsible for any financial or data loss**  
 > Symbio — something bigger than code.
 
 ![Symbio Logo](logo.png)
