@@ -55,10 +55,13 @@ func (j *JSONStrings) UnmarshalJSON(data []byte) error {
 func GetProfile(db *sqlx.DB, userID int64) (*Profile, error) {
 	var profile Profile
 	err := db.Get(&profile, `
-		SELECT p.*, u.is_admin, COALESCE(u.admin_title, '') as admin_title, u.permissions
+		SELECT p.*, u.is_admin, COALESCE(u.admin_title, '') as admin_title, u.permissions,
+		       COALESCE(AVG(r.rating), 0) as rating
 		FROM profiles p
 		LEFT JOIN users u ON p.user_id = u.id
+		LEFT JOIN reviews r ON r.reviewed_id = p.user_id
 		WHERE p.user_id=$1
+		GROUP BY p.user_id, p.full_name, p.bio, p.skills, p.avatar, p.rating, p.completed_tasks, u.is_admin, u.admin_title, u.permissions
 	`, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -113,11 +116,14 @@ func GetProfilesCount(db *sqlx.DB) (int, error) {
 func GetProfilesWithLimitOffset(db *sqlx.DB, limit, offset int) ([]Profile, error) {
 	var profiles []Profile
 	err := db.Select(&profiles, `
-		SELECT p.*, u.is_admin, COALESCE(u.admin_title, '') as admin_title, u.permissions
+		SELECT p.*, u.is_admin, COALESCE(u.admin_title, '') as admin_title, u.permissions,
+		       COALESCE(AVG(r.rating), 0) as rating
 		FROM profiles p
 		LEFT JOIN users u ON p.user_id = u.id
+		LEFT JOIN reviews r ON r.reviewed_id = p.user_id
 		WHERE u.blocked = false
-		ORDER BY u.is_admin DESC, p.rating DESC, p.completed_tasks DESC
+		GROUP BY p.user_id, p.full_name, p.bio, p.skills, p.avatar, p.rating, p.completed_tasks, u.is_admin, u.admin_title, u.permissions
+		ORDER BY p.completed_tasks DESC, AVG(r.rating) DESC, u.is_admin DESC
 		LIMIT $1 OFFSET $2
 	`, limit, offset)
 	if err != nil {

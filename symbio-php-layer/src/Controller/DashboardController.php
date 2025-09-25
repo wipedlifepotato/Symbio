@@ -100,13 +100,14 @@ class DashboardController extends AbstractController
     {
         $message = '';
         $profiles = [];
+        $total = 0;
+        $offset = (int) $request->query->get('offset', 0);
+        $limit = (int) $request->query->get('limit', 5);
         $jwt = $session->get('jwt', '');
 
         if (!$jwt) {
             $message = $translator->trans('auth.jwt_missing');
         } else {
-            $offset = (int) $request->query->get('offset', 0);
-            $limit = (int) $request->query->get('limit', 5);
 
             try {
                 $response = $mfrelance->doRequest("profiles?limit={$limit}&offset={$offset}", $jwt);
