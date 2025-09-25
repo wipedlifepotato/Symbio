@@ -53,7 +53,7 @@ func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Cl
 			}
 			address = resp.Address
 		case "BTC":
-			addr, err := eClient.CreateAddress()
+			addr, err := eClient.CreateAddress(db.Postgres, "BTC")
 			if err != nil {
 				http.Error(w, "Electrum error: "+err.Error(), http.StatusInternalServerError)
 				return
