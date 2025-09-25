@@ -177,6 +177,10 @@ profiles:
   no_profiles: "No profiles."
   back: "Back"
   error: "Error"
+  previous: "Previous"
+  next: "Next"
+  page: "Page"
+  of: "of"
 profile:
   title: "Profile"
   heading: "User Profile %username%"

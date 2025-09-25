@@ -181,6 +181,10 @@ profiles:
   no_profiles: "Профили отсутствуют."
   back: "Назад"
   error: "Ошибка"
+  previous: "Предыдущие"
+  next: "Следующие"
+  page: "Страница"
+  of: "из"
 profile:
   title: "Профиль"
   heading: "Профиль пользователя %username%"

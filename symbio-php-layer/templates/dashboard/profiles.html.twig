@@ -9,6 +9,9 @@
     <p style="color:red">{{ 'profiles.error'|trans }}: {{ message }}</p>
 {% endif %}
 
+{% set current_page = (offset // limit) + 1 %}
+{% set total_pages = (total / limit)|round(0, 'ceil') %}
+
 {% if profiles %}
     <table border="1" cellpadding="5">
         <tr>
@@ -48,6 +51,16 @@
 {% else %}
     <p>{{ 'profiles.no_profiles'|trans }}</p>
 {% endif %}
+
+<div style="margin-top: 20px;">
+    {% if current_page > 1 %}
+        <a href="{{ path('app_profiles', {'offset': (offset - limit), 'limit': limit}) }}" style="margin-right: 10px;">{{ 'profiles.previous'|trans }}</a>
+    {% endif %}
+    <span>{{ 'profiles.page'|trans }} {{ current_page }} {{ 'profiles.of'|trans }} {{ total_pages }}</span>
+    {% if current_page < total_pages %}
+        <a href="{{ path('app_profiles', {'offset': (offset + limit), 'limit': limit}) }}" style="margin-left: 10px;">{{ 'profiles.next'|trans }}</a>
+    {% endif %}
+</div>
 
 <p><a href="{{ path('app_dashboard') }}">{{ 'profiles.back'|trans }}</a></p>
 {% endblock %}

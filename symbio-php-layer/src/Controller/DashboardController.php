@@ -106,12 +106,14 @@ class DashboardController extends AbstractController
             $message = $translator->trans('auth.jwt_missing');
         } else {
             $offset = (int) $request->query->get('offset', 0);
-            $limit = (int) $request->query->get('limit', 50);
+            $limit = (int) $request->query->get('limit', 5);
 
             try {
                 $response = $mfrelance->doRequest("profiles?limit={$limit}&offset={$offset}", $jwt);
                 if (200 === $response['httpCode']) {
-                    $profiles = json_decode($response['response'], true);
+                    $data = json_decode($response['response'], true);
+                    $profiles = $data['profiles'] ?? [];
+                    $total = $data['total'] ?? 0;
                 } else {
                     $message = 'Ошибка при получении профилей: '.$response['response'];
                     $session->remove('jwt');
@@ -142,6 +144,9 @@ class DashboardController extends AbstractController
             'profiles' => $profiles,
             'message' => $message,
             'userId' => $session->get('user_id', 0),
+            'total' => $total ?? 0,
+            'offset' => $offset,
+            'limit' => $limit,
         ]);
     }
 

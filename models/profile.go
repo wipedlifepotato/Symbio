@@ -96,6 +96,20 @@ func UpsertProfile(db *sqlx.DB, p *Profile) error {
 	return err
 }
 
+func GetProfilesCount(db *sqlx.DB) (int, error) {
+	var count int
+	err := db.Get(&count, `
+		SELECT COUNT(*)
+		FROM profiles p
+		LEFT JOIN users u ON p.user_id = u.id
+		WHERE p.full_name != '' OR p.bio != ''
+	`)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func GetProfilesWithLimitOffset(db *sqlx.DB, limit, offset int) ([]Profile, error) {
 	var profiles []Profile
 	err := db.Select(&profiles, `

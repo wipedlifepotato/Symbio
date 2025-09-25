@@ -129,6 +129,12 @@ func ProfilesHandler() http.HandlerFunc {
 			return
 		}
 
+		total, err := models.GetProfilesCount(db.Postgres)
+		if err != nil {
+			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		// Filter out empty profiles (no name or bio)
 		var filteredProfiles []models.Profile
 		for _, profile := range profiles {
@@ -138,7 +144,10 @@ func ProfilesHandler() http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(filteredProfiles)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"profiles": filteredProfiles,
+			"total":    total,
+		})
 	}
 }
 
