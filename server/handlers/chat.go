@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-
+	"database/sql"
 	"mFrelance/db"
 	"mFrelance/models"
 	"mFrelance/server"
@@ -14,15 +14,16 @@ import (
 
 // CreateChatRequestHandler creates a new chat request
 // @Summary Create a chat request
-// @Description Create a new chat request from the logged-in user to another user
+// @Description Create a new chat request from the logged-in user to another user. 
+// If a request already exists and is pending or open, a new request cannot be created.
 // @Tags Chat
 // @Accept json
 // @Produce json
 // @Param requested_id query int true "ID of the user you want to start a chat with"
 // @Success 201 {object} models.ChatRequest "Returns the created chat request"
-// @Failure 400 {string} string "invalid requested_id"
+// @Failure 400 {string} string "Invalid requested_id or request already exists and is open/pending"
 // @Failure 401 {string} string "Unauthorized — user not logged in"
-// @Failure 500 {string} string "db error"
+// @Failure 500 {string} string "Database error"
 // @Router /chat/createChatRequest [post]
 func CreateChatRequestHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +45,17 @@ func CreateChatRequestHandler() http.HandlerFunc {
 			return
 		}
 
+		// Проверяем, есть ли уже открытый запрос между пользователями
+		existingRequest, err := db.GetChatRequest(db.Postgres, requestedID, claims.UserID)
+		if err != nil && err != sql.ErrNoRows {
+			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if existingRequest != nil && (existingRequest.Status == "pending" || existingRequest.Status == "open") {
+			http.Error(w, "request already exists and is open/pending", http.StatusBadRequest)
+			return
+		}
+
 		request := &models.ChatRequest{
 			RequesterID: requestedID,
 			RequestedID: claims.UserID,
@@ -61,6 +73,7 @@ func CreateChatRequestHandler() http.HandlerFunc {
 		json.NewEncoder(w).Encode(request)
 	}
 }
+
 
 // UpdateChatRequestHandler updates a chat request (accept/reject)
 // @Summary Update a chat request
