@@ -2,8 +2,11 @@ package electrum
 
 import (
 	"encoding/json"
+	"log"
 	"fmt"
 	"math/big"
+	mDb "mFrelance/db"
+	"github.com/jmoiron/sqlx"
 )
 
 type AddressBalance struct {
@@ -97,16 +100,34 @@ func (c *Client) GetTransaction(tx string) (string, error) {
 	return txHex, nil
 }
 
-func (c *Client) CreateAddress() (string, error) {
+func (c *Client) CreateAddress(db *sqlx.DB, currency string) (string, error) {
+	addresses, err := c.ListAddresses()
+	if err != nil {
+		return "", fmt.Errorf("failed to list addresses: %w", err)
+	}
+	log.Println("addresses: ")
+	log.Println(addresses)
+	for _, addr := range addresses {
+		log.Println(addr)
+		our, err := mDb.IsOurWalletAddress(db, addr, currency)
+		if err != nil {
+			return "", fmt.Errorf("failed to check address %s: %w", addr, err)
+		}
+		if !our {
+			return addr, nil
+		}
+		log.Println("addr is our")
+	}
+
 	res, err := c.call("createnewaddress")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to create new address: %w", err)
 	}
 
-	var addr string
-	if err := json.Unmarshal(res, &addr); err != nil {
-		return "", err
+	var newAddr string
+	if err := json.Unmarshal(res, &newAddr); err != nil {
+		return "", fmt.Errorf("failed to unmarshal new address: %w", err)
 	}
 
-	return addr, nil
+	return newAddr, nil
 }
