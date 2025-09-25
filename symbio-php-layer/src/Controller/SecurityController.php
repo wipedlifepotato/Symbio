@@ -12,7 +12,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class SecurityController extends AbstractController
 {
-    #[Route('/exit', name: 'app_exit', methods: ['GET'])]
+    #[Route('/exit', name: 'app_exit')]
     public function Exit(Request $request, MFrelance $mfrelance, SessionInterface $session, TranslatorInterface $translator): Response
     {
         if (!$session->has('jwt')) {
@@ -25,7 +25,7 @@ class SecurityController extends AbstractController
         }
         return new Response('OK', 200);
     }
-    #[Route('/auth', name: 'app_auth', methods: ['POST'])]
+    #[Route('/auth', name: 'app_auth')]
     public function auth(Request $request, MFrelance $mfrelance, SessionInterface $session, TranslatorInterface $translator): Response
     {
         $username = $request->request->get('username', '');
