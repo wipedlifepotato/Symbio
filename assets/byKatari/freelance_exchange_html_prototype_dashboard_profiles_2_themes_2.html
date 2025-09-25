@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Freelance Exchange – Demo</title>
+  <style>
+    :root {
+      /* Clean Trust (light) */
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --muted-surface: #f0f4f8;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #0ea5e9;
+      --primary-600: #0284c7;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 10px 25px rgba(2, 8, 23, 0.08);
+      --radius: 14px;
+      --chip: #e2e8f0;
+      --chip-text: #0f172a;
+      --gradient-hero: linear-gradient(135deg,#38bdf8 0%, #0ea5e9 35%, #2563eb 100%);
+    }
+
+    .theme-neon {
+      /* Neon Grid (dark) */
+      --bg: #0b1020;
+      --surface: #0f152b;
+      --muted-surface: #0c1226;
+      --text: #e2e8f0;
+      --muted: #93a3b8;
+      --primary: #22d3ee; /* cyan */
+      --primary-600: #06b6d4;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #fb7185;
+      --shadow: 0 20px 40px rgba(34,211,238,0.12);
+      --radius: 16px;
+      --chip: rgba(255,255,255,0.06);
+      --chip-text: #e2e8f0;
+      --gradient-hero: radial-gradient(1200px 600px at 10% -10%, rgba(34,211,238,0.25), transparent 60%),
+                        radial-gradient(1000px 500px at 90% -20%, rgba(168,85,247,0.2), transparent 60%),
+                        linear-gradient(135deg,#111827 0%, #0f152b 100%);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+
+    /* Top Nav */
+    .topbar { position: sticky; top: 0; z-index: 50; backdrop-filter: saturate(140%) blur(8px);
+      background: color-mix(in sRGB, var(--surface) 85%, transparent);
+      border-bottom: 1px solid color-mix(in sRGB, var(--text) 10%, transparent);
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+    .row { display: flex; align-items: center; gap: 12px; }
+    .topbar-inner { display: grid; grid-template-columns: 1fr auto auto; align-items: center; height: 64px; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight: 700; letter-spacing: .2px; }
+    .brand-logo { width:28px; height:28px; border-radius: 8px; background: var(--gradient-hero); box-shadow: var(--shadow); }
+
+    .tabs { display:flex; gap: 8px; }
+    .tab-btn { appearance:none; border: 1px solid color-mix(in sRGB,var(--text) 12%,transparent);
+      background: var(--surface); color: var(--text); padding: 8px 12px; border-radius: 10px; cursor:pointer; font-weight:600; }
+    .tab-btn[aria-selected="true"]{ background: var(--primary); color: white; border-color: var(--primary-600); }
+
+    .tools { display:flex; align-items:center; gap: 8px; }
+    .chip { background: var(--chip); color: var(--chip-text); padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .ghost { background: transparent; border: 1px solid color-mix(in sRGB,var(--text) 12%,transparent); color: var(--text); }
+
+    /* Hero / dashboard header */
+    .hero { margin-top: 16px; background: var(--gradient-hero); color: #fff; border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 24px; display:flex; align-items:center; justify-content: space-between; gap: 20px; }
+    .hero h1 { margin: 0; font-size: 28px; }
+    .hero p { margin: 6px 0 0; opacity:.9; }
+    .hero-cta { display:flex; gap: 10px; flex-wrap: wrap; }
+    .btn { appearance:none; border:none; border-radius: 12px; padding: 10px 14px; font-weight:700; cursor:pointer; box-shadow: var(--shadow); }
+    .btn-primary { background: #ffffff; color:#0f172a; }
+    .btn-outline { background: transparent; color: #fff; border:1px solid rgba(255,255,255,.5); }
+
+    /* Grid & cards */
+    .grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 18px; }
+    @media (min-width: 840px){ .grid-2 { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 1040px){ .grid-4 { grid-template-columns: repeat(4, 1fr); } }
+    .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; border: 1px solid color-mix(in sRGB,var(--text) 10%, transparent); }
+    .card h3 { margin: 0 0 12px; font-size: 16px; }
+    .card .muted { color: var(--muted); font-size: 13px; }
+    .card .split { display:grid; grid-template-columns: 1fr auto; align-items:start; gap: 12px; }
+
+    /* Inputs */
+    .field { display:flex; flex-direction:column; gap: 6px; }
+    label { font-size: 12px; color: var(--muted); }
+    input[type="text"], input[type="number"] { padding: 10px 12px; border-radius: 10px; border:1px solid color-mix(in sRGB,var(--text) 15%,transparent); background: var(--muted-surface); color: var(--text); }
+
+    .btn-solid { background: var(--primary); color: #fff; padding: 10px 14px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; box-shadow: var(--shadow); }
+    .btn-solid:hover { filter: brightness(0.98); }
+
+    .kpis { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+    .kpi { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 14px; border: 1px solid color-mix(in sRGB,var(--text) 10%, transparent); }
+    .kpi .label { color: var(--muted); font-size: 12px; }
+    .kpi .value { font-weight: 800; font-size: 22px; margin-top: 6px; }
+
+    /* Quick actions */
+    .actions { display:grid; gap: 14px; }
+    @media (min-width: 760px){ .actions { grid-template-columns: repeat(4, 1fr); } }
+    .tile { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 22px; position:relative; overflow:hidden; border: 1px solid color-mix(in sRGB,var(--text) 10%, transparent); }
+    .tile:hover { transform: translateY(-1px); transition: transform .15s ease; }
+    .tile h4 { margin: 0 0 6px; }
+    .tile p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    /* Profiles list */
+    .profiles { display:grid; gap: 16px; margin-top: 18px; }
+    @media (min-width: 840px){ .profiles { grid-template-columns: repeat(3, 1fr); } }
+    .profile { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; display:grid; gap: 12px; align-content:start; border: 1px solid color-mix(in sRGB,var(--text) 10%, transparent); }
+    .profile .head { display:flex; gap: 12px; align-items:center; }
+    .avatar { width: 48px; height:48px; border-radius: 50%; background: var(--muted-surface); display:grid; place-items:center; font-weight:800; }
+    .skills { display:flex; flex-wrap:wrap; gap:6px; }
+    .skill-chip { background: var(--chip); color: var(--chip-text); padding: 6px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+
+    /* Footer */
+    footer { margin-top: 36px; padding: 28px 0; color: var(--muted); }
+    footer .cols { display:grid; gap: 16px; }
+    @media (min-width: 840px){ footer .cols { grid-template-columns: 2fr 1fr 1fr; } }
+
+    /* Visually hidden (for simple routing) */
+    .hidden { display: none !important; }
+
+    /* Small icon helpers */
+    .icon { width: 18px; height: 18px; vertical-align: -3px; margin-right: 6px; }
+
+    /* Focus states */
+    :is(button, a, input):focus { outline: 3px solid color-mix(in sRGB, var(--primary) 55%, transparent); outline-offset: 2px; }
+      /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(2,8,23,.55); display: grid; place-items: center; z-index: 200; backdrop-filter: blur(2px); }
+    .modal { background: var(--surface); color: var(--text); width: min(720px, 92vw); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid color-mix(in sRGB,var(--text) 14%, transparent); display: grid; grid-template-rows: auto 1fr auto; max-height: 86vh; }
+    .modal header { padding: 16px 18px; border-bottom: 1px solid color-mix(in sRGB,var(--text) 12%, transparent); display:flex; align-items:center; justify-content: space-between; }
+    .modal .content { padding: 16px 18px; overflow: auto; }
+    .modal footer { padding: 16px 18px; border-top: 1px solid color-mix(in sRGB,var(--text) 12%, transparent); display:flex; gap: 10px; justify-content: flex-end; }
+
+    .form-grid { display:grid; gap: 12px; grid-template-columns: 1fr; }
+    @media (min-width: 760px){ .form-grid { grid-template-columns: 1fr 1fr; } }
+    .form-span-2 { grid-column: 1/-1; }
+
+    textarea { min-height: 120px; resize: vertical; padding: 10px 12px; border-radius: 10px; border:1px solid color-mix(in sRGB,var(--text) 15%,transparent); background: var(--muted-surface); color: var(--text); }
+    select { padding: 10px 12px; border-radius: 10px; border:1px solid color-mix(in sRGB,var(--text) 15%,transparent); background: var(--muted-surface); color: var(--text); }
+    .error { color: var(--danger); font-size: 12px; display:none; }
+    .invalid { border-color: color-mix(in sRGB, var(--danger) 65%, transparent) !important; outline: none; }
+    /* Workbench */
+    .backbar { display:flex; align-items:center; gap:10px; margin-top:18px; }
+    .workbench { display:grid; gap: 16px; grid-template-columns: 1fr; margin-top: 12px; }
+    @media (min-width: 1040px){ .workbench { grid-template-columns: 280px 1fr 360px; } }
+    .wb-filters .chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .wb-toggle { display:flex; align-items:center; gap:8px; }
+    .wb-list { display:grid; gap:10px; }
+    .job { border:1px solid color-mix(in sRGB,var(--text) 10%, transparent); border-radius: 12px; padding: 12px; background: var(--surface); box-shadow: var(--shadow); cursor:pointer; }
+    .job:hover { transform: translateY(-1px); transition: transform .15s ease; }
+    .job .meta { display:flex; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size:12px; }
+    .tag { background: var(--chip); color: var(--chip-text); padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .job.selected { outline: 2px solid var(--primary); }
+    .wb-details .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .chip.active { outline: 2px solid var(--primary); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true"></div>
+        <span id="brandName">Назва проєкту</span>
+      </div>
+      <nav class="tabs" aria-label="Primary">
+        <button id="tabDashboard" class="tab-btn" data-page="dashboard" aria-selected="true">Dashboard</button>
+        <button id="tabTasks" class="tab-btn" data-page="workbench">Задачі</button>
+        <button id="tabProfiles" class="tab-btn" data-page="profiles">Профілі</button>
+        <button id="tabAdmin" class="tab-btn" data-page="admin">Адмінка</button>
+      </nav>
+      <div class="tools">
+        <button id="themeSwitch" class="tab-btn ghost" title="Змінити тему">🌗 Тема</button>
+        <span id="lngUA" class="chip">UA</span>
+        <span id="lngRU" class="chip">RU</span>
+        <span id="lngEN" class="chip">EN</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- HERO -->
+    <section class="hero" id="hero">
+      <div>
+        <h1 id="heroTitle">Ласкаво просимо до панелі користувача</h1>
+        <p id="heroText">Швидкий доступ до гаманця, задач і профілів. Створюй проєкти, знаходь виконавців, тримай фокус.</p>
+      </div>
+      <div class="hero-cta">
+        <button class="btn btn-primary" onclick="toast('Створити проєкт: демо-клік')">＋ Створити проєкт</button>
+        <button class="btn btn-outline" onclick="openTaskModal()">Створити задачу</button>
+      </div>
+    </section>
+
+    <!-- DASHBOARD PAGE -->
+    <section id="page-dashboard" class="page">
+      <div class="kpis" aria-label="KPIs">
+        <div class="kpi"><div class="label">Активні задачі</div><div class="value">12</div></div>
+        <div class="kpi"><div class="label">Середній бюджет</div><div class="value">$420</div></div>
+        <div class="kpi"><div class="label">Час закриття</div><div class="value">3.8 дн</div></div>
+        <div class="kpi"><div class="label">Верифіковані профілі</div><div class="value">327</div></div>
+      </div>
+
+      <div class="grid grid-2">
+        <!-- Escrow Summary -->
+        <article class="card" id="escrowCard">
+          <h3 id="escrowTitle">Ескроу-баланс</h3>
+          <div class="split" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div>
+              <div class="muted" id="escrowHeld">Утримується</div>
+              <div class="value"><strong>$1,240</strong></div>
+            </div>
+            <div>
+              <div class="muted" id="escrowReleasable">Доступно до виплати</div>
+              <div class="value"><strong>$560</strong></div>
+            </div>
+            <div>
+              <div class="muted" id="escrowPending">Очікує підтвердження</div>
+              <div class="value"><strong>$180</strong></div>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <button class="btn-solid" onclick="toast(i18n('requestPayout'))" id="requestPayoutBtn">Запросити виплату</button>
+          </div>
+        </article>
+        <!-- Finance quick actions -->
+        <article class="card">
+          <h3 id="financeActionsTitle">Фінанси</h3>
+          <div class="row" style="gap:8px; flex-wrap:wrap">
+            <button class="tab-btn ghost" onclick="toast(i18n('viewPayoutHistory'))" id="viewPayoutHistoryBtn">Історія виплат</button>
+            <button class="tab-btn ghost" onclick="goDisputes()" id="openDisputesBtn">Диспути</button>
+          </div>
+        </article>
+      </div>
+
+      <section style="margin-top:18px">
+        <h3 id="freelSectionTitle" style="margin:0 0 12px">Система фрілансу</h3>
+        <div class="actions">
+          <article class="tile" role="button" tabindex="0" onclick="goWorkbench()">
+            <h4 id="allTasksTileTitle">Всі задачі</h4>
+            <p>Стрічка замовлень з фільтрами за стеком, бюджетом і дедлайном.</p>
+          </article>
+          <article class="tile" role="button" tabindex="0" onclick="toast('Пошук роботи (демо)')">
+            <h4 id="findWorkTileTitle">Пошук роботи</h4>
+            <p>Підібрані за твоїм профілем пропозиції.</p>
+          </article>
+          <article class="tile" role="button" tabindex="0" onclick="openTaskModal()">
+            <h4 id="createTaskTileTitle">Створити задачу</h4>
+            <p>Опиши потрібний результат, бюджет і SLA.</p>
+          </article>
+          <article class="tile" role="button" tabindex="0" onclick="goDisputes()">
+            <h4 id="disputesTileTitle">Диспути</h4>
+            <p>Прозорий арбітраж і ескалації за 48 годин.</p>
+          </article>
+        </div>
+      </section>
+    </section>
+    </section>
+
+    <!-- PROFILES PAGE -->
+    <section id="page-profiles" class="page hidden" aria-labelledby="profiles-title">
+      <div class="backbar"><button class="tab-btn ghost" onclick="goBack()" id="backBtnProfiles">← <span id="backText">Назад</span></button><h2 id="profiles-title" style="margin:0">Профілі користувачів</h2></div>
+      <div class="profiles">
+        <!-- Profile 1 -->
+        <article class="profile">
+          <div class="head">
+            <img class="avatar" alt="Ельза де Муар" src="https://dummyimage.com/96x96/8aa/fff&text=E"/>
+            <div>
+              <strong>Ельза де Муар</strong><br/>
+              <span class="muted">психотерапевт і подольфий таролог</span>
+            </div>
+          </div>
+          <div class="skills">
+            <span class="skill-chip">ru/укр</span>
+            <span class="skill-chip">консалтинг</span>
+          </div>
+          <div class="split">
+            <div><div class="muted">Рейтинг</div><strong>0</strong></div>
+            <div><div class="muted">Виконані задачі</div><strong>0</strong></div>
+          </div>
+          <button class="btn-solid" onclick="toast('Запрошено до чату з Ельзою (демо)')">Запросити чат</button>
+        </article>
+
+        <!-- Profile 2 -->
+        <article class="profile">
+          <div class="head">
+            <div class="avatar">S</div>
+            <div>
+              <strong>superuser123</strong><br/>
+              <span class="muted">full-stack • devops</span>
+            </div>
+          </div>
+          <div class="skills">
+            <span class="skill-chip">python</span>
+            <span class="skill-chip">java</span>
+            <span class="skill-chip">telethon</span>
+          </div>
+          <div class="split">
+            <div><div class="muted">Рейтинг</div><strong>5.0</strong></div>
+            <div><div class="muted">Виконані задачі</div><strong>24</strong></div>
+          </div>
+          <button class="btn-solid" onclick="toast('Запрошено до чату з superuser123 (демо)')">Запросити чат</button>
+        </article>
+
+        <!-- Profile 3 -->
+        <article class="profile">
+          <div class="head">
+            <div class="avatar">K</div>
+            <div>
+              <strong>katary</strong><br/>
+              <span class="muted">ambient creator • bot maker</span>
+            </div>
+          </div>
+          <div class="skills">
+            <span class="skill-chip">design</span>
+            <span class="skill-chip">suno</span>
+            <span class="skill-chip">telegram bot</span>
+          </div>
+          <div class="split">
+            <div><div class="muted">Рейтинг</div><strong>4.8</strong></div>
+            <div><div class="muted">Виконані задачі</div><strong>31</strong></div>
+          </div>
+          <button class="btn-solid" onclick="toast('Запрошено до чату з katary (демо)')">Запросити чат</button>
+        </article>
+      </div>
+
+      <div class="row" style="justify-content: space-between; margin-top: 18px;">
+        <button class="tab-btn ghost" onclick="toast('Попередня сторінка (демо)')">← Попередня</button>
+        <div class="chip">Сторінка 2 з 5</div>
+        <button class="tab-btn ghost" onclick="toast('Наступна сторінка (демо)')">Далі →</button>
+      </div>
+    </section>
+
+    <!-- WORKBENCH PAGE -->
+    <section id="page-workbench" class="page hidden" aria-labelledby="workbench-title">
+      <div class="backbar"><button class="tab-btn ghost" onclick="goBack()" id="backBtnTasks">← <span id="backTextTasks">Назад</span></button><h2 id="workbench-title" style="margin:0">Всі задачі</h2></div>
+
+      <div class="workbench">
+        <!-- Left: Filters -->
+        <aside class="wb-filters card">
+          <h3 style="margin-top:0" id="filtersTitle">Фільтри</h3>
+          <div class="chips" id="stackChips">
+            <span class="skill-chip" data-tag="react">react</span>
+            <span class="skill-chip" data-tag="node">node</span>
+            <span class="skill-chip" data-tag="python">python</span>
+            <span class="skill-chip" data-tag="design">design</span>
+            <span class="skill-chip" data-tag="telegram">telegram</span>
+          </div>
+          <hr style="border:none;border-top:1px solid color-mix(in sRGB,var(--text) 10%, transparent); margin:12px 0"/>
+          <label class="wb-toggle"><input id="fltEscrow" type="checkbox"/> <span id="escrowOnly">Тільки ескроу</span></label>
+          <label class="wb-toggle"><input id="fltUrgent" type="checkbox"/> <span id="urgentOnly">Термінові</span></label>
+          <label class="wb-toggle"><input id="fltTest" type="checkbox"/> <span id="testOnly">З тест-завданням</span></label>
+        </aside>
+
+        <!-- Center: Jobs list -->
+        <section class="wb-list" id="jobsList"></section>
+
+        <!-- Right: Details -->
+        <aside class="wb-details card" id="jobDetails">
+          <h3 style="margin-top:0" id="detailsTitle">Деталі задачі</h3>
+          <p class="muted" id="detailsEmpty">Обери задачу зі списку, щоб побачити опис, критерії приймання та дії.</p>
+          <div id="detailsBody" class="hidden"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- DISPUTES PAGE -->
+    <section id="page-disputes" class="page hidden" aria-labelledby="disputes-title">
+      <div class="backbar"><button class="tab-btn ghost" onclick="goBack()" id="backBtnDisputes">← <span id="backTextDisputes">Назад</span></button><h2 id="disputes-title" style="margin:0">Диспути</h2></div>
+      <div class="grid grid-2" style="margin-top:12px">
+        <aside class="card">
+          <h3 id="disputesFiltersTitle" style="margin-top:0">Фільтри</h3>
+          <label class="wb-toggle"><input id="dOpen" type="checkbox" checked/> <span id="dOpenText">Відкриті</span></label>
+          <label class="wb-toggle"><input id="dReview" type="checkbox" checked/> <span id="dReviewText">На розгляді</span></label>
+          <label class="wb-toggle"><input id="dResolved" type="checkbox" checked/> <span id="dResolvedText">Закриті</span></label>
+        </aside>
+        <section class="card">
+          <div id="disputesList"></div>
+          <div id="disputesEmpty" class="muted">Немає кейсів за обраними фільтрами.</div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ADMIN PAGE -->
+    <section id="page-admin" class="page hidden" aria-labelledby="admin-title">
+      <div class="backbar"><button class="tab-btn ghost" onclick="goBack()" id="backBtnAdmin">← <span id="backTextAdmin">Назад</span></button><h2 id="admin-title" style="margin:0">Адмінка</h2></div>
+      <div class="kpis" style="margin-top:12px">
+        <div class="kpi"><div class="label" id="admUsersLabel">Користувачі</div><div class="value">1,248</div></div>
+        <div class="kpi"><div class="label" id="admJobsLabel">Задачі активні</div><div class="value">312</div></div>
+        <div class="kpi"><div class="label" id="admDisputesLabel">Диспути</div><div class="value">7</div></div>
+        <div class="kpi"><div class="label" id="admRevenueLabel">Дохід (30д)</div><div class="value">$18.4k</div></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:12px">
+        <section class="card">
+          <h3 id="admModerUsers">Модерація користувачів</h3>
+          <div class="row" style="gap:8px; flex-wrap:wrap">
+            <button class="tab-btn ghost" onclick="toast('Блоковано (демо)')" id="admBlock">Блокувати</button>
+            <button class="tab-btn ghost" onclick="toast('Розблоковано (демо)')" id="admUnblock">Розблокувати</button>
+            <button class="btn-solid" onclick="toast('Позначено верифікованим (демо)')" id="admVerify">Верифікувати</button>
+          </div>
+        </section>
+        <section class="card">
+          <h3 id="admModerJobs">Модерація задач</h3>
+          <div class="row" style="gap:8px; flex-wrap:wrap">
+            <button class="tab-btn ghost" onclick="toast('Схвалено (демо)')" id="admApprove">Схвалити</button>
+            <button class="tab-btn ghost" onclick="toast('Відхилено (демо)')" id="admReject">Відхилити</button>
+            <button class="btn-solid" onclick="toast('Переопублікувати (демо)')" id="admRepublish">Переопублікувати</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <footer>
+      <div class="cols">
+        <div>
+          <strong>Назва проєкту</strong>
+          <p class="muted">Фріланс-платформа для звʼязку клієнтів і професіоналів. Прозорі угоди, швидкий матчинг, чіткі SLA.</p>
+        </div>
+        <div>
+          <div class="muted">Швидкі лінки</div>
+          <ul>
+            <li><a href="#" onclick="goDashboard()">Dashboard</a></li>
+            <li><a href="#" onclick="goProfiles()">Профілі</a></li>
+            <li><a href="#" onclick="toast('Задачі (демо)')">Задачі</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="muted">Мова</div>
+          <div class="row"><span class="chip">Українська</span><span class="chip">English</span></div>
+        </div>
+      </div>
+      <p class="muted">© 2025 Назва проєкту. Всі права захищено.</p>
+    </footer>
+  </main>
+
+  <!-- Create Task Modal -->
+  <div id="taskModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle" onclick="closeTaskModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <header>
+        <h3 id="taskModalTitle" style="margin:0">Створити задачу</h3>
+        <button class="tab-btn ghost" onclick="closeTaskModal()" aria-label="Закрити">✕</button>
+      </header>
+      <div class="content">
+        <form id="taskForm" class="form-grid" novalidate>
+          <div class="field form-span-2">
+            <label id="taskTitleLabel" for="taskTitle">Назва задачі *</label>
+            <input id="taskTitle" type="text" maxlength="80" placeholder="Напр. Розробити лендинг для кав'ярні" />
+            <div class="error" id="err-title">Мінімум 6 символів.</div>
+          </div>
+          <div class="field">
+            <label id="budgetLabel" for="budget">Бюджет *</label>
+            <input id="budget" type="number" min="1" step="1" placeholder="Напр. 500" />
+            <div class="error" id="err-budget">Вкажи суму &gt; 0.</div>
+          </div>
+          <div class="field">
+            <label id="currencyLabel" for="currency">Валюта</label>
+            <select id="currency"><option>USD</option><option>EUR</option><option>UAH</option></select>
+          </div>
+          <div class="field">
+            <label id="typeLabel" for="type">Тип оплати</label>
+            <select id="type"><option value="fixed">Фіксований</option><option value="hourly">Погодинний</option></select>
+          </div>
+          <div class="field">
+            <label id="deadlineLabel" for="deadline">Дедлайн *</label>
+            <input id="deadline" type="date" />
+            <div class="error" id="err-deadline">Обери дату у майбутньому.</div>
+          </div>
+          <div class="field">
+            <label id="langLabel" for="lang">Мова комунікації</label>
+            <select id="lang"><option>Українська</option><option>English</option><option>Русский</option></select>
+          </div>
+          <div class="field form-span-2">
+            <label id="stackLabel" for="stack">Стек / теги</label>
+            <input id="stack" type="text" placeholder="напр. react, node, ui/ux" />
+          </div>
+          <div class="field form-span-2">
+            <label id="descLabel" for="desc">Опис задачі *</label>
+            <textarea id="desc" placeholder="Критерії приймання, референси, обсяг робіт…"></textarea>
+            <div class="error" id="err-desc">Мінімум 30 символів.</div>
+          </div>
+          <div class="field form-span-2">
+            <label id="agreeLabel"><input id="agree" type="checkbox" /> Погоджуюсь з правилами платформи та ескроу</label>
+            <div class="error" id="err-agree">Потрібна згода.</div>
+          </div>
+        </form>
+      </div>
+      <footer>
+        <button id="cancelBtn" class="tab-btn ghost" onclick="closeTaskModal()">Скасувати</button>
+        <button id="publishBtn" class="btn-solid" onclick="submitTask()">Опублікувати</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" style="position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(100%);
+       background: var(--surface); color: var(--text); border:1px solid color-mix(in sRGB,var(--text) 12%,transparent);
+       box-shadow: var(--shadow); padding: 10px 14px; border-radius: 12px; transition: transform .25s ease; z-index: 100;">
+    <span id="toastText">Подія</span>
+  </div>
+
+  <script>
+"use strict";
+// ===== Helpers =====
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+// ===== Pages & Nav =====
+const body = document.body;
+const themeSwitch = $('#themeSwitch');
+const pages = {
+  dashboard: $('#page-dashboard'),
+  profiles: $('#page-profiles'),
+  workbench: $('#page-workbench'),
+  disputes: $('#page-disputes'),
+  admin: $('#page-admin')
+};
+const tabButtons = $$('.tab-btn[data-page]');
+
+let navStack = ['dashboard'];
+let currentPage = 'dashboard';
+
+function show(page, push){
+  Object.entries(pages).forEach(([k, el]) => el && el.classList.toggle('hidden', k !== page));
+  tabButtons.forEach(btn => btn.setAttribute('aria-selected', String(btn.dataset.page === page)));
+  $('#hero').classList.toggle('hidden', page !== 'dashboard');
+  if(push) navStack.push(page);
+  currentPage = page;
+}
+function goBack(){
+  if(navStack.length > 1){ navStack.pop(); const prev = navStack[navStack.length-1]; show(prev, false); }
+  else { show('dashboard', false); }
+}
+function goDashboard(){ show('dashboard', true); }
+function goProfiles(){ show('profiles', true); }
+function goWorkbench(){ show('workbench', true); renderJobs(); }
+function goDisputes(){ show('disputes', true); renderDisputes(); }
+function goAdmin(){ show('admin', true); }
+
+tabButtons.forEach(btn => btn.addEventListener('click', () => show(btn.dataset.page, true)));
+
+// ===== Toast =====
+let toastTimer;
+function toast(text){
+  const t = $('#toast');
+  $('#toastText').textContent = text;
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.style.transform = 'translateX(-50%) translateY(100%)', 1600);
+}
+
+// ===== Theme =====
+function setTheme(neon){
+  if(neon){ body.classList.add('theme-neon'); themeSwitch.textContent = '🌞 Тема'; }
+  else { body.classList.remove('theme-neon'); themeSwitch.textContent = '🌗 Тема'; }
+  localStorage.setItem('fx-theme', neon ? 'neon' : 'clean');
+}
+function restoreTheme(){ setTheme(localStorage.getItem('fx-theme') === 'neon'); }
+if(themeSwitch) themeSwitch.addEventListener('click', ()=> setTheme(!body.classList.contains('theme-neon')));
+
+// ===== I18N =====
+const translations = {
+  uk: {
+    brandName: 'Назва проєкту',
+    tabDashboard: 'Dashboard', tabTasks: 'Задачі', tabProfiles: 'Профілі',
+    theme: 'Тема',
+    heroTitle: 'Ласкаво просимо до панелі користувача',
+    heroText: 'Швидкий доступ до гаманця, задач і профілів. Створюй проєкти, знаходь виконавців, тримай фокус.',
+    createProjectBtn: '＋ Створити проєкт', createTaskBtn: 'Створити задачу',
+    freelSectionTitle: 'Система фрілансу', allTasksTileTitle: 'Всі задачі', findWorkTileTitle: 'Пошук роботи', createTaskTileTitle: 'Створити задачу', disputesTileTitle: 'Диспути',
+    profiles_title: 'Профілі користувачів', backText: 'Назад',
+    workbench_title: 'Всі задачі', filtersTitle: 'Фільтри', escrowOnly: 'Тільки ескроу', urgentOnly: 'Термінові', testOnly: 'З тест-завданням', detailsTitle: 'Деталі задачі', detailsEmpty: 'Обери задачу зі списку, щоб побачити опис, критерії приймання та дії.',
+    criteriaTitle:'Критерії приймання', action_apply:'Відгукнутись', action_question:'Поставити питання', action_report:'Репорт', ago:'тому',
+    // Escrow
+    escrowTitle:'Ескроу-баланс', escrowHeld:'Утримується', escrowReleasable:'Доступно до виплати', escrowPending:'Очікує підтвердження', requestPayout:'Запит відправлено', financeActionsTitle:'Фінанси', viewPayoutHistory:'Історія виплат',
+    // Disputes/Admin
+    disputesTitle:'Диспути', disputesFiltersTitle:'Фільтри', dOpenText:'Відкриті', dReviewText:'На розгляді', dResolvedText:'Закриті', disputesEmpty:'Немає кейсів за обраними фільтрами.',
+    openArb:'Відкрити арбітраж', addEvidence:'Додати доказ', closeCase:'Закрити кейс',
+    adminTitle:'Адмінка', admUsersLabel:'Користувачі', admJobsLabel:'Задачі активні', admDisputesLabel:'Диспути', admRevenueLabel:'Дохід (30д)', admModerUsers:'Модерація користувачів', admBlock:'Блокувати', admUnblock:'Розблокувати', admVerify:'Верифікувати', admModerJobs:'Модерація задач', admApprove:'Схвалити', admReject:'Відхилити', admRepublish:'Переопублікувати',
+    // Modal
+    taskTitleLabel:'Назва задачі *', budgetLabel:'Бюджет *', currencyLabel:'Валюта', typeLabel:'Тип оплати', deadlineLabel:'Дедлайн *', langLabel:'Мова комунікації', stackLabel:'Стек / теги', descLabel:'Опис задачі *', agreeLabel:'Погоджуюсь з правилами платформи та ескроу', cancelBtn:'Скасувати', publishBtn:'Опублікувати',
+    'err-title':'Мінімум 6 символів.', 'err-budget':'Вкажи суму > 0.', 'err-deadline':'Обери дату у майбутньому.', 'err-desc':'Мінімум 30 символів.', 'err-agree':'Потрібна згода.',
+    toast_fill_required: 'Заповніть обов\'язкові поля', toast_task_published: 'Задачу опубліковано'
+  },
+  ru: {
+    brandName: 'Название проекта',
+    tabDashboard: 'Панель', tabTasks: 'Задачи', tabProfiles: 'Профили',
+    theme: 'Тема',
+    heroTitle: 'Добро пожаловать в панель пользователя',
+    heroText: 'Быстрый доступ к кошельку, задачам и профилям. Создавай проекты, находи исполнителей, держи фокус.',
+    createProjectBtn: '＋ Создать проект', createTaskBtn: 'Создать задачу',
+    freelSectionTitle: 'Система фриланса', allTasksTileTitle: 'Все задачи', findWorkTileTitle: 'Поиск работы', createTaskTileTitle: 'Создать задачу', disputesTileTitle: 'Диспуты',
+    profiles_title: 'Профили пользователей', backText: 'Назад',
+    workbench_title: 'Все задачи', filtersTitle: 'Фильтры', escrowOnly: 'Только эскроу', urgentOnly: 'Срочные', testOnly: 'С тест-заданием', detailsTitle: 'Детали задачи', detailsEmpty: 'Выберите задачу из списка, чтобы увидеть описание, критерии приёмки и действия.',
+    criteriaTitle:'Критерии приёмки', action_apply:'Откликнуться', action_question:'Задать вопрос', action_report:'Репорт', ago:'назад',
+    escrowTitle:'Баланс эскроу', escrowHeld:'Удерживается', escrowReleasable:'Доступно к выплате', escrowPending:'Ожидает подтверждения', requestPayout:'Запрос отправлен', financeActionsTitle:'Финансы', viewPayoutHistory:'История выплат',
+    disputesTitle:'Диспуты', disputesFiltersTitle:'Фильтры', dOpenText:'Открытые', dReviewText:'На рассмотрении', dResolvedText:'Закрытые', disputesEmpty:'Нет кейсов по выбранным фильтрам.',
+    openArb:'Открыть арбитраж', addEvidence:'Добавить доказательство', closeCase:'Закрыть кейс',
+    adminTitle:'Админка', admUsersLabel:'Пользователи', admJobsLabel:'Активные задачи', admDisputesLabel:'Диспуты', admRevenueLabel:'Доход (30д)', admModerUsers:'Модерация пользователей', admBlock:'Заблокировать', admUnblock:'Разблокировать', admVerify:'Верифицировать', admModerJobs:'Модерация задач', admApprove:'Одобрить', admReject:'Отклонить', admRepublish:'Переопубликовать',
+    taskTitleLabel:'Название задачи *', budgetLabel:'Бюджет *', currencyLabel:'Валюта', typeLabel:'Тип оплаты', deadlineLabel:'Дедлайн *', langLabel:'Язык общения', stackLabel:'Стек / теги', descLabel:'Описание задачи *', agreeLabel:'Согласен с правилами платформы и эскроу', cancelBtn:'Отмена', publishBtn:'Опубликовать',
+    'err-title':'Минимум 6 символов.', 'err-budget':'Укажи сумму > 0.', 'err-deadline':'Выбери дату в будущем.', 'err-desc':'Минимум 30 символов.', 'err-agree':'Нужно согласие.',
+    toast_fill_required: 'Заполните обязательные поля', toast_task_published: 'Задача опубликована'
+  },
+  en: {
+    brandName: 'Project Name',
+    tabDashboard: 'Dashboard', tabTasks: 'Jobs', tabProfiles: 'Profiles',
+    theme: 'Theme',
+    heroTitle: 'Welcome to your dashboard',
+    heroText: 'Quick access to wallet, jobs and profiles. Create projects, find talent, stay focused.',
+    createProjectBtn: '+ Create project', createTaskBtn: 'Create job',
+    freelSectionTitle: 'Freelance system', allTasksTileTitle: 'All jobs', findWorkTileTitle: 'Find work', createTaskTileTitle: 'Create job', disputesTileTitle: 'Disputes',
+    profiles_title: 'User profiles', backText: 'Back',
+    workbench_title: 'All jobs', filtersTitle: 'Filters', escrowOnly: 'Escrow only', urgentOnly: 'Urgent', testOnly: 'With test task', detailsTitle: 'Job details', detailsEmpty: 'Select a job to see description, acceptance criteria and actions.',
+    criteriaTitle:'Acceptance criteria', action_apply:'Apply', action_question:'Ask question', action_report:'Report', ago:'ago',
+    escrowTitle:'Escrow balance', escrowHeld:'Held', escrowReleasable:'Releasable', escrowPending:'Pending', requestPayout:'Payout requested', financeActionsTitle:'Finance', viewPayoutHistory:'Payout history',
+    disputesTitle:'Disputes', disputesFiltersTitle:'Filters', dOpenText:'Open', dReviewText:'In review', dResolvedText:'Resolved', disputesEmpty:'No cases for selected filters.',
+    openArb:'Open arbitration', addEvidence:'Add evidence', closeCase:'Close case',
+    adminTitle:'Admin', admUsersLabel:'Users', admJobsLabel:'Active jobs', admDisputesLabel:'Disputes', admRevenueLabel:'Revenue (30d)', admModerUsers:'User moderation', admBlock:'Block', admUnblock:'Unblock', admVerify:'Verify', admModerJobs:'Job moderation', admApprove:'Approve', admReject:'Reject', admRepublish:'Republish',
+    taskTitleLabel:'Job title *', budgetLabel:'Budget *', currencyLabel:'Currency', typeLabel:'Payment type', deadlineLabel:'Deadline *', langLabel:'Communication language', stackLabel:'Stack / tags', descLabel:'Job description *', agreeLabel:'I agree to platform & escrow terms', cancelBtn:'Cancel', publishBtn:'Publish',
+    'err-title':'Min 6 characters.', 'err-budget':'Enter amount > 0.', 'err-deadline':'Choose a future date.', 'err-desc':'Min 30 characters.', 'err-agree':'Consent required.',
+    toast_fill_required: 'Fill required fields', toast_task_published: 'Job published'
+  }
+};
+let lang = localStorage.getItem('fx-lang') || 'uk';
+function i18n(key){ return (translations[lang] && translations[lang][key]) || translations.uk[key] || key; }
+function applyI18n(){
+  const ids = ['brandName','tabDashboard','tabTasks','tabProfiles','heroTitle','heroText','createProjectBtn','createTaskBtn','freelSectionTitle','allTasksTileTitle','findWorkTileTitle','createTaskTileTitle','disputesTileTitle'];
+  ids.forEach(id=>{ const el = document.getElementById(id); if(el) el.textContent = i18n(id); });
+  const map = {
+    'profiles-title':'profiles_title','backText':'backText','workbench-title':'workbench_title','filtersTitle':'filtersTitle','escrowOnly':'escrowOnly','urgentOnly':'urgentOnly','testOnly':'testOnly','detailsTitle':'detailsTitle','detailsEmpty':'detailsEmpty',
+    'disputes-title':'disputesTitle','disputesFiltersTitle':'disputesFiltersTitle','dOpenText':'dOpenText','dReviewText':'dReviewText','dResolvedText':'dResolvedText','disputesEmpty':'disputesEmpty',
+    'admin-title':'adminTitle','admUsersLabel':'admUsersLabel','admJobsLabel':'admJobsLabel','admDisputesLabel':'admDisputesLabel','admRevenueLabel':'admRevenueLabel','admModerUsers':'admModerUsers','admBlock':'admBlock','admUnblock':'admUnblock','admVerify':'admVerify','admModerJobs':'admModerJobs','admApprove':'admApprove','admReject':'admReject','admRepublish':'admRepublish',
+    'taskTitleLabel':'taskTitleLabel','budgetLabel':'budgetLabel','currencyLabel':'currencyLabel','typeLabel':'typeLabel','deadlineLabel':'deadlineLabel','langLabel':'langLabel','stackLabel':'stackLabel','descLabel':'descLabel','agreeLabel':'agreeLabel','cancelBtn':'cancelBtn','publishBtn':'publishBtn',
+    'escrowTitle':'escrowTitle','escrowHeld':'escrowHeld','escrowReleasable':'escrowReleasable','escrowPending':'escrowPending','financeActionsTitle':'financeActionsTitle','viewPayoutHistoryBtn':'viewPayoutHistory','requestPayoutBtn':'requestPayout'
+  };
+  Object.entries(map).forEach(([id,key])=>{ const el=document.getElementById(id); if(el) el.textContent=i18n(key); });
+  // Language chips active state
+  ['lngUA','lngRU','lngEN'].forEach(cid => { const el = document.getElementById(cid); if(el) el.classList.remove('active'); });
+  if(lang==='uk') $('#lngUA').classList.add('active');
+  if(lang==='ru') $('#lngRU').classList.add('active');
+  if(lang==='en') $('#lngEN').classList.add('active');
+  // Tabs
+  $('#tabDashboard').textContent = i18n('tabDashboard');
+  $('#tabTasks').textContent = i18n('tabTasks');
+  $('#tabProfiles').textContent = i18n('tabProfiles');
+  const ta = $('#tabAdmin'); if(ta) ta.textContent = i18n('adminTitle');
+}
+$('#lngUA').onclick = ()=>{ lang='uk'; localStorage.setItem('fx-lang','uk'); applyI18n(); rerender(); };
+$('#lngRU').onclick = ()=>{ lang='ru'; localStorage.setItem('fx-lang','ru'); applyI18n(); rerender(); };
+$('#lngEN').onclick = ()=>{ lang='en'; localStorage.setItem('fx-lang','en'); applyI18n(); rerender(); };
+function rerender(){ if(pages.workbench && !pages.workbench.classList.contains('hidden')) renderJobs(); if(pages.disputes && !pages.disputes.classList.contains('hidden')) renderDisputes(); }
+
+// ===== Create Task Modal =====
+const taskModal = () => document.getElementById('taskModal');
+function openTaskModal(){ taskModal().classList.remove('hidden'); setTimeout(()=> $('#taskTitle') && $('#taskTitle').focus(), 60); }
+function closeTaskModal(){ taskModal().classList.add('hidden'); }
+
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && taskModal() && !taskModal().classList.contains('hidden')) closeTaskModal(); });
+function setError(el, show, id){ const msg = document.getElementById(id); if(!el||!msg) return; if(show){ el.classList.add('invalid'); msg.style.display='block'; } else { el.classList.remove('invalid'); msg.style.display='none'; } }
+function submitTask(){
+  const title = $('#taskTitle');
+  const budget = $('#budget');
+  const deadline = $('#deadline');
+  const desc = $('#desc');
+  const agree = $('#agree');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dVal = deadline && deadline.value ? new Date(deadline.value) : null;
+  const okTitle = title && title.value.trim().length >= 6;
+  const okBudget = budget && parseFloat(budget.value) > 0;
+  const okDeadline = dVal && dVal.getTime() > today.getTime();
+  const okDesc = desc && desc.value.trim().length >= 30;
+  const okAgree = agree && agree.checked;
+  setError(title, !okTitle, 'err-title');
+  setError(budget, !okBudget, 'err-budget');
+  setError(deadline, !okDeadline, 'err-deadline');
+  setError(desc, !okDesc, 'err-desc');
+  const agreeErr = $('#err-agree'); if(agreeErr) agreeErr.style.display = okAgree ? 'none':'block';
+  if(!(okTitle && okBudget && okDeadline && okDesc && okAgree)) { toast(i18n('toast_fill_required')); return; }
+  closeTaskModal();
+  const id = Math.floor(100000 + Math.random()*900000);
+  toast(i18n('toast_task_published') + ` (#${id})`);
+  const form = $('#taskForm'); if(form) form.reset();
+}
+
+// ===== Workbench Jobs =====
+const jobsData = [
+  {id:101, title:'Лендінг для кавʼярні', budget:700, cur:'USD', deadlineDays:7, tags:['design','react'], type:'fixed', escrow:true, urgent:false, test:false, posted:'3h', desc:'Потрібен лендінг з оплатою, адаптив, 5 секцій, UI-кит в Figma.', criteria:['Pixel-perfect','Core Web Vitals green','Оплата Stripe']},
+  {id:102, title:'Телеграм-бот для заявок', budget:500, cur:'USD', deadlineDays:5, tags:['python','telegram'], type:'fixed', escrow:true, urgent:true, test:true, posted:'1h', desc:'Бот приймає заявки, адмінка, експорт у Google Sheets.', criteria:['Антиспам','Адмін-ролі','Логи подій']},
+  {id:103, title:'Dashboard React + Node', budget:20, cur:'USD/h', deadlineDays:14, tags:['react','node'], type:'hourly', escrow:false, urgent:false, test:true, posted:'12h', desc:'Внутрішня адмінка: таблиці, фільтри, графіки.', criteria:['JWT','Audit log','Unit tests 60%']},
+  {id:104, title:'Редизайн сайту агенції', budget:1200, cur:'USD', deadlineDays:10, tags:['design'], type:'fixed', escrow:true, urgent:true, test:false, posted:'30m', desc:'Редизайн головної, блоґу й портфоліо. Dark/light.', criteria:['Design tokens','Accessibility AA','Anim 150ms']}
+];
+function renderJobs(){
+  const list = $('#jobsList'); if(!list) return; list.innerHTML='';
+  const tagActive = $$('#stackChips .skill-chip.active').map(el=>el.dataset.tag);
+  const fEscrow = $('#fltEscrow')?.checked; const fUrgent = $('#fltUrgent')?.checked; const fTest = $('#fltTest')?.checked;
+  const filtered = jobsData.filter(j => (tagActive.length? tagActive.some(t=>j.tags.includes(t)) : true) && (!fEscrow || j.escrow) && (!fUrgent || j.urgent) && (!fTest || j.test));
+  filtered.forEach(j=>{
+    const el = document.createElement('article'); el.className='job'; el.dataset.id=j.id;
+    el.innerHTML = `<div class="row" style="justify-content:space-between"><strong>${j.title}</strong><span>${j.budget} ${j.cur}</span></div>
+      <div class="meta"> <span>⏱ ${j.deadlineDays}d</span> <span>•</span> <span>📌 ${j.posted} ${i18n('ago')}</span></div>
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">${j.tags.map(t=>`<span class='tag'>${t}</span>`).join('')}</div>`;
+    el.onclick = ()=> selectJob(j.id);
+    list.appendChild(el);
+  });
+  if(filtered.length) selectJob(filtered[0].id); else clearDetails();
+}
+function clearDetails(){ $('#detailsBody').classList.add('hidden'); $('#detailsEmpty').classList.remove('hidden'); $$('.job').forEach(j=>j.classList.remove('selected')); }
+function selectJob(id){
+  const j = jobsData.find(x=>x.id===id); if(!j) return;
+  $$('.job').forEach(el=> el.classList.toggle('selected', Number(el.dataset.id)===id));
+  const box = $('#detailsBody');
+  box.innerHTML = `<p>${j.desc}</p>
+    <h4>${i18n('criteriaTitle')}</h4>
+    <ul>${j.criteria.map(c=>`<li>${c}</li>`).join('')}</ul>
+    <div class='actions'>
+      <button class='btn-solid' onclick="toast('${i18n('action_apply')} (демо)')">${i18n('action_apply')}</button>
+      <button class='tab-btn ghost' onclick="toast('${i18n('action_question')} (демо)')">${i18n('action_question')}</button>
+      <button class='tab-btn ghost' onclick="toast('${i18n('action_report')} (демо)')">${i18n('action_report')}</button>
+    </div>`;
+  $('#detailsEmpty').classList.add('hidden'); box.classList.remove('hidden');
+}
+// Filters interactions
+$$('#stackChips .skill-chip').forEach(ch=> ch.onclick = ()=>{ ch.classList.toggle('active'); renderJobs(); });
+;['fltEscrow','fltUrgent','fltTest'].forEach(id=>{ const el=$('#'+id); if(el) el.onchange = renderJobs; });
+
+// ===== Disputes =====
+const disputesData = [
+  {id:'D-201', job:'#101', status:'open', updated:'2h', title:'Невідповідність результату ТЗ', desc:'Замовник вважає, що макет не відповідає референсам.'},
+  {id:'D-202', job:'#099', status:'review', updated:'1d', title:'Прострочений дедлайн', desc:'Виконавець просить продовження терміну на 3 дні.'},
+  {id:'D-203', job:'#087', status:'resolved', updated:'4d', title:'Спір щодо виплати', desc:'Ескроу розблоковано після правок, кейс закрито.'}
+];
+function statusLabel(s){ if(lang==='ru') return s==='open'?'Открыт':s==='review'?'На рассмотрении':'Закрыт'; if(lang==='en') return s==='open'?'Open':s==='review'?'In review':'Resolved'; return s==='open'?'Відкритий':s==='review'?'На розгляді':'Закритий'; }
+function renderDisputes(){
+  const list = $('#disputesList'); const empty = $('#disputesEmpty'); if(!list||!empty) return;
+  const fOpen = $('#dOpen')?.checked, fReview = $('#dReview')?.checked, fResolved = $('#dResolved')?.checked;
+  const filtered = disputesData.filter(d => (d.status==='open' && fOpen) || (d.status==='review' && fReview) || (d.status==='resolved' && fResolved));
+  list.innerHTML='';
+  filtered.forEach(d=>{
+    const el = document.createElement('article'); el.className='job';
+    el.innerHTML = `<div class='row' style='justify-content:space-between'><strong>${d.title}</strong><span>${d.job}</span></div>
+                    <div class='meta'><span>⏱ ${d.updated} ${i18n('ago')}</span> <span>•</span> <span>${statusLabel(d.status)}</span></div>
+                    <p style='margin:8px 0 0'>${d.desc}</p>
+                    <div class='actions' style='margin-top:8px'>
+                      <button class='btn-solid' onclick="toast('${i18n('openArb')} (демо)')">${i18n('openArb')}</button>
+                      <button class='tab-btn ghost' onclick="toast('${i18n('addEvidence')} (демо)')">${i18n('addEvidence')}</button>
+                      <button class='tab-btn ghost' onclick="toast('${i18n('closeCase')} (демо)')">${i18n('closeCase')}</button>
+                    </div>`;
+    list.appendChild(el);
+  });
+  empty.style.display = filtered.length ? 'none' : 'block';
+}
+;['dOpen','dReview','dResolved'].forEach(id=>{ const el=$('#'+id); if(el) el.onchange = renderDisputes; });
+
+// ===== Init =====
+restoreTheme();
+applyI18n();
+show('dashboard', true);
+</script>
+</body>
+</html>
