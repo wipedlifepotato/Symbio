@@ -3,6 +3,7 @@
 {% block title %}{{ 'login.title'|trans }}{% endblock %}
 
 {% block body %}
+<center>
 <div class="language-switcher">
     <a href="{{ path('app_set_locale', {'locale': 'ru'}) }}">RU</a> |
     <a href="{{ path('app_set_locale', {'locale': 'en'}) }}">EN</a>
@@ -27,5 +28,6 @@
         <h3 style="color:red">{{ message }}</h3>
     {% endif %}
 </form>
+</center>
 {% endblock %}
 
