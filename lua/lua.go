@@ -314,7 +314,7 @@ func RegisterJWTLua(L *lua.LState) {
 func RegisterElectrumLua(L *lua.LState, client *electrum.Client) {
 
 	L.SetGlobal("electrum_create_address", L.NewFunction(func(L *lua.LState) int {
-		addr, err := client.CreateAddress()
+		addr, err := client.CreateAddress(db.Postgres, "BTC")
 		if err != nil {
 			L.Push(lua.LNil)
 			L.Push(lua.LString(err.Error()))
