@@ -32,6 +32,13 @@ func CreateChatRequestHandler() http.HandlerFunc {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
+		if isBlocked, err := db.IsUserBlocked(db.Postgres,claims.UserID); isBlocked {
+			http.Error(w, "User is banned", http.StatusBadRequest)
+			return
+		} else if err != nil {
+			http.Error(w, "Error for check user ban", http.StatusInternalServerError)
+			return
+		}
 
 		requestedIDStr := r.URL.Query().Get("requested_id")
 		if requestedIDStr == "" {
@@ -45,7 +52,6 @@ func CreateChatRequestHandler() http.HandlerFunc {
 			return
 		}
 
-		// Проверяем, есть ли уже открытый запрос между пользователями
 		existingRequest, err := db.GetChatRequest(db.Postgres, requestedID, claims.UserID)
 		if err != nil && err != sql.ErrNoRows {
 			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
