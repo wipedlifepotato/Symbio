@@ -1,3 +1,4 @@
+
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -55,19 +56,6 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
     CONSTRAINT wallet_transactions_pkey PRIMARY KEY (txid),
     CONSTRAINT wallet_transactions_txid_unique UNIQUE (txid)
 );
-
-
-CREATE TABLE IF NOT EXISTS transactions (
-    id SERIAL PRIMARY KEY,
-    from_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
-    to_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
-    to_address VARCHAR(255),
-    task_id INT REFERENCES tasks(id) ON DELETE SET NULL,
-    amount NUMERIC(30,12) NOT NULL,
-    currency VARCHAR(10) NOT NULL,
-    confirmed BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT NOW()
-);
 CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
     client_id INT REFERENCES users(id) ON DELETE CASCADE,
@@ -91,6 +79,19 @@ CREATE TABLE IF NOT EXISTS task_offers (
     message TEXT,
     created_at TIMESTAMP DEFAULT NOW(),
     accepted BOOLEAN DEFAULT FALSE -- заказчик выбрал исполнителя
+);
+
+
+CREATE TABLE IF NOT EXISTS transactions (
+    id SERIAL PRIMARY KEY,
+    from_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
+    to_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
+    to_address VARCHAR(255),
+    task_id INT REFERENCES tasks(id) ON DELETE SET NULL,
+    amount NUMERIC(30,12) NOT NULL,
+    currency VARCHAR(10) NOT NULL,
+    confirmed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE TABLE IF NOT EXISTS escrow_balances (
     id SERIAL PRIMARY KEY,
