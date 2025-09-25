@@ -102,7 +102,7 @@ func GetProfilesCount(db *sqlx.DB) (int, error) {
 		SELECT COUNT(*)
 		FROM profiles p
 		LEFT JOIN users u ON p.user_id = u.id
-		WHERE p.full_name != '' OR p.bio != ''
+		WHERE (p.full_name != '' OR p.bio != '') AND u.blocked = false
 	`)
 	if err != nil {
 		return 0, err
@@ -116,6 +116,7 @@ func GetProfilesWithLimitOffset(db *sqlx.DB, limit, offset int) ([]Profile, erro
 		SELECT p.*, u.is_admin, COALESCE(u.admin_title, '') as admin_title, u.permissions
 		FROM profiles p
 		LEFT JOIN users u ON p.user_id = u.id
+		WHERE u.blocked = false
 		ORDER BY u.is_admin DESC, p.rating DESC, p.completed_tasks DESC
 		LIMIT $1 OFFSET $2
 	`, limit, offset)
