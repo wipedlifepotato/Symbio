@@ -10,6 +10,14 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class AdminDisputeController extends AbstractController
 {
+    private function getUsernameById($id, $jwt) {
+        $userResponse = $this->mfrelance->doRequest("/profile/by_id?user_id={$id}", $jwt);
+        if ($userResponse['httpCode'] == 200) {
+            $data = json_decode($userResponse['response'], true);
+            return $data['username'] ?? null; 
+        }
+        return null;
+    }
     private MFrelance $mfrelance;
 
     public function __construct(MFrelance $mfrelance)
@@ -25,7 +33,20 @@ class AdminDisputeController extends AbstractController
             return $this->redirectToRoute('app_login');
         }
 
-        $response = $this->mfrelance->doRequest('api/admin/disputes', $jwt);
+        // Build query string for filtering
+        $queryParams = [];
+        if ($request->query->get('id')) {
+            $queryParams[] = 'id=' . $request->query->get('id');
+        }
+        if ($request->query->get('task_id')) {
+            $queryParams[] = 'task_id=' . $request->query->get('task_id');
+        }
+        if ($request->query->get('status')) {
+            $queryParams[] = 'status=' . $request->query->get('status');
+        }
+
+        $queryString = !empty($queryParams) ? '?' . implode('&', $queryParams) : '';
+        $response = $this->mfrelance->doRequest('api/admin/disputes' . $queryString, $jwt);
         $disputes = [];
 
         if (200 === $response['httpCode']) {
@@ -49,7 +70,9 @@ class AdminDisputeController extends AbstractController
         }
 
         // Получаем детали диспута
-        $response = $this->mfrelance->doRequest("api/admin/disputes/details?id={$id}", $jwt);
+        $response = $this->mfrelance->doRequest("/api/admin/disputes/details?id={$id}", $jwt);
+        //var_dump($response);
+        //exit(0);
         $dispute = null;
         $task = null;
         $escrow = null;
@@ -57,10 +80,28 @@ class AdminDisputeController extends AbstractController
 
         if (200 === $response['httpCode']) {
             $data = json_decode($response['response'], true);
+   
             $dispute = $data['dispute'] ?? null;
+            $dispute['assigned_admin_username'] = $this->getUsernameById($dispute['assigned_admin'], $jwt);
+            $dispute['opened_by_username'] = $this->getUsernameById($dispute['opened_by'], $jwt);
+
             $task = $data['task'] ?? null;
             $escrow = $data['escrow'] ?? null;
+            $escrow['freelancer_username'] = $this->getUsernameById($escrow['freelancer_id'], $jwt);
             $messages = $data['messages'] ?? [];
+
+            // Добавляем usernames к сообщениям
+            foreach ($messages as &$message) {
+                if (isset($message['sender_id'])) {
+                    $userResponse = $this->mfrelance->doRequest("/profile/by_id?user_id={$message['sender_id']}", $jwt);
+                    if (200 === $userResponse['httpCode']) {
+                        $userData = json_decode($userResponse['response'], true);
+                        $message['sender_username'] = $userData['username'] ?? 'Пользователь #' . $message['sender_id'];
+                    } else {
+                        $message['sender_username'] = 'Пользователь #' . $message['sender_id'];
+                    }
+                }
+            }
         }
 
         if (!$dispute) {
@@ -78,7 +119,24 @@ class AdminDisputeController extends AbstractController
                     if (200 === $response['httpCode']) {
                         $this->addFlash('success', 'Диспут назначен вам!');
                     } else {
-                        $this->addFlash('error', 'Ошибка назначения диспута');
+                        $this->addFlash('error', 'Ошибка назначения диспута: '.$response['response']);
+                    }
+                    break;
+
+                case 'send_message':
+                    $message = $request->request->get('message');
+                    if ($message) {
+                        $messageData = [
+                            'dispute_id' => $id,
+                            'message' => $message,
+                        ];
+
+                        $response = $this->mfrelance->doRequest('api/disputes/message', $jwt, $messageData, true);
+                        if (200 === $response['httpCode']) {
+                            $this->addFlash('success', 'Сообщение отправлено!');
+                        } else {
+                            $this->addFlash('error', 'Ошибка отправки сообщения');
+                        }
                     }
                     break;
 
@@ -96,8 +154,8 @@ class AdminDisputeController extends AbstractController
                         return $this->redirectToRoute('admin_disputes');
                     } else {
                         var_dump($response);
-                        // exit(0);
-                        $this->addFlash('error', 'Ошибка разрешения диспута');
+                         //exit(0);
+                        $this->addFlash('error', 'Ошибка разрешения диспута:'.$response['response']);
                     }
                     break;
             }

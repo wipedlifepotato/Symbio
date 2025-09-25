@@ -38,6 +38,9 @@ type Profile struct {
 	Avatar         string      `db:"avatar" json:"avatar"`
 	Rating         float64     `db:"rating" json:"rating"`
 	CompletedTasks int         `db:"completed_tasks" json:"completed_tasks"`
+	IsAdmin        bool        `db:"is_admin" json:"is_admin"`
+	AdminTitle     string      `db:"admin_title" json:"admin_title"`
+	Permissions    int         `db:"permissions" json:"permissions"`
 }
 
 func (j *JSONStrings) UnmarshalJSON(data []byte) error {
@@ -51,10 +54,32 @@ func (j *JSONStrings) UnmarshalJSON(data []byte) error {
 
 func GetProfile(db *sqlx.DB, userID int64) (*Profile, error) {
 	var profile Profile
-	err := db.Get(&profile, `SELECT * FROM profiles WHERE user_id=$1`, userID)
+	err := db.Get(&profile, `
+		SELECT p.*, u.is_admin, COALESCE(u.admin_title, '') as admin_title, u.permissions
+		FROM profiles p
+		LEFT JOIN users u ON p.user_id = u.id
+		WHERE p.user_id=$1
+	`, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return &Profile{UserID: userID, Skills: JSONStrings{}}, nil
+			// Get user data even if profile doesn't exist
+			var isAdmin bool
+			var adminTitle string
+			var permissions int
+			err := db.QueryRow(`
+				SELECT is_admin, COALESCE(admin_title, ''), permissions
+				FROM users WHERE id=$1
+			`, userID).Scan(&isAdmin, &adminTitle, &permissions)
+			if err != nil {
+				return nil, err
+			}
+			return &Profile{
+				UserID: userID,
+				Skills: JSONStrings{},
+				IsAdmin: isAdmin,
+				AdminTitle: adminTitle,
+				Permissions: permissions,
+			}, nil
 		}
 		return nil, err
 	}
@@ -73,7 +98,13 @@ func UpsertProfile(db *sqlx.DB, p *Profile) error {
 
 func GetProfilesWithLimitOffset(db *sqlx.DB, limit, offset int) ([]Profile, error) {
 	var profiles []Profile
-	err := db.Select(&profiles, `SELECT * FROM profiles ORDER BY user_id LIMIT $1 OFFSET $2`, limit, offset)
+	err := db.Select(&profiles, `
+		SELECT p.*, u.is_admin, COALESCE(u.admin_title, '') as admin_title, u.permissions
+		FROM profiles p
+		LEFT JOIN users u ON p.user_id = u.id
+		ORDER BY u.is_admin DESC, p.rating DESC, p.completed_tasks DESC
+		LIMIT $1 OFFSET $2
+	`, limit, offset)
 	if err != nil {
 		return nil, err
 	}

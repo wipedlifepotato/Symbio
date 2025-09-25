@@ -7,7 +7,41 @@
     <div class="row">
         <div class="col-12">
             <h2><i class="bi bi-gear"></i> Управление диспутами</h2>
-            
+
+            <!-- Search/Filter Form -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search_id" class="form-label">ID диспута</label>
+                            <input type="number" class="form-control" id="search_id" name="id"
+                                   value="{{ app.request.get('id') }}" placeholder="Введите ID">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="search_task_id" class="form-label">ID задачи</label>
+                            <input type="number" class="form-control" id="search_task_id" name="task_id"
+                                   value="{{ app.request.get('task_id') }}" placeholder="Введите ID задачи">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="search_status" class="form-label">Статус</label>
+                            <select class="form-select" id="search_status" name="status">
+                                <option value="">Все статусы</option>
+                                <option value="open" {{ app.request.get('status') == 'open' ? 'selected' : '' }}>Открыт</option>
+                                <option value="resolved" {{ app.request.get('status') == 'resolved' ? 'selected' : '' }}>Разрешён</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Поиск
+                            </button>
+                            <a href="{{ path('admin_disputes') }}" class="btn btn-outline-secondary ms-2">
+                                <i class="bi bi-x-circle"></i> Сброс
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             {% if disputes is empty %}
                 <div class="text-center py-5">
                     <i class="bi bi-check-circle fs-1 text-success"></i>

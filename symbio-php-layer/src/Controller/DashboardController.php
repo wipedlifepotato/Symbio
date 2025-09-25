@@ -455,13 +455,31 @@ class DashboardController extends AbstractController
 
             // my chats
             $res = $mfrelance->doRequest('api/chat/getChatRoomsForUser', $jwt);
+            //var_dump($res);
+            //exit(0);
             if (200 === $res['httpCode']) {
                 $chatRooms = json_decode($res['response'], true);
+                if (!is_array($chatRooms)) {
+                    $error = 'API вернул некорректный формат данных для чатов';
+                    $chatRooms = [];
+                }
+            } else {
+                $error = 'Ошибка загрузки чатов: HTTP ' . $res['httpCode'] . ' - ' . $res['response'];
+                $chatRooms = [];
             }
 
             // messages of chat
             $selectedChatID = $request->query->getInt('chat_id', 0);
-            if ($selectedChatID) {
+            $selectedChatName = null;
+            if ($selectedChatID && is_array($chatRooms)) {
+                // Find chat name
+                foreach ($chatRooms as $chat) {
+                    if ($chat['id'] == $selectedChatID) {
+                        $selectedChatName = $chat['name'] ?? "Chat #$selectedChatID";
+                        break;
+                    }
+                }
+
                 $res = $mfrelance->doRequest("api/chat/getChatMessages?chat_room_id=$selectedChatID", $jwt);
                 if (200 === $res['httpCode']) {
                     $messages = json_decode($res['response'], true);
@@ -493,6 +511,7 @@ class DashboardController extends AbstractController
             'chatRequests' => $chatRequests,
             'chatRooms' => $chatRooms,
             'selectedChatID' => $selectedChatID,
+            'selectedChatName' => $selectedChatName,
             'messages' => $messages,
         ]);
     }

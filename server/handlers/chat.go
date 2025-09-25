@@ -157,11 +157,11 @@ func UpdateChatRequestHandler() http.HandlerFunc {
 
 // GetChatRoomsForUserHandler retrieves chat rooms for the logged-in user
 // @Summary Get chat rooms
-// @Description Returns all chat rooms the logged-in user participates in
+// @Description Returns all chat rooms the logged-in user participates in with participant info
 // @Tags Chat
 // @Accept json
 // @Produce json
-// @Success 200 {array} models.ChatRoom "List of chat rooms"
+// @Success 200 {array} object "List of chat rooms with participant usernames"
 // @Failure 401 {string} string "Unauthorized — user not logged in"
 // @Failure 500 {string} string "Database error"
 // @Router /chat/getChatRoomsForUser [get]
@@ -178,9 +178,60 @@ func GetChatRoomsForUserHandler() http.HandlerFunc {
 			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		log.Print("chatRooms:")
+		log.Println(chatRooms)
+		// Get participant info for each room
+		type ChatRoomInfo struct {
+			ID        int64     `json:"id"`
+			Name      string    `json:"name"`      // For display: "Chat username"
+			Username  string    `json:"username"`  // The other participant's username
+			UserID    int64     `json:"user_id"`   // The other participant's ID
+			CreatedAt time.Time `json:"created_at"`
+		}
+
+		result := make([]ChatRoomInfo, 0)
+		for _, room := range chatRooms {
+			users, err := db.GetUsersInChatRoom(db.Postgres, room.ID)
+			log.Printf("Room %d has %d users", room.ID, len(users))
+			if err != nil {
+				log.Printf("Error getting users for room %d: %v", room.ID, err)
+				continue
+			}
+
+			// Find the other participant
+			foundOther := false
+			for _, user := range users {
+				log.Printf("User in room %d: ID=%d, Username=%s, CurrentUserID=%d", room.ID, user.ID, user.Username, claims.UserID)
+				if user.ID != claims.UserID {
+					result = append(result, ChatRoomInfo{
+						ID:        room.ID,
+						Name:      "Chat " + user.Username,
+						Username:  user.Username,
+						UserID:    user.ID,
+						CreatedAt: room.CreatedAt,
+					})
+					log.Printf("Added chat room %d with user %s", room.ID, user.Username)
+					foundOther = true
+					break
+				}
+			}
+
+			// If no other participant found, show as "Empty Chat" or similar
+			if !foundOther && len(users) > 0 {
+				// At least current user is in the room
+				result = append(result, ChatRoomInfo{
+					ID:        room.ID,
+					Name:      "Empty Chat",
+					Username:  "",
+					UserID:    0,
+					CreatedAt: room.CreatedAt,
+				})
+				log.Printf("Added empty chat room %d", room.ID)
+			}
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(chatRooms)
+		json.NewEncoder(w).Encode(result)
 	}
 }
 
@@ -216,6 +267,19 @@ func GetChatMessagesHandler() http.HandlerFunc {
 			return
 		}
 
+		limit := 50
+		offset := 0
+		if lStr := r.URL.Query().Get("limit"); lStr != "" {
+			if l, err := strconv.Atoi(lStr); err == nil && l > 0 && l <= 1000 {
+				limit = l
+			}
+		}
+		if oStr := r.URL.Query().Get("offset"); oStr != "" {
+			if o, err := strconv.Atoi(oStr); err == nil && o >= 0 {
+				offset = o
+			}
+		}
+
 		if h, err := db.IsUserHaveAccessToChatRoom(db.Postgres, claims.UserID, chatRoomID); err != nil {
 			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -224,7 +288,7 @@ func GetChatMessagesHandler() http.HandlerFunc {
 			return
 		}
 
-		messages, err := db.GetChatMessages(db.Postgres, chatRoomID)
+		messages, err := db.GetChatMessagesPaged(db.Postgres, chatRoomID, limit, offset)
 		if err != nil {
 			http.Error(w, "db error: "+err.Error(), http.StatusInternalServerError)
 			return

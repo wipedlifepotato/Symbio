@@ -69,12 +69,12 @@ func CreateTicket(db *sqlx.DB, subject string, userID int64) (int64, error) {
 	}
 	return id, nil
 }
-func GetRandomOpenTicket(db *sqlx.DB) (*Ticket, error) {
+func GetRandomPendingTicket(db *sqlx.DB) (*Ticket, error) {
 	var t Ticket
 	err := db.QueryRow(`
 		SELECT id, user_id, admin_id, status, subject, created_at, updated_at
 		FROM tickets
-		WHERE status='open' AND admin_id IS NULL
+		WHERE status='open'
 		ORDER BY RANDOM()
 		LIMIT 1
 	`).Scan(&t.ID, &t.UserID, &t.AdminID, &t.Status, &t.Subject, &t.CreatedAt, &t.UpdatedAt)
@@ -309,4 +309,23 @@ func MarkTicketMessagesRead(db *sqlx.DB, ticketID int64, userID int64) error {
 		WHERE ticket_id=$1 AND sender_id<>$2
 	`, ticketID, userID)
 	return err
+}
+
+func GetAllTickets(db *sqlx.DB, adminID int64) ([]Ticket, error) {
+	var tickets []Ticket
+	query := `
+        SELECT id, user_id, admin_id, status, subject, created_at, updated_at, additional_users_have_access
+        FROM tickets
+        WHERE status = 'pending' OR admin_id = $1
+        ORDER BY created_at DESC
+    `
+	err := db.Select(&tickets, query, adminID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all tickets: %w", err)
+	}
+	// Ensure we return an empty slice instead of nil
+	if tickets == nil {
+		tickets = []Ticket{}
+	}
+	return tickets, nil
 }

@@ -62,8 +62,10 @@ CREATE TABLE IF NOT EXISTS transactions (
     from_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
     to_wallet_id INT REFERENCES wallets(id) ON DELETE SET NULL,
     to_address VARCHAR(255),
+    task_id INT REFERENCES tasks(id) ON DELETE SET NULL,
     amount NUMERIC(30,12) NOT NULL,
     currency VARCHAR(10) NOT NULL,
+    confirmed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE TABLE IF NOT EXISTS tasks (
@@ -171,3 +173,11 @@ CREATE TABLE IF NOT EXISTS chat_requests (
 
 CREATE INDEX IF NOT EXISTS idx_chat_requests_requester_id ON chat_requests (requester_id);
 CREATE INDEX IF NOT EXISTS idx_chat_requests_requested_id ON chat_requests (requested_id);
+
+-- Add admin permissions and title
+ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_title VARCHAR(50) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions INTEGER DEFAULT 0;
+
+-- Add missing columns to transactions table
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS task_id INT REFERENCES tasks(id) ON DELETE SET NULL;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS confirmed BOOLEAN DEFAULT FALSE;

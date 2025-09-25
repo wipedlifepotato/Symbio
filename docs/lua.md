@@ -208,7 +208,18 @@ Updates chat request status.
 
 #### get_chat_messages(chatID)
 
-Gets messages for a chat.
+Gets all messages for a chat.
+
+**Returns:**
+- Table of messages or nil, error.
+
+#### get_chat_messages_paged(chatID, limit, offset)
+
+Gets messages for a chat with pagination.
+
+**Parameters:**
+- `limit` (number): Maximum messages to return (default 50)
+- `offset` (number): Number of messages to skip (default 0)
 
 **Returns:**
 - Table of messages or nil, error.
@@ -254,6 +265,24 @@ Updates dispute status.
 
 **Returns:**
 - true or false, error.
+
+#### get_dispute_messages(disputeID)
+
+Gets all dispute messages.
+
+**Returns:**
+- Table of messages or nil, error.
+
+#### get_dispute_messages_paged(disputeID, limit, offset)
+
+Gets dispute messages with pagination.
+
+**Parameters:**
+- `limit` (number): Maximum messages to return (default 50)
+- `offset` (number): Number of messages to skip (default 0)
+
+**Returns:**
+- Table of messages or nil, error.
 
 ---
 
@@ -552,6 +581,13 @@ Gets user by username.
 **Returns:**
 - Table {id, password_hash} or nil.
 
+#### get_user_by_id(id)
+
+Gets user by ID.
+
+**Returns:**
+- Table with user fields or nil, error.
+
 #### block_user(userID)
 
 Blocks a user.
@@ -622,6 +658,99 @@ Removes admin status.
 **Returns:**
 - true or false, error.
 
+#### add_permission(userID, perm)
+
+Adds a specific permission to user.
+
+**Parameters:**
+- `perm` (number): Permission constant (1, 2, 4, etc.)
+
+**Returns:**
+- true or false, error.
+
+#### remove_permission(userID, perm)
+
+Removes a specific permission from user.
+
+**Parameters:**
+- `perm` (number): Permission constant to remove.
+
+**Returns:**
+- true or false, error.
+
+#### set_permissions(userID, permissions)
+
+Sets exact permissions mask for user.
+
+**Parameters:**
+- `permissions` (number): Complete permissions bitmask.
+
+**Returns:**
+- true or false, error.
+
+**Example:**
+```lua
+-- Add permission to change balances
+add_permission(123, 1)
+
+-- Remove permission to manage disputes
+remove_permission(123, 4)
+
+-- Set user to have all permissions
+set_permissions(123, 7)
+
+-- Set user to have only balance change permission
+set_permissions(123, 1)
+```
+
+#### has_permission(userID, perm)
+
+Checks if user has specific permission.
+
+**Parameters:**
+- `perm` (number): Permission constant (1=CanChangeBalance, 2=CanBlockUsers, 4=CanManageDisputes)
+
+**Returns:**
+- boolean or nil, error.
+
+**Example:**
+```lua
+local can_change = has_permission(123, 1)  -- CanChangeBalance
+if can_change then
+    -- Allow balance change
+end
+```
+
+#### require_permission(perm)
+
+Middleware function that checks permission (used in Go handlers, not directly in Lua).
+
+#### Permission Constants
+
+```lua
+CanChangeBalance = 1    -- Изменение балансов пользователей
+CanBlockUsers = 2       -- Блокировка/разблокировка пользователей
+CanManageDisputes = 4   -- Управление спорами
+```
+
+**Example Usage:**
+```lua
+-- Check if user can change balances
+if has_permission(user_id, 1) then
+    -- Allow balance modification
+end
+
+-- Check if user can manage disputes
+if has_permission(user_id, 4) then
+    -- Allow dispute management
+end
+
+-- Check multiple permissions
+if has_permission(user_id, 1) and has_permission(user_id, 2) then
+    -- User has both balance and user management permissions
+end
+```
+
 ---
 
 ## 15. Profiles
@@ -631,7 +760,7 @@ Removes admin status.
 Gets user profile.
 
 **Returns:**
-- Table {user_id, full_name, bio, skills, avatar, rating, completed_tasks} or nil, error.
+- Table {user_id, full_name, bio, skills, avatar, rating, completed_tasks, is_admin, admin_title, permissions} or nil, error.
 
 #### upsert_profile(userID, fullName, bio, skills, avatar)
 

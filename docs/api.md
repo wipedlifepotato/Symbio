@@ -1,9 +1,9 @@
-# mFrelance API Documentation
+# API Documentation
 
 ## Version: 1.0
 
 ### Overview
-mFrelance is a freelance platform API that provides user registration, authentication, task management, reviews, disputes, chat functionality, and administrative controls. The API supports cryptocurrency payments (Bitcoin and Monero) and includes comprehensive security features.
+Sybmio is a freelance platform API that provides user registration, authentication, task management, reviews, disputes, chat functionality, and administrative controls. The API supports cryptocurrency payments (Bitcoin and Monero) and includes comprehensive security features.
 
 ### Base URL
 ```
@@ -548,6 +548,8 @@ Get detailed dispute information.
 
 **Query Parameters:**
 - `id`: Dispute ID
+- `limit`: Number of messages to return (default 50, max 1000)
+- `offset`: Number of messages to skip (default 0)
 
 **Success Response (200):**
 ```json
@@ -556,7 +558,12 @@ Get detailed dispute information.
   "dispute": { ... },
   "task": { ... },
   "escrow": { ... },
-  "messages": [ ... ]
+  "messages": [ ... ],
+  "admin": {
+    "id": 123,
+    "username": "adminuser",
+    "title": "Senior Admin"
+  } | null
 }
 ```
 
@@ -652,25 +659,28 @@ Get incoming chat requests.
 ```
 
 ### GET /chat/getChatRoomsForUser
-Get user's chat rooms.
+Get user's chat rooms with participant information.
 
 **Success Response (200):**
 ```json
-{
-  "chat_rooms": [
-    {
-      "id": 123,
-      "created_at": "2023-12-01T10:00:00Z"
-    }
-  ]
-}
+[
+  {
+    "id": 123,
+    "name": "Chat john_doe",
+    "username": "john_doe",
+    "user_id": 456,
+    "created_at": "2023-12-01T10:00:00Z"
+  }
+]
 ```
 
 ### GET /chat/getChatMessages
-Get messages from a chat room.
+Get messages from a chat room (chronological order, oldest first).
 
 **Query Parameters:**
 - `chat_room_id`: Chat room ID
+- `limit`: Maximum messages to return (default: 50, max: 1000)
+- `offset`: Number of messages to skip (default: 0)
 
 **Success Response (200):**
 ```json
@@ -778,28 +788,28 @@ Get public profile by user ID.
 ```
 
 ### GET /profiles
-List user profiles with pagination.
+List user profiles with pagination. Only shows profiles with content (name or bio), sorted by admin status, rating, and completed tasks.
 
 **Query Parameters:**
-- `limit`: Number of results (default: 20)
+- `limit`: Number of results (default: 5, max: 10)
 - `offset`: Pagination offset (default: 0)
 
 **Success Response (200):**
 ```json
-{
-  "profiles": [
-    {
-      "user_id": 123,
-      "username": "johndoe",
-      "full_name": "John Doe",
-      "bio": "Experienced web developer",
-      "skills": ["JavaScript", "React", "Node.js"],
-      "avatar": "avatar_url",
-      "rating": 4.5,
-      "completed_tasks": 25
-    }
-  ]
-}
+[
+  {
+    "user_id": 123,
+    "full_name": "John Doe",
+    "bio": "Experienced web developer",
+    "skills": ["JavaScript", "React", "Node.js"],
+    "avatar": "avatar_url",
+    "rating": 4.5,
+    "completed_tasks": 25,
+    "is_admin": false,
+    "admin_title": "",
+    "permissions": 0
+  }
+]
 ```
 
 ---
@@ -1135,6 +1145,25 @@ Assign random open ticket to admin.
   "created_at": "2023-12-01T10:00:00Z",
   "updated_at": "2023-12-01T10:00:00Z"
 }
+```
+
+### GET /admin/tickets
+Get pending tickets and tickets assigned to current admin (admin only).
+
+**Success Response (200):**
+```json
+[
+  {
+    "id": 123,
+    "user_id": 456,
+    "admin_id": 789,
+    "subject": "Login Issue",
+    "status": "pending",
+    "created_at": "2023-12-01T10:00:00Z",
+    "updated_at": "2023-12-01T10:00:00Z",
+    "additional_users_have_access": []
+  }
+]
 ```
 
 ### POST /admin/delete_user_tasks

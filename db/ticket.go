@@ -16,9 +16,9 @@ func CreateTicket(db *sqlx.DB, subject string, userID int64) (int64, error) {
 	return models.CreateTicket(db, subject, userID)
 }
 
-// GetRandomOpenTicket retrieves a random open ticket
-func GetRandomOpenTicket(db *sqlx.DB) (*models.Ticket, error) {
-	return models.GetRandomOpenTicket(db)
+// GetRandomPendingTicket retrieves a random pending ticket
+func GetRandomPendingTicket(db *sqlx.DB) (*models.Ticket, error) {
+	return models.GetRandomPendingTicket(db)
 }
 
 // AssignTicketAdmin assigns an admin to a ticket

@@ -32,6 +32,7 @@ func RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+
 // MakeAdminHandler godoc
 // @Summary Grant Administrative Privileges
 // @Description Elevates a regular user to administrator status. Requires existing admin privileges to execute.
@@ -151,21 +152,24 @@ func IsIAdminHandler(w http.ResponseWriter, r *http.Request) {
 // @Param request body AdminRequest true "User ID to block"
 // @Success 200 {string} string "Example: \"user blocked\""
 // @Failure 400 {string} string "Example: \"invalid request body\""
+// @Failure 403 {string} string "Example: \"insufficient permissions\""
 // @Failure 500 {string} string "Example: \"internal server error\""
 // @Security BearerAuth
 // @Router /api/admin/block [post]
 func BlockUserHandler(w http.ResponseWriter, r *http.Request) {
-	var req AdminRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := db.BlockUser(db.Postgres, req.UserID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("user blocked"))
+	server.RequirePermission(server.PermUserBlock)(func(w http.ResponseWriter, r *http.Request) {
+		var req AdminRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+		if err := db.BlockUser(db.Postgres, req.UserID); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("user blocked"))
+	})(w, r)
 }
 
 type AdminTransactionsRequest struct {
@@ -224,21 +228,24 @@ func AdminTransactionsHandler(w http.ResponseWriter, r *http.Request) {
 // @Param request body AdminRequest true "User ID to unblock"
 // @Success 200 {string} string "Example: \"user unblocked\""
 // @Failure 400 {string} string "Example: \"invalid request body\""
+// @Failure 403 {string} string "Example: \"insufficient permissions\""
 // @Failure 500 {string} string "Example: \"internal server error\""
 // @Security BearerAuth
 // @Router /api/admin/unblock [post]
 func UnblockUserHandler(w http.ResponseWriter, r *http.Request) {
-	var req AdminRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := db.UnblockUser(db.Postgres, req.UserID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("user unblocked"))
+	server.RequirePermission(server.PermUserBlock)(func(w http.ResponseWriter, r *http.Request) {
+		var req AdminRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+		if err := db.UnblockUser(db.Postgres, req.UserID); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("user unblocked"))
+	})(w, r)
 }
 
 // AdminWalletsHandler godoc
@@ -279,34 +286,37 @@ type AdminUpdateBalanceRequest struct {
 
 // AdminUpdateBalanceHandler godoc
 // @Summary Update Wallet Balance
-// @Description Allows admin to manually set a new balance for a user's wallet
+// @Description Allows admin with balance change permission to manually set a new balance for a user's wallet
 // @Tags administration
 // @Accept json
 // @Produce json
 // @Param request body AdminUpdateBalanceRequest true "Wallet balance payload with user_id and balance"
 // @Success 200 {string} string "Example: \"balance updated\""
 // @Failure 400 {string} string "Example: \"invalid balance format\""
+// @Failure 403 {string} string "Example: \"insufficient permissions\""
 // @Failure 500 {string} string "Example: \"DB error\""
 // @Security BearerAuth
 // @Router /api/admin/update_balance [post]
 func AdminUpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
-	var req AdminUpdateBalanceRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-	newBalance, ok := new(big.Float).SetString(req.Balance)
-	if !ok {
-		http.Error(w, "invalid balance format", http.StatusBadRequest)
-		return
-	}
-	_, err := db.Postgres.Exec(`UPDATE wallets SET balance=$1 WHERE user_id=$2`, newBalance.Text('f', 12), req.UserID)
-	if err != nil {
-		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("balance updated"))
+	server.RequirePermission(server.PermBalanceChange)(func(w http.ResponseWriter, r *http.Request) {
+		var req AdminUpdateBalanceRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+		newBalance, ok := new(big.Float).SetString(req.Balance)
+		if !ok {
+			http.Error(w, "invalid balance format", http.StatusBadRequest)
+			return
+		}
+		_, err := db.Postgres.Exec(`UPDATE wallets SET balance=$1 WHERE user_id=$2`, newBalance.Text('f', 12), req.UserID)
+		if err != nil {
+			http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("balance updated"))
+	})(w, r)
 }
 
 // AdminGetRandomTicketHandler godoc
@@ -314,7 +324,7 @@ func AdminUpdateBalanceHandler(w http.ResponseWriter, r *http.Request) {
 // @Description Assigns a random open support ticket to the current admin user for handling
 // @Tags administration
 // @Produce json
-// @Success 200 {object} models.TicketDoc "Example: {\"id\": 123, \"user_id\": 456, \"admin_id\": 789, \"subject\": \"Login issue\", \"status\": \"pending\", \"created_at\": \"2023-12-01T10:00:00Z\"}"
+// @Success 200 {object} models.TicketDoc "Example: {\"id\": 123, \"user_id\": 456, \"admin_id\": 789, \"subject\": \"Login issue\", \"status\": \"open\", \"created_at\": \"2023-12-01T10:00:00Z\"}"
 // @Failure 400 {object} map[string]string "Example: {\"error\": \"no open tickets available\"}"
 // @Failure 401 {object} map[string]string "Example: {\"error\": \"user not found in context\"}"
 // @Security BearerAuth
@@ -326,15 +336,17 @@ func AdminGetRandomTicketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ticket, err := models.GetRandomOpenTicket(db.Postgres)
+	ticket, err := models.GetRandomPendingTicket(db.Postgres)
 	if err != nil {
 		server.WriteErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	// Allow reassigning ticket to another admin
 	if err := models.AssignTicketAdmin(db.Postgres, ticket.ID, claims.UserID); err != nil {
 		server.WriteErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	// Keep status as pending
 	if err := models.PendingTicket(db.Postgres, ticket.ID); err != nil {
 		server.WriteErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
@@ -462,4 +474,36 @@ func AdminDeleteUserTasksHandler(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"deleted": n,
 	})
+}
+
+// GetAllTicketsHandler godoc
+// @Summary Admin: Get pending tickets and assigned tickets
+// @Description Returns pending tickets and tickets assigned to current admin for management
+// @Tags administration
+// @Produce json
+// @Success 200 {array} models.Ticket "List of pending and assigned tickets"
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 403 {string} string "Admin rights required"
+// @Failure 500 {string} string "Database error"
+// @Security BearerAuth
+// @Router /api/admin/tickets [get]
+func GetAllTicketsHandler(w http.ResponseWriter, r *http.Request) {
+	RequireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		claims := server.GetUserFromContext(r)
+		if claims == nil {
+			http.Error(w, "user not found in context", http.StatusUnauthorized)
+			return
+		}
+		tickets, err := models.GetAllTickets(db.Postgres, claims.UserID)
+		if err != nil {
+			http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// Ensure we return an empty array instead of null
+		if tickets == nil {
+			tickets = []models.Ticket{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(tickets)
+	})(w, r)
 }

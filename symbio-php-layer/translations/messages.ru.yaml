@@ -6,6 +6,7 @@ dispute:
   none: "У вас нет диспутов"
   none_description: "Это хорошо! Диспуты возникают при спорах по задачам"
   task_number: "Задача #%id%"
+  is: "Статус"
   status:
     open: "Открыт"
     closed: "Закрыт"
@@ -18,14 +19,28 @@ dispute:
     actions: "Действия"
   id: "Айди диспута"
   number: "Диспут #%id%"
-  opened_by: "Открыл пользователь #%id%"
+  opened_by: "Открыл пользователь"
   created_at: "Создан %date%"
   admin: "Админ #%id%"
   not_assigned: "Не назначен"
-  messages:
+  messages: "Сообщения"
+  no_messages: "Нет сообщений"
+  your_message: "Ваше сообщение"
+  send: "Отправить"
+  messages_old:
     none: "Пока нет сообщений"
     placeholder: "Введите сообщение..."
     send_button: "Отправить"
+  messages_old:
+    none: "Пока нет сообщений"
+    placeholder: "Введите сообщение..."
+    send_button: "Отправить"
+  title: "Айди диспута #%id%"
+  heading: "Айди диспута #%id%"
+  info: "Информация о диспуте"
+  task: "задание"
+  created: "Создано"
+  assigned_admin: "Назначенный администратор" 
 actions:
   back_to_list: "Назад к списку"
   view_task: "Посмотреть задачу"
@@ -246,4 +261,9 @@ reviews:
   no_reviews_task: "Нет отзывов"
   leave: "Оставить отзыв"
   from: "Отзыв от %reviewer%"
+  available_after_completion: "Отзывы доступны после завершения задачи"
+  view: "Отзывы"
+  view_user_reviews: "Посмотреть отзывы о пользователе"
+
+
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"mFrelance/auth"
+	"mFrelance/db"
 	"net/http"
 	"strings"
 )
@@ -62,4 +63,38 @@ func GetUserFromContext(r *http.Request) *auth.Claims {
 		return nil
 	}
 	return claims
+}
+
+const (
+	PermBalanceChange = 1 << iota // 1 - право изменять баланс
+	PermUserBlock                 // 2 - право блокировать пользователей
+	PermTransactionView           // 4 - право просматривать транзакции
+	PermTicketManage              // 8 - право управлять тикетами
+	PermDisputeManage             // 16 - право управлять диспутами
+)
+
+func HasPermission(userID int64, perm int) bool {
+	var permissions int
+	err := db.Postgres.Get(&permissions, "SELECT permissions FROM users WHERE id=$1", userID)
+	if err != nil {
+		return false
+	}
+	return permissions&perm != 0
+}
+
+func RequirePermission(perm int) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			claims := GetUserFromContext(r)
+			if claims == nil {
+				http.Error(w, "user not found", http.StatusUnauthorized)
+				return
+			}
+			if !HasPermission(claims.UserID, perm) {
+				http.Error(w, "insufficient permissions", http.StatusForbidden)
+				return
+			}
+			next(w, r)
+		}
+	}
 }

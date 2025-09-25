@@ -158,13 +158,14 @@ func main() {
 	apiMux.Handle("/admin/IIsAdmin", server.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		serverhandlers.IsIAdminHandler(w, r)
 	})))
-	apiMux.Handle("/admin/block", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.BlockUserHandler)))
-	apiMux.Handle("/admin/unblock", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.UnblockUserHandler)))
+	apiMux.Handle("/admin/block", server.AuthMiddleware(server.RequirePermission(server.PermUserBlock)(serverhandlers.BlockUserHandler)))
+	apiMux.Handle("/admin/unblock", server.AuthMiddleware(server.RequirePermission(server.PermUserBlock)(serverhandlers.UnblockUserHandler)))
 	apiMux.Handle("/admin/transactions", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminTransactionsHandler)))
 	apiMux.Handle("/admin/wallets", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminWalletsHandler)))
-	apiMux.Handle("/admin/update_balance", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminUpdateBalanceHandler)))
+	apiMux.Handle("/admin/update_balance", server.AuthMiddleware(server.RequirePermission(server.PermBalanceChange)(serverhandlers.AdminUpdateBalanceHandler)))
 	apiMux.Handle("/admin/delete_user_tasks", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminDeleteUserTasksHandler)))
 	apiMux.Handle("/admin/getRandomTicket", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminGetRandomTicketHandler)))
+	apiMux.Handle("/admin/tickets", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.GetAllTicketsHandler)))
 	apiMux.Handle("/admin/addUserToChatRoom", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.AdminAddUserToChatRoom)))
 	apiMux.Handle("/admin/deleteChatRoom", server.AuthMiddleware(serverhandlers.RequireAdmin(serverhandlers.DeleteChatRoom)))
 
@@ -196,10 +197,11 @@ func main() {
 	apiMux.Handle("/reviews/rating", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetUserRatingHandler())))
 
 	// Admin dispute routes
-	apiMux.Handle("/admin/disputes", server.AuthMiddleware(serverhandlers.RequireAdmin(http.HandlerFunc(serverhandlers.GetOpenDisputesHandler()))))
-	apiMux.Handle("/admin/disputes/assign", server.AuthMiddleware(serverhandlers.RequireAdmin(http.HandlerFunc(serverhandlers.AssignDisputeHandler()))))
-	apiMux.Handle("/admin/disputes/resolve", server.AuthMiddleware(serverhandlers.RequireAdmin(http.HandlerFunc(serverhandlers.ResolveDisputeHandler()))))
-	apiMux.Handle("/admin/disputes/details", server.AuthMiddleware(serverhandlers.RequireAdmin(http.HandlerFunc(serverhandlers.GetDisputeDetailsHandler()))))
+	apiMux.Handle("/admin/disputes", server.AuthMiddleware(server.RequirePermission(server.PermDisputeManage)(http.HandlerFunc(serverhandlers.GetOpenDisputesHandler()))))
+	apiMux.Handle("/admin/disputes/assign", server.AuthMiddleware(server.RequirePermission(server.PermDisputeManage)(http.HandlerFunc(serverhandlers.AssignDisputeHandler()))))
+	apiMux.Handle("/admin/disputes/resolve", server.AuthMiddleware(server.RequirePermission(server.PermDisputeManage)(http.HandlerFunc(serverhandlers.ResolveDisputeHandler()))))
+	apiMux.Handle("/admin/disputes/details", server.AuthMiddleware(server.RequirePermission(server.PermDisputeManage)(http.HandlerFunc(serverhandlers.GetDisputeDetailsHandler()))))
+	apiMux.Handle("/api/disputes/details", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetDisputeDetailsForUserHandler())))
 
 	apiMux.Handle("/ticket/my", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetMyTicketsHandler)))
 	apiMux.Handle("/ticket/messages", server.AuthMiddleware(http.HandlerFunc(serverhandlers.GetTicketMessagesHandler)))

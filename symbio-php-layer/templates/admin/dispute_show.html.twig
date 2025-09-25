@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Диспут #{{ dispute.id }} - mFrelance Admin{% endblock %}
+{% block title %}Диспут #{{ dispute.id }}{% endblock %}
 
 {% block body %}
 <div class="container mt-4">
@@ -21,13 +21,13 @@
                             <a href="{{ path('task_show', {'id': dispute.task_id}) }}">
                                 #{{ dispute.task_id }}
                             </a><br>
-                            <strong>Открыл:</strong> Пользователь #{{ dispute.opened_by }}<br>
+                            <strong>Открыл:</strong> Пользователь {{ dispute.opened_by_username }}<br>
                             <strong>Статус:</strong> {{ dispute.status }}
                         </div>
                         <div class="col-md-6">
                             <strong>Создан:</strong> {{ dispute.created_at|date('d.m.Y H:i') }}<br>
                             {% if dispute.assigned_admin %}
-                                <strong>Назначен:</strong> Админ #{{ dispute.assigned_admin }}
+                                <strong>Назначен:</strong> Админ {{ dispute.assigned_admin_username }}
                             {% else %}
                                 <strong>Назначен:</strong> <span class="text-muted">Не назначен</span>
                             {% endif %}
@@ -73,7 +73,7 @@
                                 <strong>Заказчик:</strong> #{{ escrow.client_id }}
                             </div>
                             <div class="col-md-6">
-                                <strong>Исполнитель:</strong> #{{ escrow.freelancer_id }}<br>
+                                <strong>Исполнитель:</strong> #{{ escrow.freelancer_username }}<br>
                                 <strong>Создан:</strong> {{ escrow.created_at|date('d.m.Y H:i') }}
                             </div>
                         </div>
@@ -87,6 +87,27 @@
                     <h5><i class="bi bi-chat"></i> Сообщения диспута</h5>
                 </div>
                 <div class="card-body">
+                    <!-- Форма отправки сообщения -->
+                    {% if dispute.status == 'open' %}
+                        <div class="card mb-3 border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="bi bi-chat-dots"></i> Отправить сообщение</h6>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST">
+                                    <input type="hidden" name="action" value="send_message">
+                                    <div class="mb-3">
+                                        <textarea class="form-control" name="message" rows="3"
+                                                  placeholder="Введите ваше сообщение..." required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-send"></i> Отправить сообщение
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endif %}
+
                     <div class="messages-container" style="max-height: 400px; overflow-y: auto;">
                         {% if messages is empty %}
                             <p class="text-muted">Пока нет сообщений</p>
@@ -96,7 +117,7 @@
                                     <div class="card-body">
                                         <p class="card-text">{{ message.message }}</p>
                                         <small class="text-muted">
-                                            От: Пользователь #{{ message.sender_id }} | 
+                                            От: {{ message.sender_username ?? 'Пользователь #' ~ message.sender_id }} |
                                             {{ message.created_at|date('d.m.Y H:i') }}
                                         </small>
                                     </div>
@@ -130,7 +151,10 @@
                             <strong>Разрешение диспута</strong><br>
                             Выберите, кто прав в этом споре:
                         </div>
-                        
+                        <form method="POST" class="mb-2">
+                            <input type="hidden" name="action" value="assign">
+                            <button>Назначить диспут себе</button>
+                        </form>
                         <form method="POST" class="mb-2">
                             <input type="hidden" name="action" value="resolve">
                             <input type="hidden" name="resolution" value="client_won">

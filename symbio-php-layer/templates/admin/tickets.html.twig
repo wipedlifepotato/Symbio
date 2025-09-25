@@ -20,11 +20,11 @@
 <h3>Случайный открытый тикет</h3>
 {% if randomTicket %}
     <p>
-        <strong>ID:</strong> {{ randomTicket.ID }}<br>
-        <strong>User:</strong> {{ randomTicket.username|default('User #' ~ randomTicket.UserID) }}<br>
-        <strong>Subject:</strong> {{ randomTicket.Subject|e }}<br>
-        <strong>Status:</strong> {{ randomTicket.Status|e }}<br>
-        <a href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'ticket_id': randomTicket.ID})) }}">Открыть для ответа</a>
+        <strong>ID:</strong> {{ randomTicket.id }}<br>
+        <strong>User:</strong> {{ randomTicket.username|default('User #' ~ randomTicket.user_id) }}<br>
+        <strong>Subject:</strong> {{ randomTicket.subject|e }}<br>
+        <strong>Status:</strong> {{ randomTicket.status|e }}<br>
+        <a href="{{ path(app.request.attributes.get('_route'), app.request.query.all | merge({'ticket_id': randomTicket.id})) }}">Открыть для ответа</a>
     </p>
 {% else %}
     <form method="GET">

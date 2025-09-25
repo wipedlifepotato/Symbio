@@ -67,6 +67,10 @@
                                                 </form>
                                             {% endif %}
 
+                                            <a href="{{ path('review_user', {'userId': offer.freelancer_id}) }}" class="btn btn-sm btn-info" title="{{ 'reviews.view_user_reviews'|trans }}">
+                                                <i class="bi bi-star-half"></i> {{ 'reviews.view'|trans }}
+                                            </a>
+
                                             {% if myOffer and myOffer.id == offer.id and not offer.accepted %}
                                                 <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editOfferModal">
                                                     {{ 'offers.edit'|trans }}
