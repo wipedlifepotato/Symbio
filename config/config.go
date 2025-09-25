@@ -47,6 +47,8 @@ type Config struct {
 
 	TaskMinInterval     time.Duration
 	TaskDuplicateWindow time.Duration
+	TaskRateLimitDisabled bool
+	MinTransactionAmount float64
 
 	CaptchaEnabled             bool
 	CaptchaRateLimitPerMinute  int
@@ -139,6 +141,8 @@ func Init() {
 	// Tasks
 	viper.SetDefault("tasks.min_interval", "12m")
 	viper.SetDefault("tasks.duplicate_window", "24h")
+	viper.SetDefault("tasks.rate_limit_disabled", false)
+	viper.SetDefault("min_transaction_amount", 0.000001)
 
 	// Captcha
 	viper.SetDefault("captcha.enabled", true)
@@ -191,6 +195,8 @@ func Init() {
 
 		TaskMinInterval:     viper.GetDuration("tasks.min_interval"),
 		TaskDuplicateWindow: viper.GetDuration("tasks.duplicate_window"),
+		TaskRateLimitDisabled: viper.GetBool("tasks.rate_limit_disabled"),
+		MinTransactionAmount: viper.GetFloat64("min_transaction_amount"),
 
 		CaptchaEnabled:             viper.GetBool("captcha.enabled"),
 		CaptchaRateLimitPerMinute:  viper.GetInt("captcha.rate_limit_per_minute"),

@@ -33,8 +33,18 @@ func AcceptTaskOffer(db *sqlx.DB, offerID int64) error {
 	return err
 }
 
+func AcceptTaskOfferTx(tx *sqlx.Tx, offerID int64) error {
+	_, err := tx.Exec(`UPDATE task_offers SET accepted = true WHERE id = $1`, offerID)
+	return err
+}
+
 func RejectOtherOffersForTask(db *sqlx.DB, taskID, acceptedOfferID int64) error {
 	_, err := db.Exec(`UPDATE task_offers SET accepted = false WHERE task_id = $1 AND id != $2`, taskID, acceptedOfferID)
+	return err
+}
+
+func RejectOtherOffersForTaskTx(tx *sqlx.Tx, taskID, acceptedOfferID int64) error {
+	_, err := tx.Exec(`UPDATE task_offers SET accepted = false WHERE task_id = $1 AND id != $2`, taskID, acceptedOfferID)
 	return err
 }
 

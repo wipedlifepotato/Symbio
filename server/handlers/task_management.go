@@ -93,13 +93,15 @@ func CreateTaskHandler() http.HandlerFunc {
 			return
 		}
 
-		// Rate limit: min interval between tasks
-		minInt := config.AppConfig.TaskMinInterval
-		var last time.Time
-		err = db.Postgres.Get(&last, `SELECT COALESCE(max(created_at), to_timestamp(0)) FROM tasks WHERE client_id=$1`, userID)
-		if err == nil && time.Since(last) < minInt {
-			http.Error(w, "Rate limit: please wait before creating another task", http.StatusTooManyRequests)
-			return
+		// Rate limit: min interval between tasks (unless disabled for testing)
+		if !config.AppConfig.TaskRateLimitDisabled {
+			minInt := config.AppConfig.TaskMinInterval
+			var last time.Time
+			err = db.Postgres.Get(&last, `SELECT COALESCE(max(created_at), to_timestamp(0)) FROM tasks WHERE client_id=$1`, userID)
+			if err == nil && time.Since(last) < minInt {
+				http.Error(w, "Rate limit: please wait before creating another task", http.StatusTooManyRequests)
+				return
+			}
 		}
 
 		task.ClientID = userID

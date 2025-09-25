@@ -3,6 +3,8 @@ package db
 import (
 	"mFrelance/models"
 	// "time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 func CreateEscrowBalance(escrow *models.EscrowBalance) error {
@@ -12,6 +14,15 @@ func CreateEscrowBalance(escrow *models.EscrowBalance) error {
 		RETURNING id`
 
 	return Postgres.QueryRow(query, escrow.TaskID, escrow.ClientID, escrow.FreelancerID, escrow.Amount, escrow.Currency, escrow.Status, escrow.CreatedAt).Scan(&escrow.ID)
+}
+
+func CreateEscrowBalanceTx(tx *sqlx.Tx, escrow *models.EscrowBalance) error {
+	query := `
+		INSERT INTO escrow_balances (task_id, client_id, freelancer_id, amount, currency, status, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id`
+
+	return tx.QueryRow(query, escrow.TaskID, escrow.ClientID, escrow.FreelancerID, escrow.Amount, escrow.Currency, escrow.Status, escrow.CreatedAt).Scan(&escrow.ID)
 }
 
 func GetEscrowBalanceByTaskID(taskID int64) (*models.EscrowBalance, error) {
