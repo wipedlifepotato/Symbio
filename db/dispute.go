@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"mFrelance/models"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 func CreateDispute(dispute *models.Dispute) error {
@@ -55,6 +57,12 @@ func GetDisputesByTaskID(taskID int64) ([]*models.Dispute, error) {
 func UpdateDisputeStatus(id int64, status string, resolution *string) error {
 	query := `UPDATE disputes SET status = $1, resolution = $2, updated_at = $3 WHERE id = $4`
 	_, err := Postgres.Exec(query, status, resolution, time.Now(), id)
+	return err
+}
+
+func UpdateDisputeStatusTx(tx *sqlx.Tx, id int64, status string, resolution *string) error {
+	query := `UPDATE disputes SET status = $1, resolution = $2, updated_at = $3 WHERE id = $4`
+	_, err := tx.Exec(query, status, resolution, time.Now(), id)
 	return err
 }
 

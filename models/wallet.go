@@ -86,26 +86,37 @@ func (w *Wallet) BigBalance() *big.Float {
 	return b
 }
 
-func (w *Wallet) SetBalance(db *sqlx.DB, newBal *big.Float) error {
+func (w *Wallet) SetBalance(db interface{}, newBal *big.Float) error {
 	newBalanceStr := fmt.Sprintf("%.8f", newBal)
-	_, err := db.Exec(`
-		UPDATE wallets 
-		SET balance=$1 
-		WHERE id=$2
-	`, newBalanceStr, w.ID)
+	var err error
+	if tx, ok := db.(*sqlx.Tx); ok {
+		_, err = tx.Exec(`
+			UPDATE wallets
+			SET balance=$1
+			WHERE id=$2
+		`, newBalanceStr, w.ID)
+	} else if dbConn, ok := db.(*sqlx.DB); ok {
+		_, err = dbConn.Exec(`
+			UPDATE wallets
+			SET balance=$1
+			WHERE id=$2
+		`, newBalanceStr, w.ID)
+	} else {
+		return fmt.Errorf("unsupported database interface")
+	}
 	if err == nil {
 		w.Balance = newBalanceStr
 	}
 	return err
 }
 
-func (w *Wallet) AddBalance(db *sqlx.DB, delta *big.Float) error {
+func (w *Wallet) AddBalance(db interface{}, delta *big.Float) error {
 	current := w.BigBalance()
 	newBal := new(big.Float).Add(current, delta)
 	return w.SetBalance(db, newBal)
 }
 
-func (w *Wallet) SubBalance(db *sqlx.DB, delta *big.Float) error {
+func (w *Wallet) SubBalance(db interface{}, delta *big.Float) error {
 	current := w.BigBalance()
 	newBal := new(big.Float).Sub(current, delta)
 	if newBal.Cmp(big.NewFloat(0)) < 0 {

@@ -236,29 +236,55 @@ func ResolveDisputeHandler() http.HandlerFunc {
 			return
 		}
 
+		// Use transaction to ensure atomicity
+		tx, err := db.Postgres.Beginx()
+		if err != nil {
+			http.Error(w, "Failed to start transaction: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer tx.Rollback()
+
 		userWallet, err := models.GetWalletByUserAndCurrency(db.Postgres, walletUserID, task.Currency)
 		if err != nil {
 			http.Error(w, "Failed to get user wallet: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err := userWallet.AddBalance(db.Postgres, amount); err != nil {
+		if err := userWallet.AddBalance(tx, amount); err != nil {
 			http.Error(w, "Failed to credit user: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err := db.UpdateEscrowBalanceStatus(task.ID, newEscrowStatus); err != nil {
+		if err := db.UpdateEscrowBalanceStatusTx(tx, task.ID, newEscrowStatus); err != nil {
 			http.Error(w, "Failed to update escrow status", http.StatusInternalServerError)
 			return
 		}
 
-		if err := db.UpdateDisputeStatus(req.DisputeID, "resolved", &req.Resolution); err != nil {
+		if err := db.UpdateDisputeStatusTx(tx, req.DisputeID, "resolved", &req.Resolution); err != nil {
 			http.Error(w, "Failed to update dispute status", http.StatusInternalServerError)
 			return
 		}
 
-		if err := db.UpdateTaskStatus(db.Postgres, task.ID, "completed"); err != nil {
+		if err := db.UpdateTaskStatusTx(tx, task.ID, "completed"); err != nil {
 			http.Error(w, "Failed to update task status", http.StatusInternalServerError)
+			return
+		}
+
+		// Update freelancer's completed tasks count if freelancer won
+		if req.Resolution == "freelancer_won" {
+			_, err = tx.Exec(`
+				UPDATE profiles
+				SET completed_tasks = completed_tasks + 1
+				WHERE user_id = $1
+			`, walletUserID)
+			if err != nil {
+				http.Error(w, "Failed to update freelancer completed tasks", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		if err := tx.Commit(); err != nil {
+			http.Error(w, "Failed to commit transaction: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 

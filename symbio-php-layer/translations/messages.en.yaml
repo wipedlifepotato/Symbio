@@ -97,6 +97,7 @@ form.cancel: "Cancel"
 dashboard:
   title: "Dashboard"
   heading: "User Dashboard"
+  welcome_message: "Welcome to your personal dashboard"
   wallet:
     btc: "BTC Wallet"
     address: "Address"
@@ -110,6 +111,7 @@ dashboard:
   all_tasks: "All tasks"
   search_work: "Search work"
   create_task: "Create a task"
+  quick_links: "Quick Links"
   link:
     profiles: "Profiles"
     profile: "Profile"
@@ -175,6 +177,9 @@ profiles:
   actions: "Actions"
   request_chat: "Request Chat"
   no_profiles: "No profiles."
+  no_profiles_desc: "No user profiles have been created yet."
+  no_name: "No name"
+  your_profile: "Your profile"
   back: "Back"
   error: "Error"
   previous: "Previous"
@@ -184,13 +189,22 @@ profiles:
 profile:
   title: "Profile"
   heading: "User Profile %username%"
+  edit_profile: "Edit Profile"
   full_name: "Full Name"
+  full_name_placeholder: "Enter your full name"
   bio: "Bio"
+  bio_placeholder: "Tell us about yourself..."
+  bio_help: "Write a brief description about your experience and expertise"
   skills: "Skills (comma separated)"
+  skills_placeholder: "e.g. PHP, JavaScript, HTML, CSS"
+  skills_help: "Separate skills with commas"
   avatar: "Avatar"
+  avatar_help: "Upload a profile picture (JPG, PNG, max 5MB)"
   save_button: "Save Profile"
   back: "Back"
   error: "Error"
+  no_profile: "Profile not found"
+  create_profile_desc: "Create your profile to start working on tasks."
 
 tasks.title: "Tasks"
 filters.all: "All"
@@ -263,3 +277,17 @@ reviews:
   available_after_completion: "Reviews are available after task completion"
   view: "Reviews"
   view_user_reviews: "View user reviews"
+
+nav:
+  account: "Account"
+  login: "Login"
+  register: "Register"
+
+footer:
+  description: "Freelance platform for connecting clients and professionals"
+  quick_links: "Quick Links"
+  language: "Language"
+  rights: "All rights reserved"
+
+meta:
+  description: "MFrelance - Freelance platform for tasks and services"

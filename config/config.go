@@ -137,7 +137,7 @@ func Init() {
 	viper.SetDefault("max.addr_per_block", 100)
 
 	// Tasks
-	viper.SetDefault("tasks.min_interval", "1h")
+	viper.SetDefault("tasks.min_interval", "12m")
 	viper.SetDefault("tasks.duplicate_window", "24h")
 
 	// Captcha

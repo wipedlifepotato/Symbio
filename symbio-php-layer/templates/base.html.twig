@@ -1,61 +1,163 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ app.request.locale ?: 'en' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{'project_name'|trans}}{% endblock %}</title>
+    <meta name="description" content="{{ 'meta.description'|trans }}">
+    <title>{% block title %}{{ 'project_name'|trans }}{% endblock %}</title>
     <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('css/bootstrap-icons.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ path('app_login') }}">
-                <i class="bi bi-briefcase"></i> {{'project_name'|trans}}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ path('app_login') }}">
+                <i class="bi bi-briefcase-fill me-2"></i>{{ 'project_name'|trans }}
             </a>
-            {% if app.session.has('jwt') %}
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ path('app_dashboard') }}">
-                    <i class="bi bi-house"></i> {{'dashboard.heading'|trans}}
-                </a>
-                <a class="nav-link" href="{{ path('tasks') }}">
-                    <i class="bi bi-list-task"></i> {{'tasks.title'|trans}}
-                </a>
-                <a class="nav-link" href="{{ path('disputes') }}">
-                    <i class="bi bi-exclamation-triangle"></i> {{'disputes'|trans}}
-                </a>
-                <a class="nav-link" href="{{ path('app_profile') }}">
-                    <i class="bi bi-person"></i> {{'dashboard.link.profile'|trans}}
-                </a>
-                <a class="nav-link" href="{{ path('app_exit') }}">
-                    <i class="bi bi-box-arrow-right"></i> {{'exit'|trans}}
-                </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                {% if app.session.has('jwt') %}
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link{% if app.request.get('_route') == 'app_dashboard' %} active{% endif %}" href="{{ path('app_dashboard') }}">
+                                <i class="bi bi-house-door"></i> {{ 'dashboard.heading'|trans }}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link{% if app.request.get('_route') starts with 'tasks' %} active{% endif %}" href="{{ path('tasks') }}">
+                                <i class="bi bi-list-task"></i> {{ 'tasks.title'|trans }}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link{% if app.request.get('_route') starts with 'dispute' %} active{% endif %}" href="{{ path('disputes') }}">
+                                <i class="bi bi-exclamation-triangle"></i> {{ 'disputes'|trans }}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link{% if app.request.get('_route') == 'app_profiles' %} active{% endif %}" href="{{ path('app_profiles') }}">
+                                <i class="bi bi-people"></i> {{ 'dashboard.link.profiles'|trans }}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link{% if app.request.get('_route') == 'app_profile' %} active{% endif %}" href="{{ path('app_profile') }}">
+                                <i class="bi bi-person"></i> {{ 'dashboard.link.profile'|trans }}
+                            </a>
+                        </li>
+                    </ul>
+
+                    <ul class="navbar-nav">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i> {{ 'nav.account'|trans }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{{ path('app_ticket') }}">
+                                    <i class="bi bi-ticket"></i> {{ 'dashboard.link.tickets'|trans }}
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ path('app_chat') }}">
+                                    <i class="bi bi-chat"></i> {{ 'dashboard.link.chats'|trans }}
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{{ path('app_exit') }}">
+                                    <i class="bi bi-box-arrow-right"></i> {{ 'exit'|trans }}
+                                </a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                {% else %}
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ path('app_login') }}">
+                                <i class="bi bi-box-arrow-in-right"></i> {{ 'nav.login'|trans }}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ path('app_register') }}">
+                                <i class="bi bi-person-plus"></i> {{ 'nav.register'|trans }}
+                            </a>
+                        </li>
+                    </ul>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
     </nav>
 
-    <main>
-        {% for message in app.flashes('success') %}
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endfor %}
-        
-        {% for message in app.flashes('error') %}
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endfor %}
-        
+    <main class="flex-grow-1">
+        <!-- Flash Messages -->
+        <div class="container-fluid">
+            {% for message in app.flashes('success') %}
+                <div class="alert alert-success alert-dismissible fade show shadow-sm mx-3 mt-3" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+
+            {% for message in app.flashes('error') %}
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm mx-3 mt-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+
+            {% for message in app.flashes('warning') %}
+                <div class="alert alert-warning alert-dismissible fade show shadow-sm mx-3 mt-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+
+            {% for message in app.flashes('info') %}
+                <div class="alert alert-info alert-dismissible fade show shadow-sm mx-3 mt-3" role="alert">
+                    <i class="bi bi-info-circle-fill me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+
         {% block body %}{% endblock %}
     </main>
 
-    <footer class="bg-dark text-light text-center py-3 mt-5">
-        <p class="mb-0">© {{ "now"|date("Y") }} {{'project_name'|trans}}</p>
+    <footer class="bg-dark text-light mt-auto">
+        <div class="container-fluid py-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>{{ 'project_name'|trans }}</h5>
+                    <p class="mb-0">{{ 'footer.description'|trans }}</p>
+                </div>
+                <div class="col-md-3">
+                    <h6>{{ 'footer.quick_links'|trans }}</h6>
+                    <ul class="list-unstyled">
+                        {% if app.session.has('jwt') %}
+                            <li><a href="{{ path('app_dashboard') }}" class="text-light text-decoration-none">{{ 'dashboard.heading'|trans }}</a></li>
+                            <li><a href="{{ path('tasks') }}" class="text-light text-decoration-none">{{ 'tasks.title'|trans }}</a></li>
+                            <li><a href="{{ path('app_profile') }}" class="text-light text-decoration-none">{{ 'dashboard.link.profile'|trans }}</a></li>
+                        {% else %}
+                            <li><a href="{{ path('app_login') }}" class="text-light text-decoration-none">{{ 'nav.login'|trans }}</a></li>
+                            <li><a href="{{ path('app_register') }}" class="text-light text-decoration-none">{{ 'nav.register'|trans }}</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6>{{ 'footer.language'|trans }}</h6>
+                    <div class="btn-group-sm" role="group">
+                        <a href="{{ path('app_set_locale', {'locale': 'ru'}) }}" class="btn btn-outline-light btn-sm{% if app.request.locale == 'ru' %} active{% endif %}">Русский</a>
+                        <a href="{{ path('app_set_locale', {'locale': 'en'}) }}" class="btn btn-outline-light btn-sm{% if app.request.locale == 'en' %} active{% endif %}">English</a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="mb-0">&copy; {{ "now"|date("Y") }} {{ 'project_name'|trans }}. {{ 'footer.rights'|trans }}</p>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
