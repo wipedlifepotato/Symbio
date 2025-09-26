@@ -10,7 +10,7 @@ import (
 	"os"
 	"strconv"
 	"time"
-
+	"regexp"
 	"gitlab.com/moneropay/go-monero/walletrpc"
 
 	"mFrelance/config"
@@ -130,6 +130,8 @@ func savePendingRequest(req PendingRequest) error {
 	return os.WriteFile(filePath, newData, 0644)
 }
 
+
+var amountRe = regexp.MustCompile(`^\d+(\.\d{1,8})?$`) // 0.00100001 // 0.001000011 not will accept so no will lost money in prespective
 // SendElectrumHandler godoc
 // @Summary Send Bitcoin
 // @Description Sends Bitcoin transaction using Electrum
@@ -170,7 +172,10 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
 		http.Error(w, "destination and amount required", http.StatusBadRequest)
 		return
 	}
-
+	if !amountRe.MatchString(amountStr) {
+	    http.Error(w, "amount must have at most 8 decimal places", http.StatusBadRequest)
+	    return
+	}
 	amount, ok := new(big.Float).SetString(amountStr)
 	if !ok {
 		http.Error(w, "invalid amount", http.StatusBadRequest)
