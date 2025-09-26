@@ -254,7 +254,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
 		log.Println("[RegisterHandler] invalid json")
 		return
 	}
-	if utf8.RuneCountInString(req.Password) > 128 {
+	if utf8.RuneCountInString(req.Password) > 70 {
 		server.WriteErrorJSON(w, "password too long", http.StatusBadRequest)
 		log.Println("[RegisterHandler] password too long")
 		return
@@ -270,7 +270,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, rdb *redis.Client) 
 		log.Println("[RegisterHandler] username too small")
 		return
 	}
-	if utf8.RuneCountInString(req.Username) > 128 {
+	if utf8.RuneCountInString(req.Username) > 50 {
 		server.WriteErrorJSON(w, "Username too long", http.StatusBadRequest)
 		log.Println("[RegisterHandler] username too long")
 		return
