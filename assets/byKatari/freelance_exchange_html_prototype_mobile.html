@@ -1,0 +1,114 @@
+<!doctype html><html lang="uk"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>FX — Mobile</title><style>
+:root{--bg:#f6f7fb;--tx:#0f172a;--mu:#64748b;--sf:#fff;--bd:1px solid rgba(2,8,23,.1);--pri:#0ea5e9;--sh:0 10px 20px rgba(2,8,23,.08);--r:14px}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;background:var(--bg);color:var(--tx)}a,button{cursor:pointer}
+.container{max-width:1080px;margin:0 auto;padding:0 16px}
+.top{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.9);backdrop-filter:blur(6px);border-bottom:var(--bd)}
+.top-in{display:grid;grid-template-columns:1fr auto auto;align-items:center;height:56px}
+.brand{display:flex;gap:8px;align-items:center;font-weight:800}.logo{width:24px;height:24px;border-radius:8px;background:linear-gradient(135deg,#38bdf8,#2563eb)}
+.tabs{display:flex;gap:6px}.tab{border:var(--bd);background:var(--sf);padding:6px 10px;border-radius:10px;font-weight:700}.tab[aria-selected="true"]{background:var(--pri);color:#fff;border-color:#0284c7}
+.tools{display:flex;gap:6px;align-items:center}.chip{background:#e2e8f0;color:#0f172a;padding:6px 9px;border-radius:999px;font:600 12px/1 system-ui}.chip.active{outline:2px solid var(--pri)}
+.hero{margin:12px 0;background:linear-gradient(135deg,#38bdf8,#2563eb);color:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:18px;display:flex;justify-content:space-between;gap:12px}
+.btn{border:none;border-radius:12px;padding:9px 12px;font-weight:800;box-shadow:var(--sh)}.btn-w{background:#fff;color:#0f172a}.btn-o{background:transparent;border:1px solid rgba(255,255,255,.6);color:#fff}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:1fr}.card{background:var(--sf);border:var(--bd);border-radius:var(--r);padding:14px;box-shadow:var(--sh)}.muted{color:var(--mu);font-size:13px}
+@media(min-width:800px){.g2{grid-template-columns:1fr 1fr}}
+.actions{display:grid;gap:12px}@media(min-width:720px){.actions{grid-template-columns:repeat(4,1fr)}}.tile{background:var(--sf);border:var(--bd);border-radius:16px;padding:18px;box-shadow:var(--sh)}
+.workbench{display:grid;gap:12px}@media(min-width:1024px){.workbench{grid-template-columns:260px 1fr 360px}}
+.job{border:var(--bd);border-radius:12px;background:var(--sf);padding:12px;box-shadow:var(--sh)}.tag{background:#e2e8f0;border-radius:999px;padding:4px 8px;font:700 12px/1 system-ui;margin:2px}
+.bn{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--sf);border-top:var(--bd);box-shadow:0 -10px 25px rgba(2,8,23,.06);padding:4px 8px;z-index:80}
+.bn button{background:transparent;border:none;padding:6px 4px;font-weight:700;color:var(--mu);border-radius:10px}.bn button.active{color:var(--tx)}.bn button div{font-size:11px}
+@media(min-width:768px){.bn,.fab{display:none}}@media(max-width:767px){footer{padding-bottom:68px}}
+.fab{position:fixed;right:16px;bottom:72px;width:56px;height:56px;border-radius:50%;background:var(--pri);color:#fff;border:none;box-shadow:var(--sh);font-size:28px;z-index:90}
+.db{position:fixed;inset:0;background:rgba(2,8,23,.45);display:none;z-index:90}.dp{position:fixed;left:0;right:0;bottom:-100%;background:var(--sf);border-radius:16px 16px 0 0;box-shadow:var(--sh);max-height:85vh;display:grid;grid-template-rows:auto 1fr;z-index:100}
+.dh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:var(--bd)}.dc{overflow:auto;padding:12px 16px}
+.open .db{display:block}.open .dp{animation:su .22s ease forwards}@keyframes su{to{bottom:0}}
+#toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,100%);background:var(--sf);border:var(--bd);box-shadow:var(--sh);padding:10px 12px;border-radius:12px;z-index:110}
+.hidden{display:none}
+</style></head><body>
+<header class="top"><div class="container top-in"><div class="brand"><div class="logo"></div><span id="brand">FX</span></div>
+<nav class="tabs"><button class="tab" data-page="dashboard" aria-selected="true" id="tDash">Dashboard</button><button class="tab" data-page="jobs" id="tJobs">Задачі</button><button class="tab" data-page="disputes" id="tDisputes">Диспути</button><button class="tab" data-page="admin" id="tAdmin">Адмінка</button></nav>
+<div class="tools"><span class="chip" id="lngUA">UA</span><span class="chip" id="lngRU">RU</span></div></div></header>
+<main class="container">
+<section class="hero" id="hero"><div><h1 id="hTitle">Ласкаво просимо</h1><p class="muted" id="hText">Швидкий доступ до ескроу, задач і диспутів.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-w" id="hNew" onclick="openTask()">＋ Створити</button><button class="btn btn-o" onclick="goJobs()" id="hBrowse">Переглянути задачі</button></div></section>
+<section id="page-dashboard" class="page">
+  <div class="grid g2">
+    <article class="card"><h3 id="escTitle">Ескроу-баланс</h3><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div><div class="muted" id="escHold">Утримується</div><strong>$1,240</strong></div>
+      <div><div class="muted" id="escRel">Доступно</div><strong>$560</strong></div>
+      <div><div class="muted" id="escPend">Очікує</div><strong>$180</strong></div>
+    </div><div style="margin-top:10px"><button class="btn btn-w" onclick="toast(t('payout'))" id="escBtn">Запросити виплату</button></div></article>
+    <article class="card"><h3 id="finTitle">Фінанси</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="tab" onclick="toast(t('history'))" id="finHist">Історія виплат</button><button class="tab" onclick="goDisputes()" id="finDisp">Диспути</button></div></article>
+  </div>
+  <h3 style="margin:12px 0" id="fxTitle">Система фрілансу</h3>
+  <div class="actions">
+    <article class="tile" onclick="goJobs()"><strong id="tileJobs">Всі задачі</strong><p class="muted">Стрічка замовлень з фільтрами.</p></article>
+    <article class="tile" onclick="openTask()"><strong id="tileCreate">Створити задачу</strong><p class="muted">Два кліки і поїхали.</p></article>
+    <article class="tile" onclick="goDisputes()"><strong id="tileDisputes">Диспути</strong><p class="muted">Арбітраж за 48 год.</p></article>
+    <article class="tile" onclick="goAdmin()"><strong id="tileAdmin">Адмінка</strong><p class="muted">KPI та модерація.</p></article>
+  </div>
+</section>
+<section id="page-jobs" class="page hidden">
+  <div style="display:flex;align-items:center;gap:8px;margin:12px 0"><button class="tab" onclick="back()">← <span id="backTxt">Назад</span></button><h2 id="jobsTitle" style="margin:0">Всі задачі</h2></div>
+  <div class="workbench">
+    <aside class="card" id="filters"><h3 id="fTitle" style="margin:0 0 8px">Фільтри</h3><div id="chips"></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="fEsc"/> <span id="fEscTxt">Тільки ескроу</span></label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="fUrg"/> <span id="fUrgTxt">Термінові</span></label>
+    </aside>
+    <section id="jobs" class="grid"></section>
+    <aside class="card" id="details"><h3 id="dTitle" style="margin:0">Деталі</h3><p class="muted" id="dEmpty">Обери задачу зі списку.</p><div id="dBody" class="hidden"></div></aside>
+  </div>
+</section>
+<section id="page-disputes" class="page hidden">
+  <div style="display:flex;align-items:center;gap:8px;margin:12px 0"><button class="tab" onclick="back()">← <span id="backTxt2">Назад</span></button><h2 id="dispTitle" style="margin:0">Диспути</h2></div>
+  <div class="grid g2"><aside class="card"><h3 id="dfTitle" style="margin:0 0 8px">Фільтри</h3>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="dOpen" checked/> <span id="dfOpen">Відкриті</span></label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="dRev" checked/> <span id="dfRev">На розгляді</span></label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="dRes" checked/> <span id="dfRes">Закриті</span></label>
+    </aside><section class="card"><div id="dList"></div><div class="muted" id="dNone">Немає кейсів.</div></section></div>
+</section>
+<section id="page-admin" class="page hidden">
+  <div style="display:flex;align-items:center;gap:8px;margin:12px 0"><button class="tab" onclick="back()">← <span>Назад</span></button><h2 id="admTitle" style="margin:0">Адмінка</h2></div>
+  <div class="grid g2">
+    <article class="card"><div class="muted" id="k1">Користувачі</div><div style="font-weight:800;font-size:22px">1,248</div></article>
+    <article class="card"><div class="muted" id="k2">Активні задачі</div><div style="font-weight:800;font-size:22px">312</div></article>
+    <article class="card"><div class="muted" id="k3">Диспути</div><div style="font-weight:800;font-size:22px">7</div></article>
+    <article class="card"><div class="muted" id="k4">Дохід (30д)</div><div style="font-weight:800;font-size:22px">$18.4k</div></article>
+  </div>
+</section>
+</main>
+<nav class="bn"><button id="bnDash" onclick="goDash()">🏠<div id="bnDashT">Головна</div></button><button id="bnJobs" onclick="goJobs()">🧩<div id="bnJobsT">Задачі</div></button><button id="bnDisp" onclick="goDisputes()">⚖️<div id="bnDispT">Диспути</div></button><button id="bnAdm" onclick="goAdmin()">🛠<div id="bnAdmT">Адмінка</div></button></nav>
+<button class="fab" onclick="openTask()">＋</button>
+<div id="db" class="db" onclick="closeDrawer()"></div><div id="dp" class="dp"><div class="dh"><button class="tab" onclick="drawerBack()">←</button><strong id="dt">Деталі</strong><button class="tab" onclick="closeDrawer()">✕</button></div><div class="dc" id="dc"></div></div>
+<div id="toast"><span id="tt">OK</span></div>
+<script>
+"use strict";const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
+// Nav
+const pages={dashboard:$('#page-dashboard'),jobs:$('#page-jobs'),disputes:$('#page-disputes'),admin:$('#page-admin')};let stack=['dashboard'],cur='dashboard';
+function show(p,push){Object.entries(pages).forEach(([k,e])=>e.classList.toggle('hidden',k!==p)); $$('.tab[data-page]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.page===p))); $('#hero').classList.toggle('hidden',p!=='dashboard'); if(push) stack.push(p); cur=p; highlightBN();}
+$$('.tab[data-page]').forEach(b=>b.onclick=()=>show(b.dataset.page,true));function back(){if(stack.length>1){stack.pop();show(stack.at(-1),false)}else show('dashboard',false)}
+function goDash(){show('dashboard',true)}function goJobs(){show('jobs',true); renderJobs()}function goDisputes(){show('disputes',true); renderDisputes()}function goAdmin(){show('admin',true)}function highlightBN(){['bnDash','bnJobs','bnDisp','bnAdm'].forEach(x=>$('#'+x).classList.remove('active')); if(cur==='dashboard') $('#bnDash').classList.add('active'); if(cur==='jobs') $('#bnJobs').classList.add('active'); if(cur==='disputes') $('#bnDisp').classList.add('active'); if(cur==='admin') $('#bnAdm').classList.add('active');}
+// Toast
+let tmr;function toast(s){$('#tt').textContent=s;const el=$('#toast');el.style.transform='translate(-50%,0)';clearTimeout(tmr);tmr=setTimeout(()=>el.style.transform='translate(-50%,100%)',1300)}
+// Drawer
+let dh=[];function openDrawer(title,html){document.body.classList.add('open');$('#dt').textContent=title||'Details';$('#dc').innerHTML=html||'';dh.push({title,html})}function closeDrawer(){document.body.classList.remove('open');dh=[]}function drawerBack(){if(dh.length>1){dh.pop();const p=dh.at(-1);$('#dt').textContent=p.title;$('#dc').innerHTML=p.html}else closeDrawer()}
+function openTask(){toast(t('create'))}
+// I18N
+let lang=localStorage.getItem('fx-lang')||'uk';const dict={uk:{brand:'FX',tDash:'Dashboard',tJobs:'Задачі',tDisputes:'Диспути',tAdmin:'Адмінка',hTitle:'Ласкаво просимо',hText:'Швидкий доступ до ескроу, задач і диспутів.',hNew:'＋ Створити',hBrowse:'Переглянути задачі',escTitle:'Ескроу-баланс',escHold:'Утримується',escRel:'Доступно',escPend:'Очікує',escBtn:'Запросити виплату',finTitle:'Фінанси',finHist:'Історія виплат',finDisp:'Диспути',fxTitle:'Система фрілансу',tileJobs:'Всі задачі',tileCreate:'Створити задачу',tileDisputes:'Диспути',tileAdmin:'Адмінка',backTxt:'Назад',jobsTitle:'Всі задачі',fTitle:'Фільтри',fEscTxt:'Тільки ескроу',fUrgTxt:'Термінові',dTitle:'Деталі',dEmpty:'Обери задачу зі списку.',dispTitle:'Диспути',dfTitle:'Фільтри',dfOpen:'Відкриті',dfRev:'На розгляді',dfRes:'Закриті',dNone:'Немає кейсів.',admTitle:'Адмінка',k1:'Користувачі',k2:'Активні задачі',k3:'Диспути',k4:'Дохід (30д)',bnDashT:'Головна',bnJobsT:'Задачі',bnDispT:'Диспути',bnAdmT:'Адмінка',create:'Чернетка створення',payout:'Запит відправлено',history:'Показати історію',criteria:'Критерії приймання',apply:'Відгукнутись',ask:'Поставити питання',report:'Репорт',ago:'тому'},
+ru:{brand:'FX',tDash:'Панель',tJobs:'Задачи',tDisputes:'Диспуты',tAdmin:'Админка',hTitle:'Добро пожаловать',hText:'Быстрый доступ к эскроу, задачам и диспутам.',hNew:'＋ Создать',hBrowse:'Смотреть задачи',escTitle:'Баланс эскроу',escHold:'Удерживается',escRel:'Доступно',escPend:'Ожидает',escBtn:'Запросить выплату',finTitle:'Финансы',finHist:'История выплат',finDisp:'Диспуты',fxTitle:'Система фриланса',tileJobs:'Все задачи',tileCreate:'Создать задачу',tileDisputes:'Диспуты',tileAdmin:'Админка',backTxt:'Назад',jobsTitle:'Все задачи',fTitle:'Фильтры',fEscTxt:'Только эскроу',fUrgTxt:'Срочные',dTitle:'Детали',dEmpty:'Выберите задачу из списка.',dispTitle:'Диспуты',dfTitle:'Фильтры',dfOpen:'Открытые',dfRev:'На рассмотрении',dfRes:'Закрытые',dNone:'Нет кейсов.',admTitle:'Админка',k1:'Пользователи',k2:'Активные задачи',k3:'Диспуты',k4:'Доход (30д)',bnDashT:'Главная',bnJobsT:'Задачи',bnDispT:'Диспуты',bnAdmT:'Админка',create:'Черновик создания',payout:'Запрос отправлен',history:'Показать историю',criteria:'Критерии приёмки',apply:'Откликнуться',ask:'Задать вопрос',report:'Репорт',ago:'назад'}};
+function t(k){return (dict[lang]&&dict[lang][k])||dict.uk[k]||k}
+function apply(){['brand','tDash','tJobs','tDisputes','tAdmin','hTitle','hText','hNew','hBrowse','escTitle','escHold','escRel','escPend','escBtn','finTitle','finHist','finDisp','fxTitle','tileJobs','tileCreate','tileDisputes','tileAdmin','backTxt','jobsTitle','fTitle','fEscTxt','fUrgTxt','dTitle','dEmpty','dispTitle','dfTitle','dfOpen','dfRev','dfRes','dNone','admTitle','k1','k2','k3','k4','bnDashT','bnJobsT','bnDispT','bnAdmT'].forEach(id=>{const el=document.getElementById(id); if(el) el.textContent=t(id)}); document.getElementById('lngUA').classList.toggle('active',lang==='uk'); document.getElementById('lngRU').classList.toggle('active',lang==='ru'); if(cur==='jobs') renderJobs(); if(cur==='disputes') renderDisputes();}
+$('#lngUA').onclick=()=>{lang='uk';localStorage.setItem('fx-lang','uk');apply()}; $('#lngRU').onclick=()=>{lang='ru';localStorage.setItem('fx-lang','ru');apply()};
+// Jobs
+const chipsData=['react','node','python','design','telegram']; const jobsData=[{id:101,title:'Лендінг для кавʼярні',budget:700,cur:'USD',deadline:7,tags:['design','react'],posted:'3h',desc:'Лендінг з оплатою, адаптив, 5 секцій.' ,crit:['Pixel-perfect','Оплата Stripe']},{id:102,title:'Телеграм-бот для заявок',budget:500,cur:'USD',deadline:5,tags:['python','telegram'],posted:'1h',desc:'Бот заявки, адмінка, експорт.' ,crit:['Антиспам','Ролі']},{id:103,title:'Dashboard React + Node',budget:20,cur:'USD/h',deadline:14,tags:['react','node'],posted:'12h',desc:'Адмінка: таблиці, фільтри.' ,crit:['JWT','Unit tests 60%']}];
+function renderChips(){const box=$('#chips'); box.innerHTML=chipsData.map((t,i)=>`<span class='chip' data-tag='${t}' onclick='toggleChip(this)'>${t}</span>`).join('')}
+function toggleChip(el){el.classList.toggle('active'); renderJobs()}
+function renderJobs(){renderChips(); const list=$('#jobs'); list.innerHTML=''; const tags=$$('.chip.active').map(c=>c.dataset.tag); const esc=$('#fEsc').checked, urg=$('#fUrg').checked; const filtered=jobsData.filter(j=>(!tags.length||tags.some(t=>j.tags.includes(t))) && (!esc||true) && (!urg||false)); filtered.forEach(j=>{const el=document.createElement('article'); el.className='job'; el.innerHTML=`<div style='display:flex;justify-content:space-between'><strong>${j.title}</strong><span>${j.budget} ${j.cur}</span></div><div class='muted'>⏱ ${j.deadline}d • 📌 ${j.posted} ${t('ago')}</div><div style='margin-top:6px'>${j.tags.map(x=>`<span class='tag'>${x}</span>`).join('')}</div>`; el.onclick=()=>openJob(j.id); list.appendChild(el)}); if(!filtered.length){$('#dBody').classList.add('hidden'); $('#dEmpty').classList.remove('hidden')} }
+function openJob(id){const j=jobsData.find(x=>x.id===id); const html=`<p>${j.desc}</p><h4>${t('criteria')}</h4><ul>${j.crit.map(c=>`<li>${c}</li>`).join('')}</ul><div style='display:flex;gap:8px;flex-wrap:wrap'><button class='btn' style='background:var(--pri);color:#fff' onclick=\"toast('${t('apply')}')\">${t('apply')}</button><button class='tab' onclick=\"toast('${t('ask')}')\">${t('ask')}</button><button class='tab' onclick=\"toast('${t('report')}')\">${t('report')}</button></div>`; if(matchMedia('(max-width:767px)').matches) openDrawer(t('dTitle'),html); else {$('#dEmpty').classList.add('hidden'); const box=$('#dBody'); box.classList.remove('hidden'); box.innerHTML=html}}
+// Disputes
+const disputes=[{id:'D-201',job:'#101',status:'open',updated:'2h',title:'Невідповідність ТЗ',desc:'Клієнт вважає, що макет не відповідає.'},{id:'D-202',job:'#099',status:'review',updated:'1d',title:'Прострочений дедлайн',desc:'Виконавець просить +3 дні.'},{id:'D-203',job:'#087',status:'resolved',updated:'4d',title:'Спір щодо виплати',desc:'Ескроу розблоковано.'}];
+function sLabel(s){if(lang==='ru') return s==='open'?'Открыт':s==='review'?'На рассмотрении':'Закрыт'; return s==='open'?'Відкритий':s==='review'?'На розгляді':'Закритий'}
+function renderDisputes(){const list=$('#dList'), none=$('#dNone'); list.innerHTML=''; const fO=$('#dOpen').checked,fR=$('#dRev').checked,fS=$('#dRes').checked; const arr=disputes.filter(d=>(d.status==='open'&&fO)||(d.status==='review'&&fR)||(d.status==='resolved'&&fS)); arr.forEach(d=>{const el=document.createElement('article'); el.className='job'; el.innerHTML=`<div style='display:flex;justify-content:space-between'><strong>${d.title}</strong><span>${d.job}</span></div><div class='muted'>⏱ ${d.updated} ${t('ago')} • ${sLabel(d.status)}</div><p style='margin:6px 0 0'>${d.desc}</p>`; el.onclick=()=>openDisp(d.id); list.appendChild(el)}); none.style.display=arr.length?'none':'block'}
+function openDisp(id){const tl=[{time:'10:12',actor:'Клієнт',text:'Відкрив диспут.'},{time:'10:40',actor:'Виконавець',text:'Надав оновлений макет.'},{time:'11:05',actor:'Арбітраж',text:'Попросив додаткові файли.'}]; const html=tl.map(e=>`<div style='display:grid;grid-template-columns:76px 1fr;gap:8px'><time class='muted'>${e.time}</time><div><strong>${e.actor}</strong><div>${e.text}</div></div></div>`).join('')+`<div style='display:flex;gap:8px;margin-top:8px;flex-wrap:wrap'><button class='btn' style='background:var(--pri);color:#fff' onclick=\"toast('OK')\">+ Доказ</button><button class='tab' onclick=\"toast('OK')\">Арбітраж</button><button class='tab' onclick=\"toast('OK')\">Закрити</button></div>`; openDrawer(t('dispTitle'),html)}
+// Init
+apply(); show('dashboard',true);
+</script>
+</body></html>
