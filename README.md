@@ -22,6 +22,7 @@
 2. Edit `config.yaml` to match your environment.
 3. Build the Go app:
     ```bash
+    # for fedora go env -w GOPROXY=https://proxy.golang.org,direct
     go build
     ```
 4. Optionally, move the binary to `/usr/local/bin`:
