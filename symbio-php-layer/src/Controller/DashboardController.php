@@ -116,8 +116,10 @@ class DashboardController extends AbstractController
         }
 
         $projectName = $this->getParameter('project_name');
-        $walletBtcResponse = json_decode($walletBtcResponse['response']);
-        $walletXmrResponse = json_decode($walletXmrResponse['response']);
+        if($walletBtcResponse)
+          $walletBtcResponse = json_decode($walletBtcResponse['response']);
+        if($walletXmrResponse)
+          $walletXmrResponse = json_decode($walletXmrResponse['response']);
 
         return $this->render('dashboard/index.html.twig', [
             'walletBtcInfo' => $walletBtcResponse,
