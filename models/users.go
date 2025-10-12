@@ -5,12 +5,6 @@ import (
 	"time"
 )
 
-const (
-	CanChangeBalance = 1 << iota
-	CanBlockUsers
-	CanManageDisputes
-)
-
 type User struct {
 	ID           int64          `json:"id" db:"id"`
 	Username     string         `json:"username" db:"username"`

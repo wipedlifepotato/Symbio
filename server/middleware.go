@@ -71,7 +71,7 @@ const (
 	PermTransactionView           // 4 - право просматривать транзакции
 	PermTicketManage              // 8 - право управлять тикетами
 	PermDisputeManage             // 16 - право управлять диспутами
-)
+) // 16 + 8 + 4 + 2 + 1 (1<<n =2^n) = 31
 
 func HasPermission(userID int64, perm int) bool {
 	var permissions int
