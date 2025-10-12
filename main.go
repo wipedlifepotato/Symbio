@@ -47,7 +47,11 @@ func main() {
 			Transport: httpdigest.New(config.AppConfig.MoneroUser, config.AppConfig.MoneroPassword), // Remove if no auth.
 		},
 	})
-
+	ctx := context.Background()
+    _, err := moneroClient.GetBalance(ctx, &walletrpc.GetBalanceRequest{})
+    if err != nil {
+        log.Fatal("Error Monero RPC:", err)
+    }
 	if err := electrumClient.LoadWallet(); err != nil {
 		log.Fatal("Failed to load wallet:", err)
 	}
