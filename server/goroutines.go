@@ -17,15 +17,20 @@ import (
 	"mFrelance/electrum"
 	"math/big"
 	"os"
-	"strings"
 	"sync"
 	"time"
 )
 
+type TxPoolItem struct {
+    Amount   *big.Float
+    Currency string
+}
+
 var txPool = struct {
-	sync.Mutex
-	outputs map[string]*big.Float
-}{outputs: make(map[string]*big.Float)}
+    sync.Mutex
+    outputs map[string][]TxPoolItem 
+}{outputs: make(map[string][]TxPoolItem)}
+
 var lastTx string
 
 func ProcessTxElectrum(client *electrum.Client, address string, txHash string) (*big.Float, error) {
@@ -92,6 +97,90 @@ func StartWalletSync(ctx context.Context, eClient *electrum.Client, mClient *wal
 	}()
 }
 
+type MoneroWalletSubAddr struct {
+    WalletID   int
+    Currency   string
+    Address    string
+    BalanceStr string
+}
+
+func getMoneroWalletSubAddr(address, currency string) (*MoneroWalletSubAddr, error) {
+    var w MoneroWalletSubAddr
+
+    err := db.Postgres.QueryRow(
+        `SELECT id, currency, address, balance FROM wallets WHERE address=$1 AND currency=$2`,
+        address, currency,
+    ).Scan(&w.WalletID, &w.Currency, &w.Address, &w.BalanceStr)
+
+    if err != nil {
+     //   log.Printf("Wallet not found for address %s: %v", address, err)
+        return nil, err
+    }
+
+    return &w, nil
+}
+
+func syncMoneroWallets(mClient *walletrpc.Client) {
+	ctx := context.Background()
+
+	resp, err := mClient.GetTransfers(ctx, &walletrpc.GetTransfersRequest{
+		AccountIndex: 0,
+		In:           true, 
+		Pending:      false,
+		Failed:       false,
+		Pool:         false,
+	})
+	if err != nil {
+		log.Printf("Failed GetTransfers: %v", err)
+		return
+	}
+
+	for _, tx := range resp.In {
+
+		if tx.Confirmations < 10 {
+			continue
+		}
+
+		if IsTxProcessed(tx.Txid) {
+			continue
+		}
+
+		addrResp, err := mClient.GetAddress(ctx, &walletrpc.GetAddressRequest{
+			AccountIndex: tx.SubaddrIndex.Major,
+		})
+		if err != nil || int(tx.SubaddrIndex.Minor) >= len(addrResp.Addresses) {
+			log.Printf("Failed to get address for TX %s: %v", tx.Txid, err)
+			continue
+		}
+		walletAddress := addrResp.Addresses[tx.SubaddrIndex.Minor].Address
+
+		w, err := getMoneroWalletSubAddr(walletAddress, "XMR")
+		if err != nil {
+			SaveTransaction(tx.Txid, 0, big.NewFloat(0), "XMR", true)
+			continue
+		}
+		println("Found an new transaction for {}:{}", w.Address, tx.Amount)
+
+		currentBalance, _ := new(big.Float).SetString(w.BalanceStr)
+
+		amt := new(big.Float).Quo(new(big.Float).SetFloat64(float64(tx.Amount)), big.NewFloat(1e12))
+		newBalance := new(big.Float).Add(currentBalance, amt)
+
+		if err := SaveTransaction(tx.Txid, w.WalletID, amt, "XMR", true); err != nil {
+			log.Printf("Failed to save transaction %s: %v", tx.Txid, err)
+			continue
+		}
+
+		newBalanceStr := fmt.Sprintf("%.12f", newBalance)
+		_, err = db.Postgres.Exec(`UPDATE wallets SET balance=$1 WHERE id=$2`, newBalanceStr, w.WalletID)
+		if err != nil {
+			log.Printf("Failed to update balance for wallet %d: %v", w.WalletID, err)
+			continue
+		}
+
+		log.Printf("Updated XMR wallet %d (%s): +%s XMR", w.WalletID, w.Address, amt.Text('f', 12))
+	}
+}
 func syncAllWallets(eClient *electrum.Client, mClient *walletrpc.Client) {
 	//log.Println("SyncAllWallets")
 	rows, err := db.Postgres.Query(`SELECT id, currency, address, balance FROM wallets`)
@@ -146,8 +235,7 @@ func syncAllWallets(eClient *electrum.Client, mClient *walletrpc.Client) {
 			}
 
 		case "XMR":
-			// TODO:
-			log.Printf("XMR wallet sync not implemented yet (wallet %d)", walletID)
+			//log.Printf("XMR wallet sync will be in an another block (wallet %d)", walletID)
 		default:
 			log.Printf("Unknown currency %s for wallet %d", currency, walletID)
 		}
@@ -160,6 +248,7 @@ func syncAllWallets(eClient *electrum.Client, mClient *walletrpc.Client) {
 			log.Printf("Wallet %d (%s) balance updated: %s", walletID, currency, newBalanceStr)
 		}
 	}
+	syncMoneroWallets(mClient);
 }
 
 func IsTxProcessed(txid string) bool {
@@ -244,69 +333,130 @@ func StartTxBlockTransactions(ctx context.Context, client *electrum.Client, inte
 		}
 	}()
 }
-func StartTxPoolFlusher(client *electrum.Client, interval time.Duration, maxBatchSize int) {
-	ticker := time.NewTicker(interval)
 
-	flush := func() {
-		txPool.Lock()
-		if len(txPool.outputs) == 0 {
-			txPool.Unlock()
-			return
-		}
+func flushMoneroTxPool(mClient *walletrpc.Client, outs []struct {
+    Address string
+    Amount  *big.Float
+}) {
+    ctx := context.Background()
 
-		var outs [][2]string
-		for addr, amt := range txPool.outputs {
-			outs = append(outs, [2]string{addr, amt.Text('f', 8)})
-		}
+    var dests []walletrpc.Destination
+    for _, o := range outs {
+        amtPi := new(big.Int)
+        o.Amount.Mul(o.Amount, big.NewFloat(1e12)) 
+        o.Amount.Int(amtPi) 
+        //amtFloat, _ := o.Amount.Float64()
+        dests = append(dests, walletrpc.Destination{
+            Address: o.Address,
+            Amount:  amtPi.Uint64(), // piconero
+        })
+    }
+    if len(dests) == 0 {
+        return
+    }
 
-		txPool.outputs = make(map[string]*big.Float)
-		txPool.Unlock()
+    resp, err := mClient.Transfer(ctx, &walletrpc.TransferRequest{
+        Destinations: dests, 
+        AccountIndex: 0,
+        RingSize:     16,
+    })
+    if err != nil {
+        log.Printf("Monero PayToMany failed: %v", err)
+        return
+    }
 
-		txid, err := client.PayToMany(outs)
-		if err != nil {
-			log.Println("Ошибка PayToMany:", err)
+    log.Printf("Monero transaction successfully sent. TXID: %s, Fee: %.12f XMR",
+        resp.TxHash, float64(resp.Fee)/1e12)
+}
 
-			txPool.Lock()
-			for _, o := range outs {
-				val, _ := new(big.Float).SetString(o[1])
-				if existing, ok := txPool.outputs[o[0]]; ok {
-					txPool.outputs[o[0]] = new(big.Float).Add(existing, val)
-				} else {
-					txPool.outputs[o[0]] = val
-				}
-			}
-			txPool.Unlock()
+func StartTxPoolFlusher(client *electrum.Client, mClient *walletrpc.Client, interval time.Duration, maxBatchSize int) {
+    ticker := time.NewTicker(interval)
 
-			f, _ := os.OpenFile("FailedPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			defer f.Close()
-			fmt.Fprintf(f, "%s - PayToMany failed: %v\nOutputs: %+v\n", time.Now().Format(time.RFC3339), err, outs)
-		} else {
-			log.Println("PayToMany успешно, txid:", txid)
+    flush := func() {
+        txPool.Lock()
+        if len(txPool.outputs) == 0 {
+            txPool.Unlock()
+            return
+        }
 
-			f, _ := os.OpenFile("SuccessfulPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			defer f.Close()
-			fmt.Fprintf(f, "%s - txid: %s\nOutputs: %+v\n", time.Now().Format(time.RFC3339), txid, outs)
-			lastTx = strings.Trim(txid, `"'`)
-		}
-	}
+        payments := make(map[string][][2]string) // currency -> list of [address, amount]
+        for addr, items := range txPool.outputs {
+            for _, item := range items {
+                amtStr := item.Amount.Text('f', 8)
+                payments[item.Currency] = append(payments[item.Currency], [2]string{addr, amtStr})
+            }
+        }
 
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				flush()
-			default:
-				txPool.Lock()
-				tooBig := len(txPool.outputs) >= maxBatchSize
-				txPool.Unlock()
+        txPool.outputs = make(map[string][]TxPoolItem)
+        txPool.Unlock()
 
-				if tooBig {
-					log.Println("TxPool достиг лимита, выполняю срочный сброс")
-					flush()
-				} else {
-					time.Sleep(100 * time.Millisecond)
-				}
-			}
-		}
-	}()
+        for currency, outs := range payments {
+            var txid string
+            var err error
+            switch currency {
+            case "BTC":
+                txid, err = client.PayToMany(outs)
+            case "XMR":
+                var moneroOuts []struct {
+                    Address string
+                    Amount  *big.Float
+                }
+                for _, o := range outs {
+                    amt, _ := new(big.Float).SetString(o[1])
+                    moneroOuts = append(moneroOuts, struct {
+                        Address string
+                        Amount  *big.Float
+                    }{Address: o[0], Amount: amt})
+                }
+
+                flushMoneroTxPool(mClient, moneroOuts)
+            default:
+                log.Println("Unknown currency in txPool:", currency)
+                continue
+            }
+
+            if err != nil {
+                log.Println("Ошибка PayToMany для", currency, ":", err)
+
+                txPool.Lock()
+                for _, o := range outs {
+                    val, _ := new(big.Float).SetString(o[1])
+                    txPool.outputs[o[0]] = append(txPool.outputs[o[0]], TxPoolItem{Amount: val, Currency: currency})
+                }
+                txPool.Unlock()
+
+                f, _ := os.OpenFile("FailedPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+                defer f.Close()
+                fmt.Fprintf(f, "%s - PayToMany %s failed: %v\nOutputs: %+v\n", time.Now().Format(time.RFC3339), currency, err, outs)
+            } else {
+                log.Println("PayToMany успешно для", currency, "txid:", txid)
+                f, _ := os.OpenFile("SuccessfulPayments.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+                defer f.Close()
+                fmt.Fprintf(f, "%s - %s txid: %s\nOutputs: %+v\n", time.Now().Format(time.RFC3339), currency, txid, outs)
+            }
+        }
+    }
+
+    go func() {
+        for {
+            select {
+            case <-ticker.C:
+                flush()
+            default:
+                txPool.Lock()
+                tooBig := 0
+                for _, items := range txPool.outputs {
+                    tooBig += len(items)
+                }
+                txPool.Unlock()
+
+                if tooBig >= maxBatchSize {
+                    log.Println("TxPool достиг лимита, выполняю срочный сброс")
+                    flush()
+                } else {
+                    time.Sleep(100 * time.Millisecond)
+                }
+            }
+        }
+    }()
 }

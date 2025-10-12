@@ -43,32 +43,43 @@ class DashboardController extends AbstractController
         $isAdmin = false;
         $jwt = $session->get('jwt', '');
 
+        $walletBtcResponse = null;
+        $walletXmrResponse = null;
+
         if (!$jwt) {
             $message = $translator->trans('auth.jwt_missing');
         } else {
             try {
+                // Проверяем админку
                 $isAdminResponse = $mfrelance->doRequest('api/admin/IIsAdmin', $jwt);
-                // var_dump($isAdminResponse);
                 if (200 === $isAdminResponse['httpCode']) {
                     $isAdminResponse = json_decode($isAdminResponse['response'], true);
                     $isAdmin = $isAdminResponse['is_admin'];
                 }
-                $walletResponse = $mfrelance->doRequest('api/wallet?currency=BTC', $jwt);
-                if (200 === $walletResponse['httpCode']) {
-                    $walletInfo = json_decode($walletResponse['response'], true);
-                } else {
-                    $message = 'Ошибка при получении кошелька: '.$walletResponse['response'];
+
+                // Получаем кошельки
+                $walletBtcResponse = $mfrelance->doRequest('api/wallet?currency=BTC', $jwt);
+                $walletXmrResponse = $mfrelance->doRequest('api/wallet?currency=XMR', $jwt);
+
+                if (200 !== $walletBtcResponse['httpCode']) {
+                    $message = 'Ошибка при получении BTC кошелька: '.$walletBtcResponse['response'];
                     $session->remove('jwt');
                 }
+
+                if (200 !== $walletXmrResponse['httpCode']) {
+                    $message = 'Ошибка при получении XMR кошелька: '.$walletXmrResponse['response'];
+                    $session->remove('jwt');
+                }
+
             } catch (\Exception $e) {
-                $message = 'Ошибка запроса кошелька: '.$e->getMessage();
+                $message = 'Ошибка запроса кошельков: '.$e->getMessage();
                 $session->remove('jwt');
             }
 
-            // send BTC
-            if ($request->isMethod('POST')) {
-                $to = $request->request->get('to');
-                $amount = $request->request->get('amount');
+            // === Отправка BTC ===
+            if ($request->isMethod('POST') && $request->request->has('send_btc')) {
+                $to = $request->request->get('to_btc');
+                $amount = $request->request->get('amount_btc');
 
                 if ($to && $amount) {
                     try {
@@ -83,17 +94,41 @@ class DashboardController extends AbstractController
                     }
                 }
             }
+
+            // === Отправка XMR ===
+            if ($request->isMethod('POST') && $request->request->has('send_xmr')) {
+                $to = $request->request->get('to_xmr');
+                $amount = $request->request->get('amount_xmr');
+
+                if ($to && $amount) {
+                    try {
+                        $sendResponse = $mfrelance->doRequest("api/wallet/moneroSend?to=$to&amount=$amount", $jwt, null, false);
+                        $sendResult = $sendResponse['response'];
+
+                        if (200 !== $sendResponse['httpCode']) {
+                            $message = 'Ошибка отправки XMR: '.$sendResult;
+                        }
+                    } catch (\Exception $e) {
+                        $message = 'Ошибка отправки XMR: '.$e->getMessage();
+                    }
+                }
+            }
         }
+
         $projectName = $this->getParameter('project_name');
+        $walletBtcResponse = json_decode($walletBtcResponse['response']);
+        $walletXmrResponse = json_decode($walletXmrResponse['response']);
 
         return $this->render('dashboard/index.html.twig', [
-            'walletInfo' => $walletInfo,
+            'walletBtcInfo' => $walletBtcResponse,
+            'walletXmrInfo' => $walletXmrResponse,
             'sendResult' => $sendResult,
             'message' => $message,
             'projectName' => $projectName,
             'isAdmin' => $isAdmin,
         ]);
     }
+
 
     #[Route('/profiles', name: 'app_profiles')]
     public function profiles(Request $request, MFrelance $mfrelance, SessionInterface $session, TranslatorInterface $translator): Response

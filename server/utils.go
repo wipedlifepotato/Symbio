@@ -113,6 +113,11 @@ func IsValidBTCAddress(address string) bool {
 	return re.MatchString(address)
 }
 
+func IsValidXMRAddress(address string) bool {
+	re := regexp.MustCompile(`^[48B9][123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{94}$`)
+	return re.MatchString(address)
+}
+
 func SanitizeString(s string) string {
 	return html.EscapeString(s)
 }

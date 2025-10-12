@@ -42,7 +42,9 @@ func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Cl
 		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	//println("Test wallet");
 	if wallet == nil {
+	  //  println("Wallet is nil")
 		var address string
 		switch currency {
 		case "XMR":
@@ -91,22 +93,138 @@ func WalletHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Cl
 		}
 		wallet = &db.WalletBalance{Address: address, Balance: 0}
 	}
+	//println("Return wallet")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(wallet)
 }
 
+var moneroAmountRe = regexp.MustCompile(`^\d+(\.\d{1,12})?$`) // допустимо до 12 знаков после запятой
+
 // SendMoneroHandler godoc
 // @Summary Send Monero
-// @Description Sends Monero transaction (not implemented)
+// @Description Sends Monero transaction
 // @Tags wallet
 // @Accept json
 // @Produce json
+// @Param to query string true "Destination address"
+// @Param amount query string true "Amount"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Security BearerAuth
 // @Router /api/wallet/moneroSend [post]
 func SendMoneroHandler(w http.ResponseWriter, r *http.Request, mClient *walletrpc.Client) {
-	// TODO
+	claims := server.GetUserFromContext(r)
+	if claims == nil {
+		http.Error(w, "user not found", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
+
+	destAddress := r.URL.Query().Get("to")
+	amountStr := r.URL.Query().Get("amount")
+
+	if destAddress == "" || amountStr == "" {
+		http.Error(w, "destination and amount required", http.StatusBadRequest)
+		return
+	}
+	if !moneroAmountRe.MatchString(amountStr) {
+		http.Error(w, "amount must have at most 12 decimal places", http.StatusBadRequest)
+		return
+	}
+	if !server.IsValidXMRAddress(destAddress) {
+		http.Error(w, "invalid output address", http.StatusBadRequest)
+		return	
+	}
+
+	amount, ok := new(big.Float).SetString(amountStr)
+	if !ok {
+		http.Error(w, "invalid amount", http.StatusBadRequest)
+		return
+	}
+
+	userWallet, err := models.GetWalletByUserAndCurrency(db.Postgres, userID, "XMR")
+	if err != nil {
+		http.Error(w, "failed to get wallet: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	userBalance := userWallet.BigBalance()
+	if userBalance.Cmp(amount) < 0 {
+		http.Error(w, "insufficient balance", http.StatusBadRequest)
+		return
+	}
+	commissionPerc := big.NewFloat(config.AppConfig.MoneroCommission)
+	commission := new(big.Float).Quo(new(big.Float).Mul(amount, commissionPerc), big.NewFloat(100))
+	remaining := new(big.Float).Sub(amount, commission)
+	if remaining.Cmp(big.NewFloat(0)) <= 0 {
+		http.Error(w, "amount too small for commission", http.StatusBadRequest)
+		return
+	}
+	minXMR := big.NewFloat(0.001)
+	if amount.Cmp(minXMR) < 0 {
+		http.Error(w, "amount below minimum", http.StatusBadRequest)
+		return
+	}
+	req := PendingRequest{
+		UserID:    userID,
+		To:        destAddress,
+        Amount: amountStr, 
+        Remaining: remaining.Text('f',12),
+        Commission: commission.Text('f',12),
+		Timestamp: time.Now().Unix(),
+	}
+	if err := savePendingRequest(req); err != nil {
+		log.Printf("Failed to save pending request: %v", err)
+	}
+
+	if err := userWallet.SubBalance(db.Postgres, amount); err != nil {
+		http.Error(w, "failed to update balance: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	isOur, err := db.IsOurWalletAddress(db.Postgres, destAddress, "XMR")
+	if err != nil {
+		http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	tx := models.Transaction{
+		FromWalletID: sql.NullInt64{Int64: userWallet.ID, Valid: true},
+		ToWalletID:   sql.NullInt64{Valid: false},
+		ToAddress:    sql.NullString{String: destAddress, Valid: true},
+		Amount:       remaining.Text('f', 12),
+		Currency:     "XMR",
+		Confirmed:    false,
+	}
+
+	if isOur {
+		if destWallet, err := models.GetWalletByAddress(db.Postgres, destAddress, "XMR"); err == nil {
+			tx.ToWalletID = sql.NullInt64{Int64: destWallet.ID, Valid: true}
+		}
+	}
+
+	if err := db.SaveTransaction(db.Postgres, &tx); err != nil {
+		log.Printf("Failed to save transaction: %v", err)
+	}
+
+	if !isOur {
+		server.AddToTxPool(destAddress, remaining, "XMR")
+		server.AddToTxPool(config.AppConfig.MoneroAddress, commission, "XMR")
+		log.Printf("Added to pool: to=%s amount=%s", destAddress, amount.Text('f', 12))
+	} else {
+		if err := models.AddToWalletBalance(db.Postgres, destAddress, "XMR", amount); err != nil {
+			http.Error(w, "DB error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":        "ok",
+		"queued_amount": amount.Text('f', 12),
+		"from":          userWallet.Address,
+		"to":            destAddress,
+	})
 }
 
 type PendingRequest struct {
@@ -237,8 +355,8 @@ func SendElectrumHandler(w http.ResponseWriter, r *http.Request, client *electru
 	}
 
 	if !isOur {
-		server.AddToTxPool(config.AppConfig.BitcoinAddress, commission)
-		server.AddToTxPool(destAddress, remaining)
+		server.AddToTxPool(config.AppConfig.BitcoinAddress, commission, "BTC")
+		server.AddToTxPool(destAddress, remaining, "BTC")
 		log.Printf("Added to pool: to=%s amount=%s commission=%s", destAddress, remaining.Text('f', 8), commission.Text('f', 8))
 	} else {
 		if err := models.AddToWalletBalance(db.Postgres, destAddress, "BTC", remaining); err != nil {

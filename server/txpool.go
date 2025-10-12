@@ -23,12 +23,11 @@ func IsTxPoolBlocked() bool {
 }
 
 // AddToTxPool aggregates outputs for batch payout in goroutines.go
-func AddToTxPool(address string, amount *big.Float) {
-	txPool.Lock()
-	if existing, ok := txPool.outputs[address]; ok {
-		txPool.outputs[address] = new(big.Float).Add(existing, amount)
-	} else {
-		txPool.outputs[address] = new(big.Float).Set(amount)
-	}
-	txPool.Unlock()
+func AddToTxPool(address string, amount *big.Float, currency string) {
+    txPool.Lock()
+    defer txPool.Unlock()
+    txPool.outputs[address] = append(txPool.outputs[address], TxPoolItem{
+        Amount:   amount,
+        Currency: currency,
+    })
 }
